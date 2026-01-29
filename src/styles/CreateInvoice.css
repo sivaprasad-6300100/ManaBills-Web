@@ -1,0 +1,142 @@
+.invoice-page-full {
+  padding: 28px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc, #eef2ff);
+  font-family: system-ui, sans-serif;
+}
+
+h2 {
+  margin-bottom: 18px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+input,
+select {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  transition: 0.2s;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* TOP */
+.top-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr auto;
+  gap: 14px;
+  background: #ffffff;
+  padding: 18px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+}
+
+.gst-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+/* LAYOUT */
+.invoice-layout {
+  display: grid;
+  grid-template-columns: 2.8fr 1.2fr;
+  gap: 22px;
+}
+
+/* ITEMS */
+.items-section {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+}
+
+.items-header {
+  display: grid;
+  grid-template-columns: 2fr 0.7fr 1fr 1fr;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.item-row {
+  display: grid;
+  grid-template-columns: 2fr 0.7fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+
+.amount-box {
+  font-weight: 600;
+  color: #0f172a;
+  text-align: right;
+}
+
+/* ADD */
+.add-btn {
+  margin-top: 14px;
+  background: #eef2ff;
+  color: #4338ca;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* SUMMARY */
+.summary-panel {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 24px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 16px 0;
+}
+
+.balance {
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.generate-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}

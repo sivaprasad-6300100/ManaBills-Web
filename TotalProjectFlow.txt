@@ -1,0 +1,49 @@
+backend/
+│
+├── manage.py
+│
+├── config/                     ← Project settings folder
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── settings.py             ← PostgreSQL, DRF, JWT, Custom User
+│   ├── urls.py                 ← Main API routes
+│   └── wsgi.py
+│
+├── accounts/                   ← AUTH & USER MANAGEMENT
+│   ├── __init__.py
+│   ├── admin.py                ← Custom user admin
+│   ├── apps.py
+│   ├── models.py               ← AbstractBaseUser (email/mobile)
+│   ├── managers.py             ← Custom UserManager
+│   ├── serializers.py          ← Signup, Login, Logout serializers
+│   ├── views.py                ← Signup, Login, Logout APIs
+│   ├── urls.py                 ← /api/auth/*
+│   ├── permissions.py          ← (optional) custom permissions
+│   └── migrations/
+│       └── __init__.py
+│
+├── billing/                    ← GST BILLING MODULE (next phase)
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py               ← Invoice, Items, GST, Payments
+│   ├── serializers.py
+│   ├── views.py
+│   ├── urls.py
+│   └── migrations/
+│
+├── expenses/                   ← HOME EXPENSE TRACKING
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py               ← Daily expenses
+│   ├── serializers.py
+│   ├── views.py
+│   ├── urls.py
+│   └── migrations/
+│
+├── media/                      ← PDF invoices storage
+│   └── invoices/
+│
+├── requirements.txt            ← Python dependencies
+└── .env                        ← DB secrets, JWT secrets

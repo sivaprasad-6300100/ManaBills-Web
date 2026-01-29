@@ -1,0 +1,267 @@
+src/
+│
+├── App.js
+├── index.js
+│
+├── routes/
+│   ├── AppRoutes.jsx----------
+│   ├── ProtectedRoute.jsx----------
+│   └── SubscriptionGuard.jsx-------------
+│
+├── pages/
+│   ├── public/
+│   │   ├── HomePage.jsx--------*
+│   │   ├── LoginPage.jsx--------*
+│   │   └── SignupPage.jsx--------*
+│   │
+│   ├── dashboard/
+│   │   ├── MainDashboard.jsx-----------
+│   │   └── DashboardHome.jsx--------
+│   │
+|   |
+|   |
+│   ├── subscriptions/
+│   │   └── SubscriptionPage.jsx------------
+|   |   ├── BusinessSubscription.jsx
+|   |   ├── HomeExpenseSubscription.jsx
+|   |   ├── ConstructionSubscription.jsx
+|   |   └── CustomSubscription.jsx
+│   │
+│   ├── business_billing/
+|   |   |__BusinessLayout.jsx   ✅ NEW-----------
+│   │   ├── BusinessHome.jsx-----------
+│   │   ├── CreateInvoice.jsx---------
+│   │   ├── InvoiceHistory.jsx---------
+│   │   ├── Products.jsx---------
+│   │   ├── Customers.jsx-------
+│   │   └── GstReports.jsx-------
+│   │
+│   ├── home-expense/
+|   |   |--ExpenseLayout.jsx   ✅ NEW--------
+│   │   ├── ExpenseHome.jsx----------
+│   │   ├── AddExpense.jsx-----------
+│   │   ├── Categories.jsx--------
+│   │   ├── MonthlySummary.jsx------------
+│   │   └── Reports.jsx---------
+│   │
+│   ├── construction/
+|   |   |--ConstructionLayout.jsx   ✅ NEW-----------
+│   │   ├── ConstructionHome.jsx------------
+│   │   ├── AddCost.jsx-------------
+│   │   ├── ProjectBills.jsx-------------
+│   │   ├── Payments.jsx-------------
+│   │   └── ProjectSummary.jsx-----------
+│   │
+│   ├── customized/
+|   |   |---CustomLayout.jsx      ✅ NEW--
+│   │   ├── CustomHome.jsx-----------
+│   │   └── CustomEstimates.jsx-----------
+│   │
+│   └── account/
+│       ├── Profile.jsx
+│       ├── SubscriptionHistory.jsx
+│       └── Settings.jsx
+│
+├── components/
+│   ├── layout/
+│   │   ├── Sidebar.jsx---------
+│   │   ├── Topbar.jsx----------
+│   │   └── DashboardLayout.jsx-----------
+│   │
+│   ├── common/
+│   │   ├── Button.jsx
+│   │   ├── Loader.jsx
+│   │   └── EmptyState.jsx
+│
+│   └── cards/
+│       ├── SummaryCard.jsx------------------
+│       └── UpgradeCard.jsx-----------------
+|       **********************SubscriptionPlanCard.jsx********************
+│
+├── services/
+│   ├── api.js
+│   ├── authService.js
+│   └── subscriptionService.js
+│
+├── context/
+│   ├── AuthContext.jsx-------------------
+│   └── SubscriptionContext.jsx-----------------
+│
+├── hooks/
+│   ├── useAuth.js----------------
+│   └── useSubscription.js--------------
+│
+├── utils/
+│   └── constants.js-----------
+│
+└── styles/
+    └── main.css-------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Frontend Project Structure =============
+
+
+AI BILLING & EXPENSE MANAGEMENT SYSTEM (MANABILLS)
+│
+├── 1. HOME PAGE (Public)
+│     ├── Welcome Text / Product Intro
+│     ├── Button: Signup
+│     └── Button: Login
+│
+├── 2. SIGNUP PAGE
+│     ├── Full Name
+│     ├── Mobile Number
+│     ├── Password
+│     └── Signup Success → Dashboard
+│
+├── 3. LOGIN PAGE
+│     ├── Mobile Number
+│     ├── Password
+│     └── Login Success → Dashboard
+│
+├── 4. MAIN DASHBOARD (After Login)
+│     │
+│     ├── LEFT SIDE NAVIGATION
+│     │     ├── Home
+│     │     ├── Business Billing
+│     │     ├── Home Expense Tracker
+│     │     ├── Construction / Apartment Billing
+│     │     ├── Customized Billing
+│     │     └── Accounts / Settings
+│     │
+│     └── DASHBOARD HOME CONTENT
+│           │
+│           ├── IF NO SUBSCRIPTION
+│           │     └── Welcome Message
+│           │           "Hi, Welcome to Manabills"
+│           │
+│           └── IF SUBSCRIPTION ACTIVE
+│                 │
+│                 ├──  if Business Billing Plan Active
+│                 │     ├── Total Stock Value
+│                 │     └── Total Billing Amount
+│                 │
+│                 ├──  if Home Expense Plan Active
+│                 │     ├── Monthly Income
+│                 │     ├── Total Expenses
+│                 │     └── Remaining Balance
+│                 │
+│                 ├──  if Construction Plan Active
+│                 │     ├── Total Estimate
+│                 │     └── Total Spent Amount
+│                 │
+│                 ├──  if Customized Billing Plan Active
+│                 │     └── Custom Estimates & Features
+│                 │
+│                 └──  if ALL PLANS ACTIVE
+│                       ├── Business Billing
+│                       ├── Home Expenses
+│                       ├── Construction
+│                       └── Customized Billing
+│
+├── 5. BUSINESS BILLING MODULE
+│     │
+│     ├── Billing Home Page  ====if user not take subscription please show subscription page 
+│     │                          
+│     ├── 1. Shop Profile / Settings
+│     │     ├── Shop Name
+│     │     ├── Shop Address
+│     │     ├── GSTIN / Tax ID
+│     │     ├── Contact Number / Email
+│     │     ├── Logo (Optional)
+│     │     └── Edit / Update Anytime
+│     │
+│     ├── 2. Product / Service & Stock Management
+│     │     ├── Add / Edit / Delete Products
+│     │     ├── Bulk Upload (CSV / Excel)
+│     │     │     ├── Product Name
+│     │     │     ├── Quantity
+│     │     │     ├── Purchase Price
+│     │     │     ├── Selling Price
+│     │     │     └── GST Rate
+│     │     ├── Track Stock Levels
+│     │     └── Auto Stock Update on Billing
+│     │
+│     ├── 3. Create Invoice
+│     │     ├── Auto Shop Details
+│     │     ├── Customer Details
+│     │     ├── Select Products / Services
+│     │     ├── Auto Stock Reduction
+│     │     ├── Stock Warning
+│     │     ├── Auto GST Calculation
+│     │     └── Invoice PDF Generation
+│     │
+│     ├── 4. Invoice History
+│     │     ├── Search (Date / Customer / Invoice No)
+│     │     ├── Paid / Unpaid Filter
+│     │     └── Download / Print PDF
+│     │
+│     ├── 5. GST Reports
+│     │     ├── Monthly / Quarterly Reports
+│     │     ├── Export CSV / Excel
+│     │     └── GST Charts
+│     │
+│     ├── 6. Customer Management
+│     │     ├── Add / Edit / Delete Customers
+│     │     └── Customer Transaction History
+│     │
+│     ├── 7. Payment Tracking
+│     │     ├── Paid / Unpaid Status
+│     │     ├── Partial Payments
+│     │     └── Outstanding Amounts
+│     │
+│     └── 8. Notifications / Alerts
+│           ├── Unpaid Invoice Reminders
+│           └── Low Stock Alerts
+│
+├── 6. HOME EXPENSE TRACKER MODULE  
+|     |--Home Expense Home Page ====if user not take subscription please show subscription page  
+│     ├── Expense Home Page
+│     ├── Add Daily Expenses
+│     ├── Expense Categories
+│     ├── Monthly Summary & Charts
+│     ├── Recurring Expenses
+│     └── Export Report (CSV / Excel)
+│
+├── 7. CONSTRUCTION / APARTMENT BILLING MODULE  
+|     |---Construction Home Page  ====if user not take subscription please show subscription page 
+│     ├── Project Home Page
+│     ├── Add Materials & Labor Cost
+│     ├── Generate Project Bills
+│     ├── Track Payments & Pending Amounts
+│     ├── Project / Phase Wise Tracking
+│     └── Export Project Cost Summary
+|
+│---8.Customized Estimation Billing
+|     |
+|     |--Customized Estimation Billing Home  ====if user not take subscription please show subscription page 
+|     |--
+|
+|
+└── 9. ACCOUNTS / SETTINGS
+      ├── Profile Information
+      ├── Subscription History
+      ├── Change / Upgrade Plan
+      └── Logout
