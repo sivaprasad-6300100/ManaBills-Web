@@ -1,0 +1,203 @@
+/* =============================================
+   HOME EXPENSE TRACKER MODULE CSS
+   src/styles/expense/expense.css
+   Covers: ExpenseHome, AddExpense, Categories,
+           MonthlyIncome, MonthlySummary, Reports,
+           EstimatedAmount
+============================================= */
+
+/* ───────────────────────────────────────────
+   EXPENSE HOME  (ExpenseHome.jsx)
+─────────────────────────────────────────── */
+.expense-home {
+  padding: 6px;
+}
+
+.expense-hero {
+  background: linear-gradient(135deg, #065f46, #0f766e);
+  border-radius: 18px;
+  padding: 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+  margin-bottom: 28px;
+}
+
+.expense-hero h2 { font-size: 26px; font-weight: 600; }
+.expense-hero p  { opacity: 0.9; margin-top: 6px; }
+
+.hero-action {
+  background: #22c55e;
+  color: #064e3b;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+.hero-action:hover { background: #16a34a; color: #fff; }
+
+/* Quick action cards grid */
+.expense-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 30px;
+}
+
+.expense-action-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  transition: 0.3s ease;
+}
+.expense-action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
+}
+.expense-action-card svg  { font-size: 26px; color: #0f766e; }
+.expense-action-card span { font-weight: 500; font-size: 15px; }
+
+/* Expense summary grid */
+.expense-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+/* ───────────────────────────────────────────
+   MONTHLY INCOME / BILLS  (MonthlyIncome.jsx)
+─────────────────────────────────────────── */
+.income-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.income-card {
+  width: 100%;
+  max-width: 700px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border-radius: 24px;
+  padding: 38px;
+  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.12);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.income-section-title {
+  margin: 28px 0 14px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.income-card input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  background: #f9fafb;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.income-card input:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Highlight boxes */
+.highlight-box {
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.income-box { background: linear-gradient(135deg, #ecfeff, #cffafe); color: #0f766e; }
+.bills-box  { background: linear-gradient(135deg, #fff7ed, #ffedd5); color: #9a3412; }
+
+/* Remaining balance */
+.remaining-box {
+  margin: 30px 0;
+  padding: 22px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.remaining-box span   { font-size: 15px; font-weight: 700; color: #047857; }
+.remaining-box strong { font-size: 26px; font-weight: 900; color: #065f46; }
+
+/* Bill rows */
+.bill-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1.2fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.bill-row input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #f9fafb;
+  font-size: 14px;
+  margin-bottom: 0;
+}
+
+.delete-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Buttons */
+.income-add-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #eef2ff;
+  color: #1e40af;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+.income-add-btn:hover { background: #e0e7ff; }
+
+.income-save-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.income-save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.45);
+}

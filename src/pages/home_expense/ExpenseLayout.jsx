@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
+import "../../styles/expense/expense.css"
 
 const ExpenseLayout = () => {
   return (
@@ -8,6 +9,12 @@ const ExpenseLayout = () => {
       <div className="sub-nav">
         <NavLink to="" end className="sub-link">
           Overview
+        </NavLink>
+        <NavLink to="monthly-income" className="sub-link">
+          Monthly Income
+        </NavLink>
+        <NavLink to="estimate-amount" className="sub-link">
+          Estimate Amount
         </NavLink>
         <NavLink to="add" className="sub-link">
           Add Expense

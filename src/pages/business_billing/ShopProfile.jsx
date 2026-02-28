@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "../../styles/ShopProfile.css";
+// import "../../styles/ShopProfile.css";
 
 const ShopProfile = () => {
   const [shop, setShop] = useState({
@@ -36,7 +36,7 @@ const ShopProfile = () => {
       <h2>Shop / Business Details</h2>
 
       <div className="shop-card">
-        <div className="grid">
+        <div className="shop-grid">
           <input
             type="text"
             name="shopName"
@@ -128,7 +128,7 @@ const ShopProfile = () => {
           )}
         </div>
 
-        <button className="save-btn" onClick={saveShopDetails}>
+        <button className="shop-save-btn" onClick={saveShopDetails}>
           Save Shop Details
         </button>
       </div>

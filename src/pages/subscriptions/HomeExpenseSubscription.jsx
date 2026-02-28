@@ -1,11 +1,10 @@
 import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubscriptionContext } from "../../context/SubscriptionContext";
-import SubscriptionPlanCard from "../../context/SubscriptionPlanCard";
 
 const HomeExpenseSubscription = () => {
   const navigate = useNavigate();
-  const { subscriptions, subscribe } = useContext(SubscriptionContext);
+  const { subscribe } = useContext(SubscriptionContext); // ✅ CORRECT
 
   const plans = [
     {
@@ -19,10 +18,17 @@ const HomeExpenseSubscription = () => {
         "10 Days add daily bills",
         "Single user (no family members)",
         "View monthly total spending",
-        "1 reminder only (e.g., rent OR bill)",
+        "1 reminder only (rent OR bill)",
         "Simple monthly summary (screen view only)",
       ],
-      action: () => navigate("/dashboard/home-expense"),
+      action: () => {
+        subscribe("home-expense", {
+          status: "FREE_TRIAL",
+          expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        navigate("/dashboard/home-expense");
+      },
       btnText: "Start Free Trial",
     },
     {
@@ -31,7 +37,6 @@ const HomeExpenseSubscription = () => {
       tag: "Most Popular",
       price: "₹99 / month",
       duration: "per month",
-      description: "Best for families",
       features: [
         "Up to 5 family members",
         "Category-wise expense tracking",
@@ -44,7 +49,7 @@ const HomeExpenseSubscription = () => {
         navigate("/subscription/checkout", {
           state: { planKey: "home_basic" },
         }),
-      btnText: "choose Basic",
+      btnText: "Choose Basic",
     },
     {
       key: "home_pro",
@@ -52,12 +57,11 @@ const HomeExpenseSubscription = () => {
       tag: "Smart Families",
       price: "₹149 / month",
       duration: "per month",
-      description: "For planning & control",
       features: [
         "All basic features included",
         "1 year expenses data view",
         "1 year reports showing wasteful spending",
-        "how much you can save monthly",
+        "How much you can save monthly",
       ],
       action: () =>
         navigate("/subscription/checkout", {

@@ -1,161 +1,3 @@
-// import React from "react";
-// import { Routes, Route } from "react-router-dom";
-
-// /* Layout */
-// import DashboardLayout from "../components/layout/DashboardLayout";
-
-// /* Public Pages */
-// import HomePage from "../pages/public/HomePage";
-
-// /* Dashboard */
-// import DashboardHome from "../pages/dashboard/DashboardHome";
-
-// /* Business */
-// import BusinessLayout from "../pages/business_billing/BusinessLayout";
-// import BusinessHome from "../pages/business_billing/BusinessHome";
-// import CreateInvoice from "../pages/business_billing/CreateInvoice";
-// import InvoiceHistory from "../pages/business_billing/InvoiceHistory";
-// import Products from "../pages/business_billing/Products";
-// import Customers from "../pages/business_billing/Customers";
-// import GstReports from "../pages/business_billing/GstReports";
-
-// /* Home Expense */
-// import ExpenseLayout from "../pages/home_expense/ExpenseLayout";
-// import ExpenseHome from "../pages/home_expense/ExpenseHome";
-// import AddExpense from "../pages/home_expense/AddExpense";
-// import Categories from "../pages/home_expense/Categories";
-// import MonthlySummary from "../pages/home_expense/MonthlySummary";
-// import Reports from "../pages/home_expense/Reports";
-
-// /* Construction */
-// import ConstructionLayout from "../pages/construction/ConstructionLayout";
-// import ConstructionHome from "../pages/construction/ConstructionHome";
-// import AddCost from "../pages/construction/AddCost";
-// import ProjectBills from "../pages/construction/ProjectBills";
-// import Payments from "../pages/construction/Payments";
-// import ProjectSummary from "../pages/construction/ProjectSummary";
-
-// /* Custom */
-// import CustomLayout from "../pages/customized_billing/CustomLayout";
-// import CustomHome from "../pages/customized_billing/CustomHome";
-// import CustomEstimates from "../pages/customized_billing/CustomEstimates";
-
-// /* Account */
-// import Profile from "../pages/account/Profile";
-
-// /* Subscription */
-// import SubscriptionPage from "../pages/subscriptions/SubscriptionPage";
-
-// /* Guards */
-// import ProtectedRoute from "./ProtectedRoute";
-// import SubscriptionGuard from "./SubscriptionGuard";
-
-// const AppRoutes = () => {
-//   return (
-//     <Routes>
-//       {/* Public */}
-//       <Route path="/" element={<HomePage />} />
-
-//       {/* Dashboard */}
-//       <Route
-//         path="/dashboard"
-//         element={
-//           <ProtectedRoute>
-//             <DashboardLayout />
-//           </ProtectedRoute>
-//         }
-//       >
-//         <Route index element={<DashboardHome />} />
-
-//         {/* Business Billing */}
-//         <Route
-//           path="business"
-//           element={
-//             <SubscriptionGuard module="business">
-//               <BusinessLayout />
-//             </SubscriptionGuard>
-//           }
-//         >
-//           <Route index element={<BusinessHome />} />
-//           <Route path="products" element={<Products />} />
-//           <Route path="create-invoice" element={<CreateInvoice />} />
-//           <Route path="invoices" element={<InvoiceHistory />} />
-//           <Route path="customers" element={<Customers />} />
-//           <Route path="gst" element={<GstReports />} />
-//         </Route>
-
-//         {/* Home Expense */}
-//         <Route
-//           path="home-expense"
-//           element={
-//             <SubscriptionGuard module="home-expense">
-//               <ExpenseLayout />
-//             </SubscriptionGuard>
-//           }
-//         >
-//           <Route index element={<ExpenseHome />} />
-//           <Route path="add" element={<AddExpense />} />
-//           <Route path="categories" element={<Categories />} />
-//           <Route path="summary" element={<MonthlySummary />} />
-//           <Route path="reports" element={<Reports />} />
-//         </Route>
-
-//         {/* Construction */}
-//         <Route
-//           path="construction"
-//           element={
-//             <SubscriptionGuard module="construction">
-//               <ConstructionLayout />
-//             </SubscriptionGuard>
-//           }
-//         >
-//           <Route index element={<ConstructionHome />} />
-//           <Route path="add-cost" element={<AddCost />} />
-//           <Route path="bills" element={<ProjectBills />} />
-//           <Route path="payments" element={<Payments />} />
-//           <Route path="summary" element={<ProjectSummary />} />
-//         </Route>
-
-//         {/* Customized */}
-//         <Route
-//           path="custom"
-//           element={
-//             <SubscriptionGuard module="custom">
-//               <CustomLayout />
-//             </SubscriptionGuard>
-//           }
-//         >
-//           <Route index element={<CustomHome />} />
-//           <Route path="estimates" element={<CustomEstimates />} />
-//         </Route>
-//       </Route>
-
-//       {/* Account */}
-//       <Route
-//         path="/account/profile"
-//         element={
-//           <ProtectedRoute>
-//             <Profile />
-//           </ProtectedRoute>
-//         }
-//       />
-
-//       {/* Subscription */}
-//       <Route
-//         path="/subscription"
-//         element={
-//           <ProtectedRoute>
-//             <SubscriptionPage />
-//           </ProtectedRoute>
-//         }
-//       />
-//     </Routes>
-//   );
-// };
-
-// export default AppRoutes;
-
-
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
@@ -183,23 +25,31 @@ import DefaultItems from "../pages/business_billing/DefaultItems";
 /* Home Expense */
 import ExpenseLayout from "../pages/home_expense/ExpenseLayout";
 import ExpenseHome from "../pages/home_expense/ExpenseHome";
+import EstimatedAmount from "../pages/home_expense/EstimatedAmount";
 import AddExpense from "../pages/home_expense/AddExpense";
 import Categories from "../pages/home_expense/Categories";
+import MonthlyIncome from "../pages/home_expense/MonthlyIncome";
 import MonthlySummary from "../pages/home_expense/MonthlySummary";
 import Reports from "../pages/home_expense/Reports";
 
 /* Construction */
 import ConstructionLayout from "../pages/construction/ConstructionLayout";
 import ConstructionHome from "../pages/construction/ConstructionHome";
-import AddCost from "../pages/construction/AddCost";
-import ProjectBills from "../pages/construction/ProjectBills";
+import Budget from "../pages/construction/Budget";
+import WorkBills from "../pages/construction/WorkBills";
 import Payments from "../pages/construction/Payments";
-import ProjectSummary from "../pages/construction/ProjectSummary";
+import Summary from "../pages/construction/Summary";
+import SeparateBills from '../pages/construction/Separate_Bills'
 
 /* Custom */
 import CustomLayout from "../pages/customized_billing/CustomLayout";
-import CustomHome from "../pages/customized_billing/CustomHome";
-import CustomEstimates from "../pages/customized_billing/CustomEstimates";
+import Overview from "../pages/customized_billing/Overview";
+import CustomCustomers from "../pages/customized_billing/CustomCustomers";
+import CreateEstimate from "../pages/customized_billing/CreateEstimate";
+import CustomPayments from "../pages/customized_billing/CustomPayments";
+import CustomSummary from "../pages/customized_billing/CustomSummary";
+import Quotations from "../pages/customized_billing/Quotations";
+import Bills from "../pages/customized_billing/Bills";
 
 /* Account */
 import Profile from "../pages/account/Profile";
@@ -216,10 +66,12 @@ import ProtectedRoute from "./ProtectedRoute";
 import SubscriptionGuard from "./SubscriptionGuard";
 
 // All Css Pages =========
-import  '../styles/All_Billing.css'
-import '../styles/main.css'
-import '../styles/sidebar.css'
-import '../styles/CreateInvoice.css'
+import '../styles/global/dashboard.css';
+import '../styles/global/subscription.css';
+import '../styles/global/index.css';
+import '../styles/global/public.css'
+
+
 
 const AppRoutes = () => {
   return (
@@ -272,6 +124,8 @@ const AppRoutes = () => {
           <Route index element={<ExpenseHome />} />
           <Route path="add" element={<AddExpense />} />
           <Route path="categories" element={<Categories />} />
+          <Route path="monthly-income" element={<MonthlyIncome />} />
+          <Route path="estimate-amount" element={< EstimatedAmount/>} />
           <Route path="summary" element={<MonthlySummary />} />
           <Route path="reports" element={<Reports />} />
         </Route>
@@ -286,10 +140,12 @@ const AppRoutes = () => {
           }
         >
           <Route index element={<ConstructionHome />} />
-          <Route path="add-cost" element={<AddCost />} />
-          <Route path="bills" element={<ProjectBills />} />
+          <Route path="Budget" element={<Budget />} />
+          <Route path="WorkBills" element={<WorkBills />} />
           <Route path="payments" element={<Payments />} />
-          <Route path="summary" element={<ProjectSummary />} />
+          <Route path="summary" element={<Summary />} />
+          <Route path="Separate_Bills" element={<SeparateBills />} />
+
         </Route>
 
         {/* Customized */}
@@ -301,8 +157,13 @@ const AppRoutes = () => {
             </SubscriptionGuard>
           }
         >
-          <Route index element={<CustomHome />} />
-          <Route path="estimates" element={<CustomEstimates />} />
+          <Route index element={<Overview />} />
+          <Route path="create-estimate" element={<CreateEstimate />} />
+          <Route path="custom-customers" element={<CustomCustomers />} />
+          <Route path="custom-payments" element={<CustomPayments />} />
+          <Route path="custom-summary" element={<CustomSummary />} />
+          <Route path="quotations" element={<Quotations />} />
+          <Route path="custom-bills" element={<Bills />} />
         </Route>
       </Route>
 

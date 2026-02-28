@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
+import "../../styles/business/business.css"
 
 const BusinessLayout = () => {
   return (

@@ -1,11 +1,13 @@
-import React from "react";
-
-const SummaryCard = ({ title, value, subtitle }) => {
+const SummaryCard = ({ title, value, subtitle, icon }) => {
   return (
     <div className="summary-card">
-      <h4>{title}</h4>
-      <h2>{value}</h2>
-      <p>{subtitle}</p>
+      <div className="card-header">
+        <span className="card-icon">{icon}</span>
+        <h4>{title}</h4>
+      </div>
+
+      <div className="card-value">{value}</div>
+      <p className="card-subtitle">{subtitle}</p>
     </div>
   );
 };

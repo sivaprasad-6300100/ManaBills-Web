@@ -1,48 +1,69 @@
-import React, { useContext } from "react";
-import { SubscriptionContext } from "../../context/SubscriptionContext";
-import SubscriptionPlanCard from "../../context/SubscriptionPlanCard";
-const SubscriptionPage = () => {
-  const { subscriptions, subscribe } = useContext(SubscriptionContext);
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
-  const plans = [
+const SubscriptionPage = () => {
+  const navigate = useNavigate();
+
+  const modules = [
     {
       key: "business",
-      name: "Business Billing",
-      price: 499,
-      features: ["Create invoices", "Manage products", "GST reports"],
+      title: "Business Billing",
+      description: "Invoices, GST, stock & customer management",
+      price: "₹199/month",
+      trial: "3 Days Free Trial",
+      route: "/subscription/business",
     },
     {
       key: "home-expense",
-      name: "Home Expense",
-      price: 299,
-      features: ["Track expenses", "Monthly summary", "Export reports"],
+      title: "Home Expense Tracker",
+      description: "Track family expenses & monthly savings",
+      price: "₹99/month",
+      trial: "7 Days Free Trial",
+      route: "/subscription/home-expense",
     },
     {
       key: "construction",
-      name: "Construction Billing",
-      price: 699,
-      features: ["Project costs", "Payments", "Project summary"],
+      title: "Construction Billing",
+      description: "Project cost, contractor & labor payments",
+      price: "₹699/month",
+      trial: "Free Plan Available",
+      route: "/subscription/construction",
     },
     {
       key: "custom",
-      name: "Customized Billing",
-      price: 999,
-      features: ["Custom estimates", "Advanced features"],
+      title: "Customized Billing",
+      description: "Tailor-made billing & workflows",
+      price: "₹199/month",
+      trial: "3 Days Free Trial",
+      route: "/subscription/custom",
     },
   ];
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", padding: "20px" }}>
-      {plans.map((plan) => (
-        <SubscriptionPlanCard
-          key={plan.key}
-          plan={plan.name}
-          price={plan.price}
-          features={plan.features}
-          active={subscriptions[plan.key] === true}
-          onSubscribe={() => subscribe(plan.key)}
-        />
-      ))}
+    <div className="sp-container">
+      <h2 className="sp-title">Select Your Module</h2>
+      <p className="sp-subtitle">
+        Each module has unique plans. Click on a module to explore its features.
+      </p>
+
+      <div className="sp-modules">
+        {modules.map((module) => (
+          <div key={module.key} className="sp-card">
+            <h3 className="sp-card-title">{module.title}</h3>
+            <p className="sp-card-desc">{module.description}</p>
+
+            <div className="sp-card-price">{module.price}</div>
+            <div className="sp-card-trial">{module.trial}</div>
+
+            <button
+              className="sp-btn"
+              onClick={() => navigate(module.route)}
+            >
+              View Plans →
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

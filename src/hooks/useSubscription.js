@@ -1,25 +1,18 @@
+// src/hooks/useSubscription.js
 import { useContext } from "react";
 import { SubscriptionContext } from "../context/SubscriptionContext";
 
 const useSubscription = () => {
-  const context = useContext(SubscriptionContext);
+  const { subscriptions, subscribe, unsubscribe, loading } = useContext(SubscriptionContext);
 
-  if (!context) {
-    throw new Error("useSubscription must be used inside SubscriptionProvider");
-  }
-
-  const { subscriptions, subscribe, unsubscribe } = context;
-
-  const hasSubscription = (moduleKey) => {
-    return subscriptions.includes(moduleKey);
+  const hasAccess = (module) => {
+    const sub = subscriptions[module];
+    if (!sub) return false;
+    if (sub.expiresAt && Date.now() > sub.expiresAt) return false;
+    return true;
   };
 
-  return {
-    subscriptions,
-    hasSubscription,
-    subscribe,
-    unsubscribe,
-  };
+  return { subscriptions, hasAccess, subscribe, unsubscribe, loading };
 };
 
 export default useSubscription;

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import "../../styles/CreateInvoice.css";
+// import "../../styles/CreateInvoice.css";
 
 const CreateInvoice = () => {
   const [isGST, setIsGST] = useState(false);
