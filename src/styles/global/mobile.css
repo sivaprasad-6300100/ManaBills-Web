@@ -1,0 +1,918 @@
+/* ╔══════════════════════════════════════════════════════════════╗
+   ║          MANABILLS — MOBILE RESPONSIVE CSS                   ║
+   ║          src/styles/mobile.css                               ║
+   ║                                                              ║
+   ║  Breakpoints:                                                ║
+   ║    xs  → max-width: 360px   (small phones)                  ║
+   ║    sm  → max-width: 480px   (phones)                        ║
+   ║    md  → max-width: 768px   (tablets / large phones)        ║
+   ║    lg  → max-width: 1024px  (small laptops)                 ║
+   ║                                                              ║
+   ║  NOTE: Sidebar / Topbar / Bottom-nav styles live in:        ║
+   ║        mobile_bottom_nav.css                                 ║
+   ║  Import order in index.js:                                   ║
+   ║    1. dashboard.css                                          ║
+   ║    2. mobile.css          ← this file                       ║
+   ║    3. mobile_bottom_nav.css  ← always last                  ║
+   ╚══════════════════════════════════════════════════════════════╝ */
+
+
+/* ================================================================
+   GLOBAL MOBILE RESETS
+================================================================ */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    overflow-x: hidden;
+    font-size: 15px;
+  }
+
+  /* Prevent inputs from zooming on iOS */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+
+/* ================================================================
+   1. PUBLIC PAGE — HomePage.jsx
+      Classes: .homepage, .public-navbar, .hero, .hero-text,
+               .hero-image, .form-container, .features,
+               .why-choose, .footer
+================================================================ */
+@media (max-width: 768px) {
+
+  .public-navbar {
+    padding: 0.65rem 1rem;
+  }
+
+  .public-navbar .brand {
+    font-size: 1.25rem;
+  }
+
+  .public-navbar .buttons {
+    gap: 0.6rem;
+  }
+
+  .public-navbar button {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .public-navbar .signup-btn {
+    margin-right: 0;
+  }
+
+  .hero {
+    flex-direction: column;
+    margin-left: 0;
+    padding: 1.5rem 1rem;
+    gap: 1.5rem;
+    margin-top: 0;
+  }
+
+  .hero-text {
+    text-align: center;
+  }
+
+  .hero-text h1 {
+    font-size: 1.7rem;
+    line-height: 1.3;
+  }
+
+  .hero-text p {
+    font-size: 0.9rem;
+    max-width: 100%;
+  }
+
+  .hero-text .hero-buttons {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.6rem;
+  }
+
+  .hero-text .hero-buttons button {
+    padding: 0.65rem 1.2rem;
+    font-size: 0.9rem;
+    flex: 1;
+    max-width: 160px;
+  }
+
+  .hero-image {
+    justify-content: center;
+  }
+
+  .hero-image img.main {
+    max-width: 14rem;
+  }
+
+  .hero-image img.floating.bill    { width: 44px; top: 5%;  left: 8%; }
+  .hero-image img.floating.expense { width: 44px; bottom: -10%; right: 4%; }
+  .hero-image img.floating.ai      { width: 52px; top: -8%; right: 6%; }
+
+  .hero-image .glow {
+    width: 180px;
+    height: 180px;
+  }
+
+  .form-container {
+    padding: 1rem;
+    max-width: 100%;
+  }
+
+  .form-container form {
+    padding: 1.25rem;
+    border-radius: 1rem;
+    gap: 0.85rem;
+  }
+
+  .form-container form h2 {
+    font-size: 1.15rem;
+  }
+
+  .form-container input {
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.5rem;
+  }
+
+  .login-btnform,
+  .signup-btnform {
+    width: 100%;
+    padding: 13px;
+    font-size: 15px;
+  }
+
+  .features {
+    grid-template-columns: 1fr;
+    padding: 1.5rem 1rem;
+    gap: 1rem;
+  }
+
+  .why-choose {
+    padding: 2rem 1rem;
+    border-radius: 1rem;
+  }
+
+  .why-choose h2 {
+    font-size: 1.4rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .why-choose .grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .footer {
+    padding: 1.25rem 1rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-text h1 { font-size: 1.45rem; }
+
+  .public-navbar .buttons { gap: 0.4rem; }
+
+  .public-navbar button {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .hero-text .hero-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero-text .hero-buttons button {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+
+/* ================================================================
+   ⚠️  SECTION 2 INTENTIONALLY REMOVED
+       Dashboard Layout / Sidebar / Topbar / Bottom Nav
+       → All handled in: mobile_bottom_nav.css
+================================================================ */
+
+
+/* ================================================================
+   3. DASHBOARD HOME — DashboardHome.jsx
+      Classes: .dashboard-page, .welcome-section, .quick-actions,
+               .quick-card, .invoice-stats, .summary-grid
+================================================================ */
+@media (max-width: 768px) {
+
+  .dashboard-page {
+    padding: 16px;
+  }
+
+  .welcome-section {
+    padding: 18px;
+    border-radius: 12px;
+    margin-bottom: 18px;
+    gap: 8px;
+  }
+
+  .welcome-section h2 {
+    font-size: 1.25rem;
+  }
+
+  .welcome-section p {
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .quick-card {
+    padding: 14px;
+    border-radius: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .quick-icon {
+    font-size: 26px;
+    margin-right: 0;
+  }
+
+  .quick-text h3 { font-size: 13px; }
+  .quick-text p  { font-size: 11px; margin-top: 2px; }
+
+  .quick-arrow { display: none; }
+
+  .invoice-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .invoice-stat-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .invoice-stat-card span { font-size: 24px; }
+
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .summary-card {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .summary-card h4 { font-size: 12px; }
+  .summary-card h2 { font-size: 1.1rem; }
+
+  .upgrade-card {
+    padding: 16px;
+    border-radius: 10px;
+    margin-top: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .quick-actions    { grid-template-columns: 1fr 1fr; }
+  .quick-card       { padding: 12px; }
+  .invoice-stats    { grid-template-columns: 1fr; }
+  .summary-grid     { grid-template-columns: 1fr; }
+}
+
+
+/* ================================================================
+   4. SUBSCRIPTION PAGES
+      Classes: .sp-container, .sp-modules, .sp-card,
+               .subscription-wrapper, .plan-card,
+               .sub-nav, .sub-link
+================================================================ */
+@media (max-width: 768px) {
+
+  .sp-container {
+    padding: 24px 14px;
+  }
+
+  .sp-title    { font-size: 1.5rem; }
+  .sp-subtitle { font-size: 0.9rem; margin-bottom: 24px; }
+
+  .sp-modules {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .sp-card {
+    padding: 22px 16px;
+    border-radius: 16px;
+  }
+
+  .sp-card-title { font-size: 1.2rem; }
+
+  .subscription-wrapper {
+    grid-template-columns: 1fr;
+    padding: 20px 14px;
+    gap: 18px;
+  }
+
+  .plan-card { padding: 22px 18px; }
+
+  .plan-title         { font-size: 18px; }
+  .plan-price         { font-size: 26px; }
+  .plan-features li   { font-size: 14px; }
+
+  .sub-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 0;
+    padding-bottom: 0;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 18px;
+    scrollbar-width: none;
+  }
+
+  .sub-nav::-webkit-scrollbar { display: none; }
+
+  .sub-link {
+    white-space: nowrap;
+    padding: 10px 14px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .plan-card { padding: 18px 14px; }
+  .sub-link  { font-size: 12px; padding: 9px 12px; }
+}
+
+
+/* ================================================================
+   5. BUSINESS BILLING MODULE
+      Classes: .business-home, .business-hero, .business-quick-actions,
+               .business-quick-card, .business-summary-grid,
+               .invoice-page-full, .top-grid, .invoice-layout,
+               .items-section, .summary-panel, .shop-page,
+               .shop-grid, .default-page, .default-form
+================================================================ */
+@media (max-width: 768px) {
+
+  .business-home { padding: 14px; }
+
+  .business-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 20px 18px;
+    border-radius: 14px;
+    margin-bottom: 18px;
+  }
+
+  .business-hero h2 { font-size: 1.3rem; }
+  .business-hero p  { font-size: 0.88rem; }
+
+  .primary-action {
+    width: 100%;
+    padding: 12px;
+    text-align: center;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+
+  .business-quick-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .business-quick-card {
+    padding: 14px;
+    border-radius: 12px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .business-quick-card span { font-size: 13px; }
+
+  .business-summary-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .business-summary-card { padding: 16px; border-radius: 14px; }
+  .business-summary-card h2 { font-size: 1.2rem; }
+
+  .invoice-page-full { padding: 14px; }
+
+  .top-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .invoice-layout { grid-template-columns: 1fr; gap: 16px; }
+  .items-header   { display: none; }
+
+  .item-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .summary-panel {
+    position: relative;
+    top: unset;
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .summary-total { font-size: 17px; }
+  .generate-btn  { padding: 13px; font-size: 14px; border-radius: 12px; }
+
+  .shop-page { padding: 14px; }
+
+  .shop-card {
+    padding: 16px;
+    border-radius: 14px;
+    max-width: 100%;
+  }
+
+  .shop-grid { grid-template-columns: 1fr; gap: 12px; }
+  .shop-grid textarea { grid-column: span 1; }
+
+  .default-page, .stock-page { padding: 16px; }
+
+  .default-form, .stock-form {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .default-page li,
+  .stock-page li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .default-page li button,
+  .stock-page li button { align-self: flex-end; }
+}
+
+@media (max-width: 480px) {
+  .business-quick-actions  { grid-template-columns: 1fr 1fr; }
+  .business-summary-grid   { grid-template-columns: 1fr; }
+  .item-row                { grid-template-columns: 1fr; }
+}
+
+
+/* ================================================================
+   6. HOME EXPENSE MODULE
+      Classes: .expense-home, .expense-hero, .expense-actions-grid,
+               .expense-action-card, .income-wrapper, .income-card,
+               .bill-row, .grid-2, .remaining-box
+================================================================ */
+@media (max-width: 768px) {
+
+  .expense-home { padding: 0; }
+
+  .expense-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 20px 16px;
+    border-radius: 14px;
+    margin-bottom: 18px;
+  }
+
+  .expense-hero h2 { font-size: 1.3rem; }
+  .expense-hero p  { font-size: 0.88rem; }
+
+  .hero-action {
+    width: 100%;
+    padding: 12px;
+    text-align: center;
+    font-size: 15px;
+    border-radius: 10px;
+  }
+
+  .expense-actions-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .expense-action-card {
+    padding: 14px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-radius: 12px;
+    gap: 8px;
+  }
+
+  .expense-action-card svg  { font-size: 22px; }
+  .expense-action-card span { font-size: 13px; }
+
+  .income-wrapper { padding: 14px 0; }
+
+  .income-card {
+    padding: 20px 16px;
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+  }
+
+  .income-section-title { font-size: 16px; margin: 18px 0 10px; }
+
+  .grid-2 { grid-template-columns: 1fr; gap: 10px; }
+
+  .bill-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bill-row input:first-child { grid-column: span 2; }
+
+  .remaining-box {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+    padding: 18px;
+  }
+
+  .remaining-box strong { font-size: 22px; }
+
+  .income-save-btn { font-size: 15px; padding: 14px; border-radius: 14px; }
+}
+
+@media (max-width: 480px) {
+  .expense-actions-grid       { grid-template-columns: 1fr 1fr; }
+  .bill-row                   { grid-template-columns: 1fr; }
+  .bill-row input:first-child { grid-column: span 1; }
+}
+
+
+/* ================================================================
+   7. CONSTRUCTION MODULE
+      Classes: .ov-page, .ov-grid, .budget-page, .budget-summary,
+               .budget-grid, .owner-grid, .wb-page, .wb-grid,
+               .wb-header, .pay-page, .pay-summary, .pay-table,
+               .sum-page, .sum-grid, .sb-layout, .sb-preview
+================================================================ */
+@media (max-width: 768px) {
+
+  .ov-page  { padding: 14px; }
+  .ov-title { font-size: 18px; margin-bottom: 12px; }
+
+  .ov-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ov-card-mini { padding: 12px; }
+  .ov-card-mini h3 { font-size: 17px; }
+
+  .ov-actions { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ov-actions button { padding: 11px; font-size: 13px; }
+
+  .budget-page, .budget-page1 {
+    padding: 14px;
+    border-radius: 12px;
+    margin: 12px 0;
+  }
+
+  .budget-summary     { grid-template-columns: 1fr; gap: 12px; }
+  .budget-summary-card { padding: 20px; border-radius: 12px; }
+  .owner-grid         { grid-template-columns: 1fr; gap: 12px; }
+  .budget-grid        { grid-template-columns: 1fr; gap: 14px; }
+
+  .estimate-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .save-project-btn { width: 100%; margin-top: 14px; }
+
+  .wb-page  { padding: 14px; margin: 0; }
+
+  .wb-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .wb-title { font-size: 18px; }
+
+  .wb-actions { width: 100%; flex-wrap: wrap; gap: 6px; }
+  .wb-btn     { flex: 1; text-align: center; font-size: 13px; padding: 8px 10px; }
+
+  .wb-grid { grid-template-columns: 1fr; gap: 14px; }
+  .wb-card, .wb-card-all { padding: 14px; border-radius: 10px; }
+  .wb-row  { flex-direction: column; gap: 8px; }
+
+  .wb-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .wb-amount          { text-align: left; min-width: unset; }
+  .wb-actions-inline  { width: 100%; justify-content: flex-end; }
+
+  .pay-page  { padding: 14px; }
+  .pay-title { font-size: 18px; margin-bottom: 12px; }
+
+  .pay-summary { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pay-card h3 { font-size: 17px; }
+
+  .pay-table-box {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 10px;
+  }
+
+  .pay-table { min-width: 500px; font-size: 13px; }
+
+  .sum-page  { padding: 14px; }
+  .sum-grid  { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .sum-card  { padding: 14px; border-radius: 12px; }
+  .sum-card h3 { font-size: 18px; }
+
+  .sb-page  { padding: 14px; margin: 0; }
+  .sb-title { font-size: 20px; margin-bottom: 16px; text-align: left; }
+
+  .sb-layout { grid-template-columns: 1fr; gap: 14px; }
+  .sticky    { position: relative; top: unset; }
+
+  .sb-card, .sb-summary { padding: 14px; border-radius: 12px; }
+  .sb-item-row { flex-wrap: wrap; gap: 8px; }
+  .sb-item-row button { height: 38px; }
+
+  .sb-preview-overlay { align-items: flex-end; }
+
+  .sb-preview {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 18px 18px 0 0;
+    padding: 18px 14px;
+  }
+
+  .preview-owner     { flex-direction: column; gap: 10px; }
+  .preview-info-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .preview-table     { min-width: 480px; font-size: 13px; }
+  .preview-summary   { flex-direction: column; gap: 8px; font-size: 14px; }
+  .preview-signature { flex-direction: column; gap: 24px; }
+}
+
+@media (max-width: 480px) {
+  .ov-grid           { grid-template-columns: 1fr 1fr; }
+  .pay-summary       { grid-template-columns: 1fr; }
+  .sum-grid          { grid-template-columns: 1fr; }
+  .preview-info-grid { grid-template-columns: 1fr; }
+  .estimate-row      { grid-template-columns: 1fr; }
+}
+
+
+/* ================================================================
+   8. CUSTOMIZED BILLING MODULE
+      Classes: .custom-layout, .custom-sub-nav, .custom-link,
+               .overview-container, .overview-grid, .create-estimate,
+               .estimate-table, .qt-table, .bill-table,
+               .payment-summary, .payment-table, .cust-table,
+               .custom-summary-grid
+================================================================ */
+@media (max-width: 768px) {
+
+  .custom-content { padding: 14px; }
+
+  .custom-sub-nav {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    padding: 10px 12px;
+    scrollbar-width: none;
+  }
+
+  .custom-sub-nav::-webkit-scrollbar { display: none; }
+
+  .custom-link {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 13px;
+    padding: 7px 13px;
+  }
+
+  .overview-container { padding: 0; }
+
+  .overview-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .overview-card { padding: 14px; border-radius: 10px; }
+  .overview-card p { font-size: 18px; }
+
+  .create-estimate { padding: 0; }
+
+  .form-row select {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 6px;
+    display: block;
+  }
+
+  .customer-box { flex-direction: column; gap: 8px; }
+
+  .estimate-table-wrap,
+  .create-estimate > div {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .estimate-table { min-width: 480px; }
+
+  .estimate-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .estimate-save-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    border-radius: 10px;
+  }
+
+  .estimate-add-btn {
+    width: 100%;
+    padding: 11px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
+  .quotations-page,
+  .bills-page,
+  .payments-page,
+  .customers-page { padding: 0; }
+
+  .qt-table,
+  .bill-table,
+  .payment-table,
+  .cust-table { min-width: 500px; font-size: 13px; }
+
+  .quotations-page > *:not(h2):not(h3),
+  .bills-page > *:not(h2):not(h3),
+  .payments-page > *:not(h2):not(.payment-summary),
+  .customers-page > *:not(h2):not(h3) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    display: block;
+  }
+
+  .payment-summary    { flex-direction: column; gap: 10px; }
+  .payment-stat-card  { padding: 14px; border-radius: 10px; }
+
+  .custom-summary-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .custom-sum-card     { padding: 14px; border-radius: 12px; }
+  .custom-sum-card h3  { font-size: 18px; }
+}
+
+@media (max-width: 480px) {
+  .overview-grid       { grid-template-columns: 1fr 1fr; }
+  .custom-summary-grid { grid-template-columns: 1fr; }
+}
+
+
+/* ================================================================
+   9. ACCOUNT PAGES — Profile, Settings, SubscriptionHistory
+================================================================ */
+@media (max-width: 768px) {
+
+  [class*="profile"],
+  [class*="settings"],
+  [class*="account"] { padding: 14px; }
+
+  [class*="profile"] .shop-card,
+  [class*="settings"] .shop-card {
+    max-width: 100%;
+    border-radius: 14px;
+  }
+}
+
+
+/* ================================================================
+   10. GLOBAL UTILITY
+================================================================ */
+@media (max-width: 768px) {
+
+  .plan-btn,
+  .sp-btn,
+  .shop-save-btn,
+  .income-save-btn,
+  .budget-primary-btn.full,
+  .btn-close {
+    width: 100%;
+    padding: 13px;
+    font-size: 15px;
+  }
+
+  .section-title { font-size: 0.9rem; margin: 14px 0 10px; }
+
+  .summary-card  { padding: 14px; border-radius: 10px; }
+
+  .badge         { padding: 4px 8px; font-size: 11px; }
+
+  .action-btn,
+  .bill-action-btn { padding: 5px 8px; font-size: 11px; }
+
+  .wb-empty { padding: 14px; font-size: 13px; }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="email"],
+  input[type="date"],
+  select,
+  textarea {
+    min-height: 44px;
+    border-radius: 10px;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+
+/* ================================================================
+   11. VERY SMALL PHONES (max-width: 360px)
+   REMOVED from here: .topbar-title, .nav-link span
+   → those are in mobile_bottom_nav.css
+================================================================ */
+@media (max-width: 360px) {
+
+  .dashboard-content { padding: 8px; }
+
+  .quick-card    { padding: 10px; }
+  .quick-icon    { font-size: 22px; }
+  .quick-text h3 { font-size: 12px; }
+
+  .business-hero h2,
+  .expense-hero h2,
+  .ov-title,
+  .wb-title      { font-size: 16px; }
+
+  .plan-price    { font-size: 22px; }
+  .plan-title    { font-size: 16px; }
+
+  .sub-link      { font-size: 11px; padding: 8px 10px; }
+}
+
+
+/* ================================================================
+   12. TOUCH INTERACTION IMPROVEMENTS
+   REMOVED from here: @supports safe-area block
+   → that is in mobile_bottom_nav.css
+================================================================ */
+@media (max-width: 768px) {
+
+  .quick-card:active,
+  .expense-action-card:active,
+  .business-quick-card:active,
+  .sp-card:active,
+  .ov-card-mini:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+
+  .quick-card:hover,
+  .sp-card:hover,
+  .plan-card:hover,
+  .summary-card:hover,
+  .sum-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .plan-card {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  }
+
+  button, a {
+    touch-action: manipulation;
+  }
+}

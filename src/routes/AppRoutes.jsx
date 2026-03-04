@@ -21,7 +21,6 @@ import GstReports from "../pages/business_billing/GstReports";
 import ShopProfile from "../pages/business_billing/ShopProfile";
 import DefaultItems from "../pages/business_billing/DefaultItems";
 
-
 /* Home Expense */
 import ExpenseLayout from "../pages/home_expense/ExpenseLayout";
 import ExpenseHome from "../pages/home_expense/ExpenseHome";
@@ -39,39 +38,29 @@ import Budget from "../pages/construction/Budget";
 import WorkBills from "../pages/construction/WorkBills";
 import Payments from "../pages/construction/Payments";
 import Summary from "../pages/construction/Summary";
-import SeparateBills from '../pages/construction/Separate_Bills'
-
-/* Custom */
-import CustomLayout from "../pages/customized_billing/CustomLayout";
-import Overview from "../pages/customized_billing/Overview";
-import CustomCustomers from "../pages/customized_billing/CustomCustomers";
-import CreateEstimate from "../pages/customized_billing/CreateEstimate";
-import CustomPayments from "../pages/customized_billing/CustomPayments";
-import CustomSummary from "../pages/customized_billing/CustomSummary";
-import Quotations from "../pages/customized_billing/Quotations";
-import Bills from "../pages/customized_billing/Bills";
+import SeparateBills from "../pages/construction/Separate_Bills";
 
 /* Account */
 import Profile from "../pages/account/Profile";
+import AccountPage from "../pages/account/AccountPage";
 
-/* Subscription Pages (MODULE WISE) */
-import SubscriptionPage from '../pages/subscriptions/SubscriptionPage'
+/* Subscriptions */
+import SubscriptionPage from "../pages/subscriptions/SubscriptionPage";
 import BusinessSubscription from "../pages/subscriptions/BusinessSubscription";
 import HomeExpenseSubscription from "../pages/subscriptions/HomeExpenseSubscription";
 import ConstructionSubscription from "../pages/subscriptions/ConstructionSubscription";
-import CustomSubscription from "../pages/subscriptions/CustomSubscription";
 import CheckoutSubscription from "../pages/subscriptions/CheckoutSubscription";
+
 /* Guards */
 import ProtectedRoute from "./ProtectedRoute";
 import SubscriptionGuard from "./SubscriptionGuard";
 
-// All Css Pages =========
-import '../styles/global/dashboard.css';
-import '../styles/global/subscription.css';
-import '../styles/global/index.css';
-import '../styles/global/public.css'
-
-
+/* Styles */
+import "../styles/global/dashboard.css";
+import "../styles/global/subscription.css";
+import "../styles/global/index.css";
+import "../styles/global/public.css";
+import "../styles/global/account.css";
 
 const AppRoutes = () => {
   return (
@@ -107,9 +96,6 @@ const AppRoutes = () => {
           <Route path="default-items" element={<DefaultItems />} />
           <Route path="shop-profile" element={<ShopProfile />} />
           <Route path="gst" element={<GstReports />} />
-          
-          
-
         </Route>
 
         {/* Home Expense */}
@@ -125,7 +111,7 @@ const AppRoutes = () => {
           <Route path="add" element={<AddExpense />} />
           <Route path="categories" element={<Categories />} />
           <Route path="monthly-income" element={<MonthlyIncome />} />
-          <Route path="estimate-amount" element={< EstimatedAmount/>} />
+          <Route path="estimate-amount" element={<EstimatedAmount />} />
           <Route path="summary" element={<MonthlySummary />} />
           <Route path="reports" element={<Reports />} />
         </Route>
@@ -145,39 +131,27 @@ const AppRoutes = () => {
           <Route path="payments" element={<Payments />} />
           <Route path="summary" element={<Summary />} />
           <Route path="Separate_Bills" element={<SeparateBills />} />
-
         </Route>
-
-        {/* Customized */}
+        {/* Account */}
         <Route
-          path="custom"
-          element={
-            <SubscriptionGuard module="custom">
-              <CustomLayout />
-            </SubscriptionGuard>
-          }
-        >
-          <Route index element={<Overview />} />
-          <Route path="create-estimate" element={<CreateEstimate />} />
-          <Route path="custom-customers" element={<CustomCustomers />} />
-          <Route path="custom-payments" element={<CustomPayments />} />
-          <Route path="custom-summary" element={<CustomSummary />} />
-          <Route path="quotations" element={<Quotations />} />
-          <Route path="custom-bills" element={<Bills />} />
-        </Route>
+          path="account"
+          element={<AccountPage />}
+        />
       </Route>
 
-      {/* Account */}
+      {/* Subscriptions */}
       <Route
-        path="/account/profile"
+        path="/subscription"
         element={
           <ProtectedRoute>
-            <Profile />
+            <SubscriptionPage />
           </ProtectedRoute>
         }
       />
-
-      {/* MODULE SUBSCRIPTIONS */}
+      <Route
+        path="/subscription/checkout"
+        element={<CheckoutSubscription />}
+      />
       <Route
         path="/subscription/business"
         element={
@@ -187,17 +161,6 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/subscription"
-        element={
-          <ProtectedRoute>
-            <SubscriptionPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route 
-        path="/subscription/checkout"
-        element={<CheckoutSubscription />} />
-      <Route
         path="/subscription/home-expense"
         element={
           <ProtectedRoute>
@@ -205,7 +168,6 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/subscription/construction"
         element={
@@ -213,15 +175,6 @@ const AppRoutes = () => {
             <ConstructionSubscription />
           </ProtectedRoute>
         }
-      />
-
-        <Route
-          path="/subscription/custom"
-          element={
-            <ProtectedRoute>
-              <CustomSubscription />
-            </ProtectedRoute>
-          }
       />
     </Routes>
   );
