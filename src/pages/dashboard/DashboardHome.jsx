@@ -86,6 +86,20 @@ const DashboardHome = () => {
   const dailyInvoices   = 6;
   const monthlyInvoices = 124;
   const activeModules   = MODULES.filter((m) => subscriptions.includes(m.key));
+  const dueFollowUps = 4;
+
+  const focusTips = [
+    "Send reminders for overdue invoices before 3 PM",
+    "Review material cost variance in construction",
+    "Recheck household recurring expenses for savings",
+  ];
+
+  const smartShortcuts = [
+    { label: "Create Invoice", route: "/dashboard/business/create-invoice" },
+    { label: "Add Expense", route: "/dashboard/home-expense/add" },
+    { label: "Update Budget", route: "/dashboard/construction/Budget" },
+    { label: "View Reports", route: "/dashboard/business/gst" },
+  ];
 
   return (
     <div className="dashboard-page">
@@ -166,6 +180,27 @@ const DashboardHome = () => {
             <p>Here is your business overview for today. Everything is looking good only.</p>
           </div>
 
+          <div className="dashboard-executive-panel desktop-dashboard-upgrade">
+            <div>
+              <span className="dashboard-badge">Executive Snapshot</span>
+              <h3>Net collection health is stable with positive growth momentum.</h3>
+              <p>
+                Your active modules are delivering strong monthly performance.
+                Keep billing cadence consistent to improve cash flow quality.
+              </p>
+            </div>
+            <div className="dashboard-executive-metrics">
+              <div>
+                <strong>92%</strong>
+                <span>Collection Efficiency</span>
+              </div>
+              <div>
+                <strong>₹2.4L</strong>
+                <span>Monthly Cash Inflow</span>
+              </div>
+            </div>
+          </div>
+
           {/* Invoice stat cards */}
           {subscriptions.includes("business") && (
             <div className="invoice-stats">
@@ -191,6 +226,36 @@ const DashboardHome = () => {
               </div>
             </div>
           )}
+
+          <div className="dashboard-focus-strip desktop-dashboard-upgrade">
+            <div className="dashboard-focus-title">
+              <h4>Today&apos;s Focus Queue</h4>
+              <span>{dueFollowUps} items to action</span>
+            </div>
+            <ul>
+              {focusTips.map((tip) => (
+                <li key={tip}>{tip}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="dashboard-shortcuts desktop-dashboard-upgrade">
+            <div className="dashboard-shortcuts-head">
+              <h4>Smart Shortcuts</h4>
+              <p>One-click actions to finish common tasks faster.</p>
+            </div>
+            <div className="dashboard-shortcuts-grid">
+              {smartShortcuts.map((item) => (
+                <button
+                  key={item.label}
+                  className="dashboard-shortcut-btn"
+                  onClick={() => navigate(item.route)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Quick actions */}
           <div>
