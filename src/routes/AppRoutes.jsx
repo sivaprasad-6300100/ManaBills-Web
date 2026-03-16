@@ -40,8 +40,17 @@ import Payments from "../pages/construction/Payments";
 import Summary from "../pages/construction/Summary";
 import SeparateBills from "../pages/construction/Separate_Bills";
 
+/* Custom Billing ← NEW */
+import CustomLayout from "../pages/customized_billing/CustomLayout";
+import Overview from "../pages/customized_billing/Overview";
+import CreateEstimate from "../pages/customized_billing/CreateEstimate";
+import Quotations from "../pages/customized_billing/Quotations";
+import Bills from "../pages/customized_billing/Bills";
+import CustomPayments from "../pages/customized_billing/CustomPayments";
+import CustomCustomers from "../pages/customized_billing/CustomCustomers";
+import CustomSummary from "../pages/customized_billing/CustomSummary";
+
 /* Account */
-import Profile from "../pages/account/Profile";
 import AccountPage from "../pages/account/AccountPage";
 
 /* Subscriptions */
@@ -49,6 +58,7 @@ import SubscriptionPage from "../pages/subscriptions/SubscriptionPage";
 import BusinessSubscription from "../pages/subscriptions/BusinessSubscription";
 import HomeExpenseSubscription from "../pages/subscriptions/HomeExpenseSubscription";
 import ConstructionSubscription from "../pages/subscriptions/ConstructionSubscription";
+import CustomSubscription from "../pages/subscriptions/CustomSubscription"; // ← NEW
 import CheckoutSubscription from "../pages/subscriptions/CheckoutSubscription";
 
 /* Guards */
@@ -132,11 +142,27 @@ const AppRoutes = () => {
           <Route path="summary" element={<Summary />} />
           <Route path="Separate_Bills" element={<SeparateBills />} />
         </Route>
-        {/* Account */}
+
+        {/* Custom Billing ← NEW */}
         <Route
-          path="account"
-          element={<AccountPage />}
-        />
+          path="custom"
+          element={
+            <SubscriptionGuard module="custom">
+              <CustomLayout />
+            </SubscriptionGuard>
+          }
+        >
+          <Route index element={<Overview />} />
+          <Route path="create-estimate" element={<CreateEstimate />} />
+          <Route path="quotations" element={<Quotations />} />
+          <Route path="custom-bills" element={<Bills />} />
+          <Route path="custom-payments" element={<CustomPayments />} />
+          <Route path="custom-customers" element={<CustomCustomers />} />
+          <Route path="custom-summary" element={<CustomSummary />} />
+        </Route>
+
+        {/* Account */}
+        <Route path="account" element={<AccountPage />} />
       </Route>
 
       {/* Subscriptions */}
@@ -173,6 +199,15 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <ConstructionSubscription />
+          </ProtectedRoute>
+        }
+      />
+      {/* Custom Subscription ← NEW */}
+      <Route
+        path="/subscription/custom"
+        element={
+          <ProtectedRoute>
+            <CustomSubscription />
           </ProtectedRoute>
         }
       />

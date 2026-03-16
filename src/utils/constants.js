@@ -12,7 +12,7 @@ export const DASHBOARD_ROUTES = {
   BUSINESS: "/dashboard/business",
   HOME_EXPENSE: "/dashboard/home-expense",
   CONSTRUCTION: "/dashboard/construction",
-  CUSTOM: "/dashboard/custom",
+  CUSTOM: "/dashboard/custom", // ✅ was already defined
 };
 
 // Account routes
@@ -20,6 +20,16 @@ export const ACCOUNT_ROUTES = {
   PROFILE: "/account/profile",
   SUBSCRIPTION_HISTORY: "/account/subscription-history",
   SETTINGS: "/account/settings",
+};
+
+// Subscription routes
+export const SUBSCRIPTION_ROUTES = {
+  BASE: "/subscription",
+  BUSINESS: "/subscription/business",
+  HOME_EXPENSE: "/subscription/home-expense",
+  CONSTRUCTION: "/subscription/construction",
+  CUSTOM: "/subscription/custom",   // ✅ NEW — was missing
+  CHECKOUT: "/subscription/checkout",
 };
 
 // Subscription plans (used in SubscriptionPage)
