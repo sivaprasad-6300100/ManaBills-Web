@@ -20,6 +20,7 @@ import Customers from "../pages/business_billing/Customers";
 import GstReports from "../pages/business_billing/GstReports";
 import ShopProfile from "../pages/business_billing/ShopProfile";
 import DefaultItems from "../pages/business_billing/DefaultItems";
+// import Stockservice from "../pages/business_billing/Stockservice";
 
 /* Home Expense */
 import ExpenseLayout from "../pages/home_expense/ExpenseLayout";
@@ -106,6 +107,8 @@ const AppRoutes = () => {
           <Route path="default-items" element={<DefaultItems />} />
           <Route path="shop-profile" element={<ShopProfile />} />
           <Route path="gst" element={<GstReports />} />
+          <Route path="stock" element={<stockServices />} />
+          {/* <Route path="Stockservice" element={<Stockservice />} /> */}
         </Route>
 
         {/* Home Expense */}

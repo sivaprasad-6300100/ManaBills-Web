@@ -7,6 +7,7 @@ const ROUTE_LABELS = {
   "/dashboard/business":     "Business Billing",
   "/dashboard/home-expense": "Home Expenses",
   "/dashboard/construction": "Construction",
+  "/dashboard/custom":       "Custom",
   "/dashboard/account":      "Account & Settings",
 };
 

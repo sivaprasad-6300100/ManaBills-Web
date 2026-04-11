@@ -1,66 +1,111 @@
 import React, { useEffect, useState } from "react";
+import {
+  getCustomers,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+} from "../../services/businessService";
 
-const BLANK = { name: "", mobile: "", email: "", address: "", gstNumber: "" };
+// ─── Backend field names (snake_case) ────────────────────────
+// id, name, mobile, email, gst_number, address
+
+const BLANK = { name: "", mobile: "", email: "", address: "", gst_number: "" };
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
-  const [form, setForm] = useState(BLANK);
-  const [editId, setEditId] = useState(null);
-  const [search, setSearch] = useState("");
-  const [showForm, setShowForm] = useState(false);
+  const [form,      setForm]      = useState(BLANK);
+  const [editId,    setEditId]    = useState(null);
+  const [search,    setSearch]    = useState("");
+  const [showForm,  setShowForm]  = useState(false);
+  const [loading,   setLoading]   = useState(true);
+  const [saving,    setSaving]    = useState(false);
+  const [toast,     setToast]     = useState(null);
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // ── Load customers from API ───────────────────────────────
+  const loadCustomers = async (q = "") => {
+    try {
+      const data = await getCustomers(q);
+      setCustomers(data);
+    } catch {
+      showToast("Failed to load customers.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("customers")) || [];
-    setCustomers(saved);
+    loadCustomers();
   }, []);
 
-  const persist = (updated) => {
-    setCustomers(updated);
-    localStorage.setItem("customers", JSON.stringify(updated));
-  };
+  // ── Search — debounced via useEffect ─────────────────────
+  useEffect(() => {
+    const timer = setTimeout(() => loadCustomers(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
+  // ── Create or Update ─────────────────────────────────────
+  const handleSubmit = async () => {
     if (!form.name.trim() || !form.mobile.trim()) {
-      alert("Name and Mobile Number are required.");
+      showToast("Name and Mobile Number are required.", "error");
       return;
     }
-
-    if (editId !== null) {
-      const updated = customers.map((c) =>
-        c.id === editId ? { ...form, id: editId } : c
-      );
-      persist(updated);
-      setEditId(null);
-    } else {
-      const newCustomer = { ...form, id: Date.now() };
-      persist([...customers, newCustomer]);
+    setSaving(true);
+    try {
+      if (editId !== null) {
+        // UPDATE
+        const updated = await updateCustomer(editId, form);
+        setCustomers((prev) =>
+          prev.map((c) => (c.id === editId ? updated : c))
+        );
+        showToast("Customer updated ✓");
+        setEditId(null);
+      } else {
+        // CREATE
+        const created = await createCustomer(form);
+        setCustomers((prev) => [created, ...prev]);
+        showToast("Customer saved ✓");
+      }
+      setForm(BLANK);
+      setShowForm(false);
+    } catch {
+      showToast("Failed to save customer.", "error");
+    } finally {
+      setSaving(false);
     }
-
-    setForm(BLANK);
-    setShowForm(false);
   };
 
   const startEdit = (c) => {
     setForm({
-      name: c.name,
-      mobile: c.mobile,
-      email: c.email || "",
-      address: c.address || "",
-      gstNumber: c.gstNumber || "",
+      name:       c.name,
+      mobile:     c.mobile     || "",
+      email:      c.email      || "",
+      address:    c.address    || "",
+      gst_number: c.gst_number || "",
     });
     setEditId(c.id);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const deleteCustomer = (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm("Delete this customer?")) return;
-    persist(customers.filter((c) => c.id !== id));
+    try {
+      await deleteCustomer(id);
+      setCustomers((prev) => prev.filter((c) => c.id !== id));
+      showToast("Customer deleted.");
+    } catch {
+      showToast("Failed to delete.", "error");
+    }
   };
 
   const cancelForm = () => {
@@ -69,14 +114,22 @@ const Customers = () => {
     setShowForm(false);
   };
 
-  const filtered = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.mobile.includes(search)
-  );
-
   return (
     <div className="customers-page">
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: "fixed", top: "72px", left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, padding: "10px 24px", borderRadius: "100px",
+          fontWeight: 600, fontSize: "0.85rem", whiteSpace: "nowrap",
+          background: toast.type === "success" ? "#0e1b2e" : "#dc2626",
+          color: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
+        }}>
+          {toast.msg}
+        </div>
+      )}
+
       {/* Header */}
       <div className="cust-header">
         <div>
@@ -130,9 +183,9 @@ const Customers = () => {
             <div className="cust-field">
               <label>GST Number</label>
               <input
-                name="gstNumber"
+                name="gst_number"
                 placeholder="22AAAAA0000A1Z5"
-                value={form.gstNumber}
+                value={form.gst_number}
                 onChange={handleChange}
               />
             </div>
@@ -148,8 +201,12 @@ const Customers = () => {
             </div>
           </div>
           <div className="cust-form-actions">
-            <button className="cust-save-btn" onClick={handleSubmit}>
-              {editId ? "Update Customer" : "Save Customer"}
+            <button
+              className="cust-save-btn"
+              onClick={handleSubmit}
+              disabled={saving}
+            >
+              {saving ? "Saving…" : editId ? "Update Customer" : "Save Customer"}
             </button>
             <button className="cust-cancel-btn" onClick={cancelForm}>
               Cancel
@@ -169,45 +226,31 @@ const Customers = () => {
       </div>
 
       {/* List */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="cust-empty">Loading customers…</div>
+      ) : customers.length === 0 ? (
         <div className="cust-empty">
-          {customers.length === 0
-            ? "No customers added yet. Click ➕ Add Customer to get started."
-            : "No customers match your search."}
+          {search
+            ? "No customers match your search."
+            : "No customers added yet. Click ➕ Add Customer to get started."}
         </div>
       ) : (
         <div className="cust-grid">
-          {filtered.map((c) => (
+          {customers.map((c) => (
             <div key={c.id} className="cust-card">
               <div className="cust-avatar">
                 {c.name.charAt(0).toUpperCase()}
               </div>
               <div className="cust-info">
                 <span className="cust-name">{c.name}</span>
-                <span className="cust-mobile">📱 {c.mobile}</span>
-                {c.email && (
-                  <span className="cust-email">✉️ {c.email}</span>
-                )}
-                {c.gstNumber && (
-                  <span className="cust-gst">🧾 GST: {c.gstNumber}</span>
-                )}
-                {c.address && (
-                  <span className="cust-address">📍 {c.address}</span>
-                )}
+                {c.mobile     && <span className="cust-mobile">📱 {c.mobile}</span>}
+                {c.email      && <span className="cust-email">✉️ {c.email}</span>}
+                {c.gst_number && <span className="cust-gst">🧾 GST: {c.gst_number}</span>}
+                {c.address    && <span className="cust-address">📍 {c.address}</span>}
               </div>
               <div className="cust-card-actions">
-                <button
-                  className="cust-edit-btn"
-                  onClick={() => startEdit(c)}
-                >
-                  ✏️
-                </button>
-                <button
-                  className="cust-del-btn"
-                  onClick={() => deleteCustomer(c.id)}
-                >
-                  🗑
-                </button>
+                <button className="cust-edit-btn" onClick={() => startEdit(c)}>✏️</button>
+                <button className="cust-del-btn"  onClick={() => handleDelete(c.id)}>🗑</button>
               </div>
             </div>
           ))}

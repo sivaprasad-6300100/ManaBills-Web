@@ -6,11 +6,7 @@ const NAV_MODULES = [
   { to: "/dashboard/business",     icon: "🧾", label: "Business Billing" },
   { to: "/dashboard/home-expense", icon: "💰", label: "Home Expenses" },
   { to: "/dashboard/construction", icon: "🏗️", label: "Construction" },
-];
-
-const NAV_COMING = [
-  { icon: "🎓", label: "School Management" },
-  { icon: "📦", label: "Inventory Manager" },
+  { to: "/dashboard/custom",       icon: "⚙️", label: "Custom" },
 ];
 
 const Sidebar = () => {
@@ -68,16 +64,6 @@ const Sidebar = () => {
           </NavLink>
         ))}
 
-        <div className="sidebar-nav-label">Coming Soon</div>
-        {NAV_COMING.map((item, i) => (
-          <div key={i} className="nav-link nav-link-coming">
-            <span className="nav-link-icon">{item.icon}</span>
-            {item.label}
-            <span className="nav-soon">Soon</span>
-          </div>
-        ))}
-
-        <div className="sidebar-nav-label">Account</div>
         <NavLink to="/dashboard/account" className="nav-link">
           <span className="nav-link-icon">👤</span>
           Account / Settings

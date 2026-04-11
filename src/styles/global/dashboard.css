@@ -671,7 +671,7 @@ body { font-family: var(--db-font-body); -webkit-font-smoothing: antialiased; }
 
   /* Upgrade card */
   .upgrade-card { padding: 1.4rem 1.25rem; border-radius: var(--db-r-md); }
-  .upgrade-card h3 { font-size: 1.05rem; }
+  .upgrade-card h3 { font-size: 1.05rem; }  
 
   /* Mini stats 3-col on mobile */
   .db-mini-stats { gap: 0.6rem; }

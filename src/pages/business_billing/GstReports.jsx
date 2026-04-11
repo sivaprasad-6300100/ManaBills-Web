@@ -1,78 +1,47 @@
 import React, { useEffect, useState } from "react";
+import { getGstReports } from "../../services/businessService";
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-const QUARTERS = [
-  { label: "Q1 (Apr–Jun)", months: [3, 4, 5] },
-  { label: "Q2 (Jul–Sep)", months: [6, 7, 8] },
-  { label: "Q3 (Oct–Dec)", months: [9, 10, 11] },
-  { label: "Q4 (Jan–Mar)", months: [0, 1, 2] },
-];
+// ─── Backend returns exactly this shape per row ───────────────
+// { month, invoice_count, taxable_value, gst_collected, total_value }
 
 const GstReports = () => {
-  const [invoices, setInvoices] = useState([]);
-  const [view, setView] = useState("monthly"); // "monthly" | "quarterly"
+  const [reportData,   setReportData]   = useState([]);
+  const [view,         setView]         = useState("monthly");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [loading,      setLoading]      = useState(true);
+  const [years,        setYears]        = useState([new Date().getFullYear()]);
 
+  // ── Load from API whenever year or view changes ───────────
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("invoices")) || [];
-    const gstOnly = saved.filter((inv) => inv.isGST);
-    setInvoices(gstOnly);
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await getGstReports(selectedYear, view);
+        setReportData(data);
+      } catch {
+        setReportData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [selectedYear, view]);
+
+  // ── Build year list: current year ± a few ─────────────────
+  useEffect(() => {
+    const cur = new Date().getFullYear();
+    setYears([cur - 1, cur, cur + 1]);
   }, []);
 
-  const years = [
-    ...new Set(
-      invoices.map((inv) => new Date(inv.date).getFullYear()).filter(Boolean)
-    ),
-    selectedYear,
-  ].sort((a, b) => b - a);
-
-  const forYear = invoices.filter(
-    (inv) => new Date(inv.date).getFullYear() === selectedYear
-  );
-
-  // Monthly data
-  const monthlyData = MONTHS.map((month, idx) => {
-    const monthInvoices = forYear.filter(
-      (inv) => new Date(inv.date).getMonth() === idx
-    );
-    const taxableValue = monthInvoices.reduce(
-      (s, inv) => s + (Number(inv.subtotal) || 0), 0
-    );
-    const gstCollected = monthInvoices.reduce(
-      (s, inv) => s + (Number(inv.gst) || 0), 0
-    );
-    return {
-      label: month,
-      invoices: monthInvoices.length,
-      taxableValue,
-      gstCollected,
-      total: taxableValue + gstCollected,
-    };
-  });
-
-  // Quarterly data
-  const quarterlyData = QUARTERS.map((q) => {
-    const rows = q.months.map((m) => monthlyData[m]);
-    return {
-      label: q.label,
-      invoices: rows.reduce((s, r) => s + r.invoices, 0),
-      taxableValue: rows.reduce((s, r) => s + r.taxableValue, 0),
-      gstCollected: rows.reduce((s, r) => s + r.gstCollected, 0),
-      total: rows.reduce((s, r) => s + r.total, 0),
-    };
-  });
-
-  const displayData = view === "monthly" ? monthlyData : quarterlyData;
-  const grandTaxable = displayData.reduce((s, r) => s + r.taxableValue, 0);
-  const grandGst = displayData.reduce((s, r) => s + r.gstCollected, 0);
-  const grandTotal = displayData.reduce((s, r) => s + r.total, 0);
+  // ── Grand totals ──────────────────────────────────────────
+  const grandInvoices  = reportData.reduce((s, r) => s + (r.invoice_count || 0), 0);
+  const grandTaxable   = reportData.reduce((s, r) => s + Number(r.taxable_value || 0), 0);
+  const grandGst       = reportData.reduce((s, r) => s + Number(r.gst_collected || 0), 0);
+  const grandTotal     = reportData.reduce((s, r) => s + Number(r.total_value   || 0), 0);
 
   return (
     <div className="gst-page">
+
       {/* Header */}
       <div className="gst-header">
         <div className="gst-title-wrap">
@@ -108,26 +77,30 @@ const GstReports = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary cards */}
       <div className="gst-summary-row" role="region" aria-label="GST summary">
         <div className="gst-card blue">
+          <span>GST Invoices</span>
+          <strong>{grandInvoices}</strong>
+        </div>
+        <div className="gst-card blue">
           <span>Taxable Value</span>
-          <strong>₹ {grandTaxable.toLocaleString()}</strong>
+          <strong>₹ {grandTaxable.toLocaleString("en-IN")}</strong>
         </div>
         <div className="gst-card green">
-          <span>GST Collected</span>
-          <strong>₹ {grandGst.toLocaleString()}</strong>
+          <span>GST Collected (5%)</span>
+          <strong>₹ {grandGst.toLocaleString("en-IN")}</strong>
         </div>
         <div className="gst-card purple">
           <span>Total Invoice Value</span>
-          <strong>₹ {grandTotal.toLocaleString()}</strong>
+          <strong>₹ {grandTotal.toLocaleString("en-IN")}</strong>
         </div>
       </div>
 
-      {/* Table */}
-      {invoices.length === 0 ? (
+      {/* Empty state */}
+      {!loading && grandInvoices === 0 ? (
         <div className="gst-empty">
-          <p>📊 No GST invoices found.</p>
+          <p>📊 No GST invoices found for {selectedYear}.</p>
           <small>Enable GST while creating an invoice to see reports here.</small>
         </div>
       ) : (
@@ -143,30 +116,46 @@ const GstReports = () => {
               </tr>
             </thead>
             <tbody>
-              {displayData.map((row) => (
-                <tr
-                  key={row.label}
-                  className={row.invoices === 0 ? "gst-empty-row" : ""}
-                >
-                  <td>{row.label}</td>
-                  <td>{row.invoices}</td>
-                  <td>{row.taxableValue.toLocaleString()}</td>
-                  <td className="gst-collected">
-                    {row.gstCollected.toLocaleString()}
-                  </td>
-                  <td className="gst-total">
-                    {row.total.toLocaleString()}
+              {loading ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center", color: "#94a3b8", padding: "24px" }}>
+                    Loading…
                   </td>
                 </tr>
-              ))}
+              ) : (
+                reportData.map((row) => (
+                  <tr
+                    key={row.month}
+                    className={row.invoice_count === 0 ? "gst-empty-row" : ""}
+                  >
+                    <td>{row.month}</td>
+                    <td>{row.invoice_count || "—"}</td>
+                    <td>
+                      {Number(row.taxable_value) > 0
+                        ? Number(row.taxable_value).toLocaleString("en-IN")
+                        : "—"}
+                    </td>
+                    <td className="gst-collected">
+                      {Number(row.gst_collected) > 0
+                        ? Number(row.gst_collected).toLocaleString("en-IN")
+                        : "—"}
+                    </td>
+                    <td className="gst-total">
+                      {Number(row.total_value) > 0
+                        ? Number(row.total_value).toLocaleString("en-IN")
+                        : "—"}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
             <tfoot>
               <tr className="gst-foot">
-                <td>Total</td>
-                <td>—</td>
-                <td>{grandTaxable.toLocaleString()}</td>
-                <td>{grandGst.toLocaleString()}</td>
-                <td>{grandTotal.toLocaleString()}</td>
+                <td>Total ({selectedYear})</td>
+                <td>{grandInvoices}</td>
+                <td>{grandTaxable.toLocaleString("en-IN")}</td>
+                <td>{grandGst.toLocaleString("en-IN")}</td>
+                <td>{grandTotal.toLocaleString("en-IN")}</td>
               </tr>
             </tfoot>
           </table>
@@ -175,6 +164,7 @@ const GstReports = () => {
 
       <p className="gst-note">
         * Only invoices created with GST enabled are included in this report.
+        GST rate applied: <strong>5%</strong> on taxable value.
       </p>
     </div>
   );
