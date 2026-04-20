@@ -20,6 +20,9 @@ import Customers from "../pages/business_billing/Customers";
 import GstReports from "../pages/business_billing/GstReports";
 import ShopProfile from "../pages/business_billing/ShopProfile";
 import DefaultItems from "../pages/business_billing/DefaultItems";
+import Shopqrorder from "../pages/business_billing/Shopqrorder";
+import CustomerView from "../pages/business_billing/CustomerView";
+// import CustomerViewWrapper from "../pages/business_billing/CustomerViewWrapper";
 // import Stockservice from "../pages/business_billing/Stockservice";
 
 /* Home Expense */
@@ -78,6 +81,9 @@ const AppRoutes = () => {
     <Routes>
       {/* Public */}
       <Route path="/" element={<HomePage />} />
+          <Route path="/shop/:scannerId" element={<CustomerView />} />
+
+      {/* this is AppRoute.jsx file */}
 
       {/* Dashboard */}
       <Route
@@ -108,7 +114,7 @@ const AppRoutes = () => {
           <Route path="shop-profile" element={<ShopProfile />} />
           <Route path="gst" element={<GstReports />} />
           <Route path="stock" element={<stockServices />} />
-          {/* <Route path="Stockservice" element={<Stockservice />} /> */}
+          <Route path="shopqroder" element={ <Shopqrorder /> } />
         </Route>
 
         {/* Home Expense */}

@@ -1,11 +1,13 @@
 // src/context/BusinessStatsContext.jsx
 
-import React, { createContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { getDashboardStats } from "../services/businessService";
+import { AuthContext } from "./AuthContext";
 
 export const BusinessStatsContext = createContext();
 
 export const BusinessStatsProvider = ({ children }) => {
+  const { accessToken, sessionVersion } = useContext(AuthContext);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,20 +28,25 @@ export const BusinessStatsProvider = ({ children }) => {
 
   // Fetch on mount
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      fetchStats();
-    } else {
+    if (!accessToken) {
+      setStats(null);
+      setError(null);
       setLoading(false);
+      return;
     }
-  }, [fetchStats]);
 
-  const value = {
-    stats,
-    loading,
-    error,
-    refetch: fetchStats,
-  };
+    fetchStats();
+  }, [accessToken, sessionVersion, fetchStats]);
+
+  const value = useMemo(
+    () => ({
+      stats,
+      loading,
+      error,
+      refetch: fetchStats,
+    }),
+    [stats, loading, error, fetchStats]
+  );
 
   return (
     <BusinessStatsContext.Provider value={value}>

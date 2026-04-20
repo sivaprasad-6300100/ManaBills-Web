@@ -1,21 +1,27 @@
 // src/context/SubscriptionContext.jsx
 
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { authAxios } from "../services/api";
+import { AuthContext } from "./AuthContext";
 
 export const SubscriptionContext = createContext();
 
 export const SubscriptionProvider = ({ children }) => {
+  const { accessToken, sessionVersion } = useContext(AuthContext);
   const [subscriptions, setSubscriptions] = useState({});
   const [loading, setLoading] = useState(true);
 
   // ✅ FIX: Fetch from API, not localStorage
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+    const token = accessToken;
     if (!token) {
+      setSubscriptions({});
       setLoading(false);
       return;
     }
+
+    let cancelled = false;
+    setLoading(true);
 
     authAxios
       .get("subscriptions/my/")
@@ -25,36 +31,43 @@ export const SubscriptionProvider = ({ children }) => {
         res.data.forEach((sub) => {
           subMap[sub.module] = sub;
         });
-        setSubscriptions(subMap);
+        if (!cancelled) setSubscriptions(subMap);
       })
       .catch(() => {
         // fallback: load from localStorage if API fails
         const saved = localStorage.getItem("subscriptions");
-        if (saved) setSubscriptions(JSON.parse(saved));
+        if (saved && !cancelled) setSubscriptions(JSON.parse(saved));
       })
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-  const subscribe = (moduleKey, data) => {
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, sessionVersion]);
+
+  const subscribe = useCallback((moduleKey, data) => {
     setSubscriptions((prev) => {
       const updated = { ...prev, [moduleKey]: data };
       localStorage.setItem("subscriptions", JSON.stringify(updated)); // keep as backup
       return updated;
     });
-  };
+  }, []);
 
-  const unsubscribe = (moduleKey) => {
+  const unsubscribe = useCallback((moduleKey) => {
     setSubscriptions((prev) => {
       const updated = { ...prev };
       delete updated[moduleKey];
       localStorage.setItem("subscriptions", JSON.stringify(updated));
       return updated;
     });
-  };
+  }, []);
 
-  return (
-    <SubscriptionContext.Provider value={{ subscriptions, subscribe, unsubscribe, loading }}>
-      {children}
-    </SubscriptionContext.Provider>
+  const value = useMemo(
+    () => ({ subscriptions, subscribe, unsubscribe, loading }),
+    [subscriptions, subscribe, unsubscribe, loading]
   );
+
+  return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;
 };

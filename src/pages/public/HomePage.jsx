@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { publicAxios } from "../../services/api";
 import { useNavigate } from "react-router-dom";
+import useAuth from "../../hooks/useAuth";
 import '../../styles/global/publicHomePage.css'
 
 
@@ -149,6 +150,7 @@ const PasswordInput = ({ placeholder, value, onChange, id }) => {
 /* ═══════════════════════════════════════ */
 export default function HomePage() {
   const navigate = useNavigate();
+  const { login: authLogin, logout: authLogout } = useAuth();
 
   const [modal,         setModal]         = useState(null);
   const [isLoggedIn,    setLoggedIn]       = useState(false);
@@ -229,13 +231,11 @@ export default function HomePage() {
 
     try {
       const res = await publicAxios.post("auth/login/", payload);
-      localStorage.setItem("access_token",  res.data.access);
-      localStorage.setItem("refresh_token", res.data.refresh);
       const userData = {
         mobile_number: res.data.mobile_number || loginData.identifier,
         full_name: res.data.full_name || res.data.name || "",
       };
-      localStorage.setItem("user", JSON.stringify(userData));
+      authLogin(userData, { access: res.data.access, refresh: res.data.refresh });
       setLoggedIn(true);
       setMessage({ text: "Login successful! Redirecting…", type: "success" });
       setTimeout(() => navigate("/dashboard"), 700);
@@ -360,11 +360,9 @@ export default function HomePage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
+    authLogout();
     setLoggedIn(false);
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   return (

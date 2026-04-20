@@ -1,143 +1,133 @@
 // ─────────────────────────────────────────────────────────────
-//  businessService.js
-//  Single source of truth for ALL Business Billing API calls.
-//  Place this file in:  src/services/businessService.js
-//
-//  Every component imports from here — never calls authAxios directly.
+// ADDITIONS TO: src/services/businessService.js
+// Add these functions to your existing businessService.js file
 // ─────────────────────────────────────────────────────────────
 
 import { authAxios } from "./api";
 
-const BASE = "business/";        // maps to  /api/business/  on the backend
+const BASE = "business/";   // adjust to match your URL prefix
 
-// ═══════════════════════════════════════════════════════════
-//   SHOP PROFILE
-// ═══════════════════════════════════════════════════════════
+/* ── Dashboard stats ─────────────────────────────────────── */
+export const getDashboardStats = async () => {
+  const res = await authAxios.get(`${BASE}dashboard/`);
+  return res.data;
+};
 
-/** GET  /api/business/shop-profile/ */
-export const getShopProfile = () =>
-  authAxios.get(`${BASE}shop-profile/`).then((r) => r.data);
+/* ── Shop Profile ────────────────────────────────────────── */
+export const getShopProfile = async () => {
+  const res = await authAxios.get(`${BASE}shop-profile/`);
+  return res.data;
+};
 
-/** POST /api/business/shop-profile/  (creates or updates — upsert) */
-export const saveShopProfile = (data) =>
-  authAxios.post(`${BASE}shop-profile/`, data).then((r) => r.data);
+export const saveShopProfile = async (data) => {
+  const res = await authAxios.post(`${BASE}shop-profile/`, data);
+  return res.data;
+};
 
-/** DELETE /api/business/shop-profile/ */
-export const deleteShopProfile = () =>
-  authAxios.delete(`${BASE}shop-profile/`).then((r) => r.data);
+export const deleteShopProfile = async () => {
+  await authAxios.delete(`${BASE}shop-profile/`);
+};
 
+/* ── Customers ───────────────────────────────────────────── */
+export const getCustomers = async (search = "") => {
+  const params = search ? { search } : {};
+  const res = await authAxios.get(`${BASE}customers/`, { params });
+  return res.data;
+};
 
-// ═══════════════════════════════════════════════════════════
-//   CUSTOMERS
-// ═══════════════════════════════════════════════════════════
+export const createCustomer = async (data) => {
+  const res = await authAxios.post(`${BASE}customers/`, data);
+  return res.data;
+};
 
-/** GET  /api/business/customers/?search= */
-export const getCustomers = (search = "") =>
-  authAxios
-    .get(`${BASE}customers/`, { params: search ? { search } : {} })
-    .then((r) => r.data);
+export const updateCustomer = async (id, data) => {
+  const res = await authAxios.patch(`${BASE}customers/${id}/`, data);
+  return res.data;
+};
 
-/** POST /api/business/customers/ */
-export const createCustomer = (data) =>
-  authAxios.post(`${BASE}customers/`, data).then((r) => r.data);
+export const deleteCustomer = async (id) => {
+  await authAxios.delete(`${BASE}customers/${id}/`);
+};
 
-/** PATCH /api/business/customers/<id>/ */
-export const updateCustomer = (id, data) =>
-  authAxios.patch(`${BASE}customers/${id}/`, data).then((r) => r.data);
+/* ── Products / Stock ────────────────────────────────────── */
+export const getProducts = async () => {
+  const res = await authAxios.get(`${BASE}products/`);
+  return res.data;
+};
 
-/** DELETE /api/business/customers/<id>/ */
-export const deleteCustomer = (id) =>
-  authAxios.delete(`${BASE}customers/${id}/`).then((r) => r.data);
+export const addProduct = async (data) => {
+  const res = await authAxios.post(`${BASE}products/`, data);
+  return res.data;
+};
 
+export const updateProduct = async (id, data) => {
+  const res = await authAxios.patch(`${BASE}products/${id}/`, data);
+  return res.data;
+};
 
-// ═══════════════════════════════════════════════════════════
-//   PRODUCTS  (Stock)
-// ═══════════════════════════════════════════════════════════
+export const deleteProduct = async (id) => {
+  await authAxios.delete(`${BASE}products/${id}/`);
+};
 
-/** GET  /api/business/products/?search=&category= */
-export const getProducts = (params = {}) =>
-  authAxios.get(`${BASE}products/`, { params }).then((r) => r.data);
+export const searchProducts = async (query) => {
+  const res = await authAxios.get(`${BASE}products/search/`, { params: { q: query } });
+  return res.data;
+};
 
-/** GET  /api/business/products/search/?q=  — for invoice autocomplete */
-export const searchProducts = (q) =>
-  authAxios
-    .get(`${BASE}products/search/`, { params: { q } })
-    .then((r) => r.data);
+export const getLowStockProducts = async () => {
+  const res = await authAxios.get(`${BASE}products/low-stock/`);
+  return res.data;
+};
 
-/** GET  /api/business/products/low-stock/ */
-export const getLowStockProducts = () =>
-  authAxios.get(`${BASE}products/low-stock/`).then((r) => r.data);
+export const getProductStats = async () => {
+  const res = await authAxios.get(`${BASE}products/stats/`);
+  return res.data;
+};
 
-/** GET  /api/business/products/stats/ */
-export const getProductStats = () =>
-  authAxios.get(`${BASE}products/stats/`).then((r) => r.data);
+/* ── Invoices ────────────────────────────────────────────── */
+export const getInvoices = async (params = {}) => {
+  const res = await authAxios.get(`${BASE}invoices/`, { params });
+  return res.data;
+};
 
-/** POST /api/business/products/  (auto-merges if same name) */
-export const addProduct = (data) =>
-  authAxios.post(`${BASE}products/`, data).then((r) => r.data);
+export const getInvoiceById = async (id) => {
+  const res = await authAxios.get(`${BASE}invoices/${id}/`);
+  return res.data;
+};
 
-/** PATCH /api/business/products/<id>/ */
-export const updateProduct = (id, data) =>
-  authAxios.patch(`${BASE}products/${id}/`, data).then((r) => r.data);
-
-/** DELETE /api/business/products/<id>/  (soft delete) */
-export const deleteProduct = (id) =>
-  authAxios.delete(`${BASE}products/${id}/`).then((r) => r.data);
-
-
-// ═══════════════════════════════════════════════════════════
-//   INVOICES
-// ═══════════════════════════════════════════════════════════
+export const createInvoice = async (data) => {
+  const res = await authAxios.post(`${BASE}invoices/`, data);
+  return res.data;
+};
 
 /**
- * GET /api/business/invoices/
- * params: { search, status, payment }
+ * UPDATE invoice — PATCH /api/business/invoices/<id>/
+ * Accepts: customer_name, customer_mobile, customer_gst,
+ *          payment, advance, discount, status
  */
-export const getInvoices = (params = {}) =>
-  authAxios.get(`${BASE}invoices/`, { params }).then((r) => r.data);
+export const updateInvoice = async (id, data) => {
+  const res = await authAxios.patch(`${BASE}invoices/${id}/`, data);
+  return res.data;
+};
 
 /**
- * POST /api/business/invoices/
- * Backend auto-deducts stock and sets status.
- *
- * payload shape:
- * {
- *   invoice_id, customer_name, customer_mobile, customer_gst,
- *   shop_name, shop_address, shop_gst,
- *   subtotal, gst_amt, discount, advance, total,
- *   is_gst, payment, date,
- *   items: [{ product, name, qty, price, unit, is_stock_item }]
- * }
+ * MARK PAID — PATCH /api/business/invoices/<id>/mark-paid/
+ * Sets advance = total, auto-calculates status + balance
  */
-export const createInvoice = (data) =>
-  authAxios.post(`${BASE}invoices/`, data).then((r) => r.data);
+export const markInvoicePaid = async (id) => {
+  const res = await authAxios.patch(`${BASE}invoices/${id}/mark-paid/`);
+  return res.data;
+};
 
-/** PATCH /api/business/invoices/<id>/mark-paid/ */
-export const markInvoicePaid = (id) =>
-  authAxios
-    .patch(`${BASE}invoices/${id}/mark-paid/`)
-    .then((r) => r.data);
+export const deleteInvoice = async (id) => {
+  await authAxios.delete(`${BASE}invoices/${id}/`);
+};
 
-/** DELETE /api/business/invoices/<id>/ */
-export const deleteInvoice = (id) =>
-  authAxios.delete(`${BASE}invoices/${id}/`).then((r) => r.data);
+/* ── GST Reports ─────────────────────────────────────────── */
+export const getGstReports = async (year, view = "monthly") => {
+  const res = await authAxios.get(`${BASE}gst-reports/`, { params: { year, view } });
+  return res.data;
+};
 
-
-// ═══════════════════════════════════════════════════════════
-//   GST REPORTS
-// ═══════════════════════════════════════════════════════════
-
-/** GET /api/business/gst-reports/?year=2025&view=monthly|quarterly */
-export const getGstReports = (year, view = "monthly") =>
-  authAxios
-    .get(`${BASE}gst-reports/`, { params: { year, view } })
-    .then((r) => r.data);
-
-
-// ═══════════════════════════════════════════════════════════
-//   DASHBOARD STATS
-// ═══════════════════════════════════════════════════════════
-
-/** GET /api/business/dashboard/ */
-export const getDashboardStats = () =>
-  authAxios.get(`${BASE}dashboard/`).then((r) => r.data);
+export const updateInvoiceItems = (id, data) =>
+  authAxios.patch(`${BASE}invoices/${id}/`, data).then((r) => r.data);

@@ -70,6 +70,7 @@ const MODULE_NAVS = {
     { to: "/dashboard/business",                  iconPath: "overview",  label: "Overview", end: true    },
     { to: "/dashboard/business/create-invoice",   iconPath: "invoice",   label: "Invoice"               },
     { to: "/dashboard/business/products",         iconPath: "stock",     label: "Stock"                 },
+    { to: "/dashboard/business/shopqroder",           iconPath: "quotation", label: "Orders"                },
     { to: "/dashboard/business/customers",        iconPath: "customers", label: "Customers"             },
   ],
   "home-expense": [

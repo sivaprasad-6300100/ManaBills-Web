@@ -10,7 +10,9 @@ const NAV_ITEMS = [
   { to: "customers",      label: "Customers",      icon: "👥" },
   { to: "invoices",       label: "Invoices",       icon: "📄" },
   { to: "gst",            label: "GST Reports",    icon: "📊" },
-];
+  { to: "shopqroder",     label: "Shop QR Order",  icon: "📱" },
+  { to: "customerview",   label: "Customer View",  icon: "👁️" }
+];  
 
 const BusinessLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -413,6 +415,10 @@ const BusinessLayout = () => {
         <NavLink to="customers"        className="sub-link">Customers</NavLink>
         <NavLink to="invoices"         className="sub-link">Invoices</NavLink>
         <NavLink to="gst"              className="sub-link">GST Reports</NavLink>
+        <NavLink to="shopqroder"       className="sub-link">Shop QR Order</NavLink>
+        <NavLink to="customerview"       className="sub-link">Customer View</NavLink>
+         
+
       </div>
 
       <Outlet />

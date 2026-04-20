@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import useAuth from "../../hooks/useAuth";
 
 const NAV_MODULES = [
   { to: "/dashboard",              icon: "🏠", label: "Home" },
@@ -11,10 +12,10 @@ const NAV_MODULES = [
 
 const Sidebar = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  /* Get user initials from localStorage */
-  const user     = JSON.parse(localStorage.getItem("user") || "{}");
-  const name     = user.full_name || user.mobile_number || "User";
+  /* Get user initials */
+  const name     = user?.full_name || user?.mobile_number || "User";
   const initials = name
     .split(" ")
     .map((w) => w[0])
@@ -23,9 +24,7 @@ const Sidebar = () => {
     .slice(0, 2);
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
+    logout();
     navigate("/", { replace: true });
   };
 

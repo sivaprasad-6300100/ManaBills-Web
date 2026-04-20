@@ -1,6 +1,15 @@
 import axios from "axios";
 
-const BASE_URL = process.env.REACT_APP_API_URL;
+// const BASE_URL = process.env.REACT_APP_API_URL;
+// FROM:
+// const BASE_URL = process.env.REACT_APP_API_URL;
+
+// TO:
+const BASE_URL = process.env.REACT_APP_API_URL
+  || process.env.REACT_APP_API_BASE
+  || (window.location.hostname === "localhost"
+      ? "http://localhost:8000/api/"
+      : `http://${window.location.hostname}:8000/api/`);
 
 /* 🌍 Public API (login, signup, plans) */
 export const publicAxios = axios.create({
