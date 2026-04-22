@@ -199,7 +199,7 @@ const AccountPage = () => {
 
   /* ── Login details state ── */
   const [name,        setName]        = useState(user?.full_name     || "");
-  const [mobile,      setMobile]      = useState(user?.mobile_number || "");
+  // const [mobile,      setMobile]      = useState(user?.mobile_number || "");
   const [email,       setEmail]       = useState(user?.email         || "");
   const [savingLogin, setSavingLogin] = useState(false);
   const [loginEditing, setLoginEditing] = useState(false);
