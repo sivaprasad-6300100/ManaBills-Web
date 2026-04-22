@@ -6,4 +6,3 @@ psycopg2-binary==2.9.7
 python-decouple==3.8
 Pillow==10.1.0
 django-filter==23.3
-<parameter name="filePath">d:\projects\ManaBills\manabills\requirements.txt
