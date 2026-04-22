@@ -1,5 +1,5 @@
 /**
- * CustomerView.jsx — Public QR Customer View (Fixed)
+ * CustomerView.jsx — Public QR Customer View (Redesigned Header)
  *
  * KEY FIXES:
  * 1. Public QR flow uses /api/public/shop/<scanner_id>/ — NO auth needed
@@ -8,6 +8,11 @@
  * 4. Orders submitted to public API → stored server-side, visible on any phone
  * 5. "My Orders" fetches from server by mobile number, not localStorage
  * 6. localStorage used only as cache/fallback, never as source of truth
+ *
+ * DESIGN CHANGES:
+ * - Completely redesigned header with editorial-style ManaBills branding
+ * - Shop open/closed status shown as an animated glow toggle (like a neon sign)
+ * - Shop details section with glass-morphism card
  */
 
 import React, {
@@ -20,17 +25,13 @@ const TOAST_MS = 3500;
 const fmt = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
 
 // ─── Detect if this is a public QR page (no auth) ────────────
-// Returns scanner_id from URL like /shop/<scanner_id> or /scan/<scanner_id>
-// or /customer/<scanner_id>, etc.
 const extractScannerIdFromUrl = () => {
   try {
     const path   = window.location.pathname;
     const search = window.location.search;
-    // ?scanner=xxx
     const qp = new URLSearchParams(search);
     if (qp.get("scanner")) return qp.get("scanner");
     if (qp.get("scanner_id")) return qp.get("scanner_id");
-    // /shop/SCANNER_ID or /scan/SCANNER_ID or /public/shop/SCANNER_ID
     const segments = path.split("/").filter(Boolean);
     const markers  = ["shop", "scan", "public", "qr", "customer"];
     for (let i = 0; i < segments.length; i++) {
@@ -38,7 +39,6 @@ const extractScannerIdFromUrl = () => {
         return segments[i + 1];
       }
     }
-    // last path segment if looks like a UUID/code
     const last = segments[segments.length - 1];
     if (last && last.length > 4 && last !== "shop") return last;
   } catch { /* ignore */ }
@@ -46,7 +46,6 @@ const extractScannerIdFromUrl = () => {
 };
 
 // ─── API helpers ──────────────────────────────────────────────
-// Public fetch — no Authorization header, works on any phone
 const publicFetch = async (url, options = {}) => {
   const base = (typeof window !== "undefined" && window.__API_BASE__)
     || process.env.REACT_APP_API_BASE
@@ -63,8 +62,8 @@ const publicFetch = async (url, options = {}) => {
   return res.json();
 };
 
-const publicGet  = (url)          => publicFetch(url);
-const publicPost = (url, body)    => publicFetch(url, { method: "POST", body: JSON.stringify(body) });
+const publicGet  = (url)       => publicFetch(url);
+const publicPost = (url, body) => publicFetch(url, { method: "POST", body: JSON.stringify(body) });
 
 // ─── Sanitize helpers ─────────────────────────────────────────
 const sanitizeName   = (v) => v.replace(/[^a-zA-Z\s.'-]/g, "").slice(0, 60);
@@ -105,7 +104,7 @@ const getCatIcon = (cat = "") => {
 
 // ─── CSS ─────────────────────────────────────────────────────
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Playfair+Display:wght@700;800&display=swap');
 
   :root {
     --ink:   #0A0F1E; --ink2: #3D4660; --ink3: #8892A4;
@@ -122,34 +121,191 @@ const STYLES = `
   @keyframes toastIn  { from{opacity:0;transform:translate(-50%,-14px)} to{opacity:1;transform:translate(-50%,0)} }
   @keyframes barUp    { from{opacity:0;transform:translateY(100%)} to{opacity:1;transform:translateY(0)} }
   @keyframes shimmer  { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+  @keyframes glowPulse{ 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(.92)} }
+  @keyframes breathe  { 0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,.4)} 50%{box-shadow:0 0 0 8px rgba(74,222,128,0)} }
+  @keyframes breatheRed{ 0%,100%{box-shadow:0 0 0 0 rgba(252,165,165,.35)} 50%{box-shadow:0 0 0 7px rgba(252,165,165,0)} }
+  @keyframes scanLine { 0%{transform:translateX(-100%)} 100%{transform:translateX(400%)} }
 
   *,*::before,*::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
   .cv-root { min-height:100vh; background:var(--bg); font-family:'DM Sans',system-ui,sans-serif; color:var(--ink); padding-bottom:110px; }
 
-  /* Header */
-  .cv-hdr { background:var(--ink); padding:16px 18px 14px; position:sticky; top:0; z-index:100; box-shadow:0 2px 20px rgba(10,15,30,.3); }
-  .cv-hdr-inner { max-width:760px; margin:0 auto; }
-  .cv-hdr-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px; }
-  .cv-brand { display:flex; align-items:center; gap:11px; }
-  .cv-brand-icon { width:40px; height:40px; background:linear-gradient(135deg,var(--gold),var(--gold2)); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
-  .cv-brand-name { font-family:'Sora',sans-serif; font-size:18px; font-weight:800; color:#fff; letter-spacing:-.3px; line-height:1.1; }
-  .cv-brand-name em { color:var(--gold2); font-style:normal; }
-  .cv-brand-shop { font-size:11px; color:rgba(255,255,255,.38); font-weight:400; margin-top:1px; }
-  .cv-hdr-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
-  .cv-open-badge { padding:5px 12px; border-radius:100px; font-size:11px; font-weight:700; white-space:nowrap; }
-  .cv-open-badge.open   { background:rgba(21,128,61,.22); color:#4ADE80; border:1px solid rgba(74,222,128,.2); }
-  .cv-open-badge.closed { background:rgba(220,38,38,.22); color:#FCA5A5; border:1px solid rgba(252,165,165,.2); }
-  .cv-cart-pill { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.13); border-radius:14px; padding:8px 14px; cursor:pointer; transition:all .18s; }
-  .cv-cart-pill:hover { background:rgba(255,255,255,.17); }
+  /* ─── REDESIGNED HEADER ─── */
+  .cv-hdr {
+    background: linear-gradient(160deg, #060A15 0%, #0D1526 40%, #111827 100%);
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 4px 32px rgba(0,0,0,.5);
+    overflow: hidden;
+  }
+
+  /* Subtle diagonal texture lines on header background */
+  .cv-hdr::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(
+      -55deg,
+      transparent,
+      transparent 40px,
+      rgba(255,255,255,.012) 40px,
+      rgba(255,255,255,.012) 41px
+    );
+    pointer-events: none;
+  }
+
+  .cv-hdr-inner { max-width:760px; margin:0 auto; padding:0 18px; position: relative; z-index:1; }
+
+  /* ─── BRAND ROW ─── */
+  .cv-brand-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 8px 0 4px; gap: 4px;
+  }
+
+  /* ManaBills wordmark */
+  .cv-wordmark { display: flex; flex-direction: column; gap: 2px; }
+  .cv-wordmark-line1 {
+    display: flex; align-items: baseline; gap: 0;
+    font-family: 'Playfair Display', 'Sora', serif;
+    font-size: 26px; font-weight: 800;
+    letter-spacing: -0.5px; line-height: 1;
+    color: #fff;
+  }
+  .cv-wordmark-mana { color: rgba(255,255,255,.9); }
+  .cv-wordmark-bills {
+    color: var(--gold2);
+    position: relative;
+  }
+  /* Underline accent on "Bills" */
+  .cv-wordmark-bills::after {
+    content: '';
+    position: absolute; left: 0; bottom: -2px; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold2), transparent);
+    border-radius: 1px;
+  }
+  .cv-wordmark-tagline {
+    font-size: 10px; font-weight: 500; letter-spacing: .14em;
+    text-transform: uppercase; color: rgba(255,255,255,.25);
+    padding-left: 2px;
+  }
+
+  /* ─── SHOP STATUS TOGGLE (neon sign style) ─── */
+  .cv-status-toggle {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+    flex-shrink: 0;
+  }
+
+  /* The toggle pill */
+  .cv-status-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px 6px 7px; border-radius: 100px;
+    border: 1px solid; cursor: default; position: relative;
+    transition: all .4s cubic-bezier(.34,1.3,.64,1);
+  }
+  .cv-status-pill.open {
+    background: rgba(20,83,45,.35);
+    border-color: rgba(74,222,128,.25);
+  }
+  .cv-status-pill.closed {
+    background: rgba(127,29,29,.25);
+    border-color: rgba(252,165,165,.2);
+  }
+
+  /* The dot — animated "bulb" */
+  .cv-status-bulb {
+    width: 12px; height: 12px; border-radius: 50%;
+    position: relative; flex-shrink: 0;
+    transition: background .4s, box-shadow .4s;
+  }
+  .cv-status-pill.open  .cv-status-bulb {
+    background: #4ADE80;
+    box-shadow: 0 0 0 3px rgba(74,222,128,.22);
+    animation: breathe 2.4s ease-in-out infinite;
+  }
+  .cv-status-pill.closed .cv-status-bulb {
+    background: #FCA5A5;
+    box-shadow: 0 0 0 3px rgba(252,165,165,.18);
+    animation: breatheRed 3s ease-in-out infinite;
+  }
+
+  /* Inner core of bulb — brighter center */
+  .cv-status-bulb::after {
+    content: ''; position: absolute;
+    inset: 2px; border-radius: 50%;
+    background: rgba(255,255,255,.5);
+  }
+
+  .cv-status-text {
+    font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    line-height: 1;
+  }
+  .cv-status-pill.open  .cv-status-text { color: #4ADE80; }
+  .cv-status-pill.closed .cv-status-text { color: #FCA5A5; }
+
+  .cv-status-sub {
+    font-size: 10px; color: rgba(255,255,255,.28);
+    font-weight: 400; letter-spacing: .01em; text-align: right;
+    padding-right: 2px; min-height: 13px;
+  }
+
+  /* Cart pill (header) */
+  .cv-cart-pill { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.11); border-radius:14px; padding:8px 14px; cursor:pointer; transition:all .18s; }
+  .cv-cart-pill:hover { background:rgba(255,255,255,.14); }
   .cv-cart-pill-txt { font-size:13px; font-weight:600; color:#fff; }
   .cv-cart-pill-badge { background:var(--gold2); color:var(--ink); font-size:10px; font-weight:800; min-width:20px; height:20px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; padding:0 5px; }
-  .cv-cart-pill-amt { font-size:12px; color:rgba(255,255,255,.5); border-left:1px solid rgba(255,255,255,.13); padding-left:9px; margin-left:1px; }
-  .cv-search-wrap { position:relative; }
-  .cv-search-ico { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:14px; pointer-events:none; opacity:.35; }
-  .cv-search { width:100%; padding:11px 14px 11px 40px; border-radius:12px; border:1px solid rgba(255,255,255,.1); font-size:14px; font-family:inherit; background:rgba(255,255,255,.08); color:#fff; outline:none; transition:all .2s; }
-  .cv-search::placeholder { color:rgba(255,255,255,.3); }
-  .cv-search:focus { background:rgba(255,255,255,.13); border-color:rgba(255,255,255,.2); }
+  .cv-cart-pill-amt { font-size:12px; color:rgba(255,255,255,.45); border-left:1px solid rgba(255,255,255,.1); padding-left:9px; margin-left:1px; }
+
+  /* ─── SHOP INFO CARD ─── */
+  .cv-shop-card {
+    margin: 0 0 14px;
+    padding: 12px 15px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    display: flex; flex-direction: column; gap: 6px;
+    position: relative; overflow: hidden;
+  }
+
+  /* Shimmer scan line across the card */
+  .cv-shop-card::before {
+    content: '';
+    position: absolute; top: 0; bottom: 0; width: 40px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+    animation: scanLine 3.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .cv-shop-name {
+    font-family: 'Sora', sans-serif;
+    font-size: 15px; font-weight: 700; color: #fff;
+    letter-spacing: -.2px; line-height: 1.2;
+  }
+  .cv-shop-owner {
+    font-size: 12px; color: rgba(255,255,255,.45);
+    font-weight: 500;
+  }
+  .cv-shop-meta {
+    display: flex; flex-wrap: wrap; gap: 6px 14px;
+    margin-top: 2px;
+  }
+  .cv-shop-meta-item {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px; color: rgba(255,255,255,.32);
+    font-weight: 400;
+  }
+  .cv-shop-meta-ico { font-size: 11px; opacity: .7; }
+
+  /* ─── HEADER ACTIONS ROW (cart + search) ─── */
+  .cv-hdr-actions-row {
+    display: flex; align-items: center; gap: 8px;
+    padding-bottom: 14px;
+  }
+
+  /* Search */
+  .cv-search-wrap { position:relative; flex:1; }
+  .cv-search-ico  { position:absolute; left:13px; top:50%; transform:translateY(-50%); font-size:14px; pointer-events:none; opacity:.3; }
+  .cv-search { width:100%; padding:11px 14px 11px 40px; border-radius:12px; border:1px solid rgba(255,255,255,.09); font-size:14px; font-family:inherit; background:rgba(255,255,255,.07); color:#fff; outline:none; transition:all .2s; }
+  .cv-search::placeholder { color:rgba(255,255,255,.25); }
+  .cv-search:focus { background:rgba(255,255,255,.11); border-color:rgba(255,255,255,.18); }
 
   /* Tabs */
   .cv-tabs { display:flex; background:var(--white); border-bottom:1px solid rgba(10,15,30,.06); position:sticky; top:0; z-index:90; }
@@ -332,15 +488,22 @@ const STYLES = `
   .cv-empty-ico { font-size:52px; margin-bottom:16px; }
   .cv-empty-h { font-family:'Sora',sans-serif; font-size:18px; font-weight:700; color:var(--ink); margin-bottom:8px; }
   .cv-empty-p { font-size:13px; color:var(--ink3); line-height:1.6; }
-  .cv-closed { background:#7F1D1D; color:#FCA5A5; text-align:center; padding:10px 16px; font-size:13px; font-weight:700; }
+  .cv-closed-banner { background: linear-gradient(90deg, #7F1D1D, #991B1B); color:#FCA5A5; text-align:center; padding:9px 16px; font-size:12px; font-weight:700; letter-spacing:.04em; }
   .cv-toast { position:fixed; top:72px; left:50%; transform:translateX(-50%); z-index:9999; padding:11px 22px 11px 14px; border-radius:100px; font-weight:700; font-size:13px; white-space:nowrap; box-shadow:0 6px 24px rgba(0,0,0,.22); cursor:pointer; animation:toastIn .3s cubic-bezier(.34,1.3,.64,1); font-family:'DM Sans',sans-serif; display:flex; align-items:center; gap:8px; max-width:calc(100vw - 32px); }
   .cv-toast-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
   .cv-shimmer { background:linear-gradient(90deg,var(--bg2) 25%,var(--bg) 50%,var(--bg2) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:16px; }
+
+  /* Divider between wordmark + status area */
+  .cv-hdr-top-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.07), transparent);
+    margin: 0 0 13px;
+  }
 `;
 
-if (typeof document !== "undefined" && !document.getElementById("__cv_v4")) {
+if (typeof document !== "undefined" && !document.getElementById("__cv_v5")) {
   const el = document.createElement("style");
-  el.id = "__cv_v4";
+  el.id = "__cv_v5";
   el.textContent = STYLES;
   document.head.appendChild(el);
 }
@@ -444,7 +607,6 @@ const ORDER_STATUS_STYLE = {
 //   MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════
 export default function CustomerView({
-  // Owner-dashboard props (optional — when embedded in owner app)
   shopProfile:  propShopProfile = null,
   stockItems:   propStockItems  = null,
   loading:      propLoading     = null,
@@ -453,15 +615,10 @@ export default function CustomerView({
   onStockRefresh,
   toast$:       propToast$      = null,
 }) {
-  // ── Detect mode ──────────────────────────────────────────────
-  // isPublic = true  → customer scanned QR on their own phone (no auth)
-  // isPublic = false → shop owner viewing their own customer page (has auth)
   const urlScannerId = extractScannerIdFromUrl();
   const effectiveScannerId = propScannerId || urlScannerId || "";
-  // If we have a scanner ID from the URL and no prop overrides, assume public
   const isPublic = !propShopProfile && !propStockItems && !!urlScannerId;
 
-  // ── State ────────────────────────────────────────────────────
   const [shopProfile,  setShopProfile]  = useState(propShopProfile);
   const [stockItems,   setStockItems]   = useState(propStockItems || []);
   const [loading,      setLoading]      = useState(propLoading !== null ? propLoading : true);
@@ -487,16 +644,13 @@ export default function CustomerView({
   const stockRef = useRef(stockItems);
   useEffect(() => { stockRef.current = stockItems; }, [stockItems]);
 
-  // ── Toast helper ─────────────────────────────────────────────
   const showToast = useCallback((msg, type = "success") => {
     if (propToast$) { propToast$(msg, type); return; }
     setLocalToast({ msg, type });
     setTimeout(() => setLocalToast(null), TOAST_MS);
   }, [propToast$]);
 
-  // ── Load data ────────────────────────────────────────────────
   useEffect(() => {
-    // If parent is passing data directly, skip fetching
     if (propShopProfile && propStockItems) {
       setShopProfile(propShopProfile);
       setStockItems(propStockItems);
@@ -508,17 +662,10 @@ export default function CustomerView({
     setLoadError(null);
 
     if (isPublic && effectiveScannerId) {
-      // ══════════════════════════════════════════════════════
-      // PUBLIC PATH — customer scanned QR on their own phone
-      // Uses the unauthenticated public API endpoint
-      // ══════════════════════════════════════════════════════
       publicGet(`public/shop/${effectiveScannerId}/`)
         .then((data) => {
-          // data = { shop: {...}, products: [...], scanner_id: "..." }
           setShopProfile(data.shop);
-          setStockItems(
-            (data.products || []).filter((p) => Number(p.qty) > 0)
-          );
+          setStockItems((data.products || []).filter((p) => Number(p.qty) > 0));
           setScannerId(data.scanner_id || effectiveScannerId);
           setLoading(false);
         })
@@ -531,10 +678,6 @@ export default function CustomerView({
           setLoading(false);
         });
     } else {
-      // ══════════════════════════════════════════════════════
-      // OWNER PATH — viewing via authenticated dashboard
-      // Uses authAxios with login session
-      // ══════════════════════════════════════════════════════
       Promise.all([
         authAxios.get("business/shop-profile/").catch(() => ({ data: null })),
         authAxios.get("business/products/").catch(() => ({ data: [] })),
@@ -553,7 +696,6 @@ export default function CustomerView({
     }
   }, [isPublic, effectiveScannerId, propShopProfile, propStockItems]);
 
-  // ── Derived data ─────────────────────────────────────────────
   const shopStatus = useMemo(() => getShopStatus(shopProfile?.timings), [shopProfile]);
 
   const categories = useMemo(() =>
@@ -583,7 +725,6 @@ export default function CustomerView({
   const advAmt    = Math.round((advPct / 100) * cartTotal);
   const balance   = Math.max(0, cartTotal - advAmt);
 
-  // ── Cart operations ───────────────────────────────────────────
   const addToCart = useCallback((item) => {
     const sid = String(item.id);
     setCart((prev) => {
@@ -598,11 +739,8 @@ export default function CustomerView({
       return {
         ...prev,
         [sid]: {
-          id:    item.id,
-          name:  item.name,
-          unit:  item.unit,
-          price: Number(item.selling_price),
-          qty:   current + 1,
+          id: item.id, name: item.name, unit: item.unit,
+          price: Number(item.selling_price), qty: current + 1,
         },
       };
     });
@@ -632,24 +770,18 @@ export default function CustomerView({
     setModal("checkout");
   }, [showToast]);
 
-  // ── Load My Orders from server ────────────────────────────────
-  // FIX: Queries server by mobile number, works on any phone
   const loadMyOrders = useCallback(async (mobile) => {
     if (!mobile || mobile.length !== 10) return;
     setOrdersLoading(true);
-
     try {
       if (isPublic) {
-        // Public endpoint: GET /api/public/shop/<scanner_id>/orders/?mobile=XXXXXXXXXX
         const data = await publicGet(`public/shop/${scannerId}/orders/?mobile=${mobile}`);
         setMyOrders(Array.isArray(data) ? data : data.results || []);
       } else {
-        // Owner authenticated endpoint (filtered by mobile)
         const res = await authAxios.get(`business/orders/?mobile=${mobile}`);
         setMyOrders(Array.isArray(res.data) ? res.data : res.data?.results || []);
       }
     } catch {
-      // Fallback: empty list with a helpful message
       setMyOrders([]);
       showToast("Could not load orders. Check your connection.", "error");
     } finally {
@@ -657,48 +789,32 @@ export default function CustomerView({
     }
   }, [isPublic, scannerId, showToast]);
 
-  // ── Place Order ───────────────────────────────────────────────
-  // FIX: Sends to public API — no auth needed, works on customer's phone
   const handlePlaceOrder = useCallback(async () => {
     const name   = custName.trim();
     const mobile = custMob.trim();
-
-    if (!name)                { showToast("Please enter your name", "error");        return; }
-    if (mobile.length !== 10) { showToast("Enter valid 10-digit mobile", "error");   return; }
-    if (!cartItems.length)    { showToast("Cart is empty", "error");                  return; }
+    if (!name)                { showToast("Please enter your name", "error");       return; }
+    if (mobile.length !== 10) { showToast("Enter valid 10-digit mobile", "error");  return; }
+    if (!cartItems.length)    { showToast("Cart is empty", "error");                return; }
 
     setPlacing(true);
-
     const orderPayload = {
       customer_name:   name,
       customer_mobile: mobile,
       advance:         advAmt,
-      items: cartItems.map((ci) => ({
-        product_id: ci.id,
-        qty:        ci.qty,
-      })),
+      items: cartItems.map((ci) => ({ product_id: ci.id, qty: ci.qty })),
     };
 
     try {
       let placedOrder;
-
       if (isPublic) {
-        // ── PUBLIC: POST /api/public/shop/<scanner_id>/order/ ──
-        // No auth needed — this is the correct endpoint for QR customers
-        placedOrder = await publicPost(
-          `public/shop/${scannerId}/order/`,
-          orderPayload
-        );
+        placedOrder = await publicPost(`public/shop/${scannerId}/order/`, orderPayload);
       } else {
-        // ── OWNER PREVIEW: POST /api/business/orders/ ──
         const res = await authAxios.post("business/orders/", orderPayload);
         placedOrder = res.data;
       }
 
-      // Notify parent (owner dashboard) if callback provided
       onOrderPlaced?.(placedOrder);
 
-      // Update stock display (remove items that are now sold)
       const updatedStock = stockRef.current.map((s) => {
         const cartItem = cartItems.find((ci) => String(ci.id) === String(s.id));
         if (cartItem) return { ...s, qty: Math.max(0, Number(s.qty) - Number(cartItem.qty)) };
@@ -707,15 +823,11 @@ export default function CustomerView({
 
       setStockItems(updatedStock);
       onStockRefresh?.(updatedStock);
-
       setLastOrder(placedOrder);
       clearCart();
-      setCustName("");
-      setCustMob("");
-      setAdvPct(0);
+      setCustName(""); setCustMob(""); setAdvPct(0);
       setModal("success");
       showToast(`✅ Order ${placedOrder.order_id || placedOrder.id} placed!`);
-
     } catch (err) {
       const msg = err?.data?.stock
         ? err.data.stock.join(" · ")
@@ -731,16 +843,14 @@ export default function CustomerView({
     clearCart, showToast,
   ]);
 
-  // ── Toast colors ──────────────────────────────────────────────
   const toastColors = {
     success: { bg:"#0A0F1E", dot:"#4ADE80" },
     error:   { bg:"#7F1D1D", dot:"#FCA5A5" },
     info:    { bg:"#1E3A8A", dot:"#93C5FD" },
   };
   const tc = toastColors[localToast?.type] || toastColors.success;
-  const shopName = shopProfile?.shop_name || "Shop";
+  // const shopName = shopProfile?.shop_name || "Shop";
 
-  // ── Render ────────────────────────────────────────────────────
   return (
     <div className="cv-root">
 
@@ -755,40 +865,47 @@ export default function CustomerView({
 
       {/* Closed banner */}
       {!shopStatus.open && shopStatus.label && (
-        <div className="cv-closed">🔒 {shopStatus.label}</div>
+        <div className="cv-closed-banner">🔒 {shopStatus.label}</div>
       )}
 
-      {/* Header */}
+      {/* ═══════════════════════════════════════════════════════
+          REDESIGNED HEADER
+      ═══════════════════════════════════════════════════════ */}
       <div className="cv-hdr">
         <div className="cv-hdr-inner">
-          <div className="cv-hdr-top">
-            <div className="cv-brand">
-              <div>
-                <div className="cv-brand-name">Mana<em>Bills</em></div>
-                <div className="cv-brand-shop">{shopName}</div>
-                <div className="cv-brand-shop">{shopProfile?.owner_name}</div>
 
-                {shopProfile?.address && (
-                  <div style={{ fontSize:10, color:"rgba(255,255,255,.28)", marginTop:1 }}>
-                    📍 {shopProfile.address}
-                  </div>
-                )}
-                {shopProfile?.mobile && (
-                  <div style={{ fontSize:10, color:"rgba(255,255,255,.28)", marginTop:1 }}>
-                    📱 {shopProfile.mobile}
-                  </div>
-                )}
-              </div>  
+          {/* ── TOP ROW: ManaBills wordmark + Status toggle ── */}
+          <div className="cv-brand-row">
+
+            {/* Left: wordmark */}
+            <div className="cv-wordmark">
+              <div className="cv-wordmark-line1">
+                <span className="cv-wordmark-mana">Mana</span>
+                <span className="cv-wordmark-bills">Bills</span>
+              </div>
+              <div className="cv-wordmark-tagline">Digital Shop · Quick Order</div>
             </div>
-            <div className="cv-hdr-actions">
-              {shopStatus.label && (
-                <span className={`cv-open-badge ${shopStatus.open ? "open" : "closed"}`}>
-                  {shopStatus.open ? "● Open" : "○ Closed"}
-                </span>
-              )}
+
+            {/* Right: status toggle + cart */}
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
+
+              {/* Open/Closed toggle — neon bulb style */}
+              <div className="cv-status-toggle">
+                <div className={`cv-status-pill ${shopStatus.open ? "open" : "closed"}`}>
+                  <div className="cv-status-bulb" />
+                  <span className="cv-status-text">
+                    {shopStatus.open ? "OPEN" : "CLOSED"}
+                  </span>
+                </div>
+                <div className="cv-status-sub">
+                  {shopStatus.label || (shopStatus.open ? "We're open now" : "")}
+                </div>
+              </div>
+
+              {/* Cart pill */}
               {cartCount > 0 && (
                 <button className="cv-cart-pill" onClick={() => setModal("cart")}>
-                  <span style={{ fontSize:17 }}>🛒</span>
+                  <span style={{ fontSize:15 }}>🛒</span>
                   <span className="cv-cart-pill-txt">Cart</span>
                   <span className="cv-cart-pill-badge">{cartCount}</span>
                   <span className="cv-cart-pill-amt">{fmt(cartTotal)}</span>
@@ -796,11 +913,52 @@ export default function CustomerView({
               )}
             </div>
           </div>
-          <div className="cv-search-wrap">
-            <span className="cv-search-ico">🔍</span>
-            <input className="cv-search" type="text" placeholder="Search products…"
-              value={search} onChange={(e) => setSearch(e.target.value)} />
+
+          {/* ── DIVIDER ── */}
+          <div className="cv-hdr-top-divider" />
+
+          {/* ── SHOP INFO CARD ── */}
+          {(shopProfile?.shop_name || shopProfile?.owner_name) && (
+            <div className="cv-shop-card">
+              {shopProfile?.shop_name && (
+                <div className="cv-shop-name">{shopProfile.shop_name}</div>
+              )}
+              {shopProfile?.owner_name && (
+                <div className="cv-shop-owner">Owner: {shopProfile.owner_name}</div>
+              )}
+              <div className="cv-shop-meta">
+                {shopProfile?.address && (
+                  <div className="cv-shop-meta-item">
+                    <span className="cv-shop-meta-ico">📍</span>
+                    <span>{shopProfile.address}</span>
+                  </div>
+                )}
+                {shopProfile?.mobile && (
+                  <div className="cv-shop-meta-item">
+                    <span className="cv-shop-meta-ico">📱</span>
+                    <span>{shopProfile.mobile}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── SEARCH + CART (bottom row) ── */}
+          <div className="cv-hdr-actions-row">
+            <div className="cv-search-wrap">
+              <span className="cv-search-ico">🔍</span>
+              <input className="cv-search" type="text" placeholder="Search products…"
+                value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            {cartCount > 0 && (
+              <button className="cv-cart-pill" onClick={() => setModal("cart")}
+                style={{ flexShrink:0, display:"flex" }}>
+                <span style={{ fontSize:15 }}>🛒</span>
+                <span className="cv-cart-pill-badge">{cartCount}</span>
+              </button>
+            )}
           </div>
+
         </div>
       </div>
 
@@ -808,7 +966,7 @@ export default function CustomerView({
       <div className="cv-tabs">
         {[{ k:"shop", l:"🛒 Shop" }, { k:"orders", l:"📦 My Orders" }].map(({ k, l }) => (
           <button key={k} className={`cv-tab${tab === k ? " on" : ""}`}
-            onClick={() => { setTab(k); }}>
+            onClick={() => setTab(k)}>
             {l}
           </button>
         ))}
@@ -817,7 +975,6 @@ export default function CustomerView({
       {/* ── SHOP TAB ── */}
       {tab === "shop" && (
         <>
-          {/* Error state */}
           {loadError && !loading && (
             <div className="cv-error-box" style={{ margin:20 }}>
               <h3>⚠️ Could not load shop</h3>
@@ -829,7 +986,6 @@ export default function CustomerView({
             </div>
           )}
 
-          {/* Category pills */}
           {!loadError && (
             <div className="cv-cats">
               {categories.map((c) => (
@@ -842,7 +998,6 @@ export default function CustomerView({
             </div>
           )}
 
-          {/* Loading skeletons */}
           {loading && (
             <div style={{ padding:"16px", maxWidth:760, margin:"0 auto" }}>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(162px,1fr))", gap:12 }}>
@@ -853,7 +1008,6 @@ export default function CustomerView({
             </div>
           )}
 
-          {/* Empty / no products */}
           {!loading && !loadError && filtered.length === 0 && (
             <div className="cv-empty">
               <div className="cv-empty-ico">🛒</div>
@@ -873,7 +1027,6 @@ export default function CustomerView({
             </div>
           )}
 
-          {/* Product grid */}
           {!loading && !loadError && filtered.length > 0 && (
             <>
               <div className="cv-section-lbl">
@@ -1070,7 +1223,7 @@ export default function CustomerView({
         </div>
       )}
 
-      {/* ── CHECKOUT MODAL — 3 steps ── */}
+      {/* ── CHECKOUT MODAL ── */}
       {modal === "checkout" && (
         <div className="cv-overlay"
           onClick={(e) => { if (e.target === e.currentTarget) { checkStep > 0 ? setCheckStep(s => s - 1) : setModal("cart"); } }}>
@@ -1087,8 +1240,6 @@ export default function CustomerView({
             <Steps current={checkStep} />
 
             <div className="cv-body" style={{ paddingTop:6 }}>
-
-              {/* Step 0 — Review */}
               {checkStep === 0 && (
                 <>
                   <div style={{ marginBottom:14 }}>
@@ -1115,7 +1266,6 @@ export default function CustomerView({
                 </>
               )}
 
-              {/* Step 1 — Details */}
               {checkStep === 1 && (
                 <>
                   <div className="cv-field">
@@ -1171,7 +1321,6 @@ export default function CustomerView({
                 </>
               )}
 
-              {/* Step 2 — Confirm */}
               {checkStep === 2 && (
                 <>
                   <div className="cv-cust-summary">
@@ -1200,9 +1349,7 @@ export default function CustomerView({
                           <div style={{ fontWeight:700, color:"var(--green)" }}>✓ Paying Now</div>
                           <div style={{ fontSize:11, color:"var(--ink3)", marginTop:2 }}>{advPct}% advance</div>
                         </div>
-                        <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:17, color:"var(--green)" }}>
-                          {fmt(advAmt)}
-                        </span>
+                        <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:17, color:"var(--green)" }}>{fmt(advAmt)}</span>
                       </div>
                     )}
                     {balance > 0 ? (
@@ -1211,9 +1358,7 @@ export default function CustomerView({
                           <div style={{ fontWeight:700, color:"#B45309" }}>Balance at Pickup</div>
                           <div style={{ fontSize:11, color:"var(--ink3)", marginTop:2 }}>Bring this to the shop</div>
                         </div>
-                        <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:17, color:"#B45309" }}>
-                          {fmt(balance)}
-                        </span>
+                        <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:17, color:"#B45309" }}>{fmt(balance)}</span>
                       </div>
                     ) : (
                       <div className="cv-pay-row full">
@@ -1267,10 +1412,7 @@ export default function CustomerView({
                     <span className="cv-det-val"
                       style={{
                         color: l === "Balance Due" && Number(lastOrder.balance) > 0
-                          ? "var(--red)"
-                          : l === "Advance Paid"
-                          ? "var(--green)"
-                          : "var(--ink)",
+                          ? "var(--red)" : l === "Advance Paid" ? "var(--green)" : "var(--ink)",
                       }}>
                       {v}
                     </span>
@@ -1294,7 +1436,11 @@ export default function CustomerView({
               </div>
 
               <button className="cv-btn cv-btn-dark"
-                onClick={() => { setModal(null); setTab("orders"); setLookupMob(lastOrder.customer_mobile || ""); loadMyOrders(lastOrder.customer_mobile); }}>
+                onClick={() => {
+                  setModal(null); setTab("orders");
+                  setLookupMob(lastOrder.customer_mobile || "");
+                  loadMyOrders(lastOrder.customer_mobile);
+                }}>
                 📦 Track My Order
               </button>
               <button className="cv-btn cv-btn-outline" onClick={() => setModal(null)}>

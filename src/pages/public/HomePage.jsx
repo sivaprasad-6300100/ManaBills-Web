@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { publicAxios } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
-import '../../styles/global/publicHomePage.css'
-
+import '../../styles/global/publicHomePage.css';
+import { auth } from "../../services/firebase";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 
 /* ─── STATIC DATA ─── */
 const TRUST_BADGES = [
@@ -94,6 +95,116 @@ const PRICING = [
   },
 ];
 
+/* ─── OTP STYLES ─── */
+const otpStyles = {
+  phoneRow: {
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+  },
+  phoneInputWrap: {
+    display: "flex",
+    flex: 1,
+    border: "1.5px solid rgba(14,27,46,0.16)",
+    borderRadius: "0.875rem",
+    overflow: "hidden",
+    background: "#faf8f4",
+  },
+  prefix: {
+    padding: "0.75rem",
+    background: "#f1f5f9",
+    color: "#333",
+    fontWeight: "bold",
+    fontSize: "0.9rem",
+    borderRight: "1.5px solid rgba(14,27,46,0.16)",
+  },
+  phoneInput: {
+    flex: 1,
+    padding: "0.75rem",
+    border: "none",
+    outline: "none",
+    fontSize: "0.93rem",
+    background: "transparent",
+    color: "#0e1b2e",
+  },
+  otpBtn: {
+    padding: "0.75rem 1rem",
+    background: "#1e4fba",
+    color: "white",
+    border: "none",
+    borderRadius: "0.875rem",
+    cursor: "pointer",
+    fontWeight: "bold",
+    fontSize: "0.85rem",
+    whiteSpace: "nowrap",
+    transition: "opacity 0.2s",
+  },
+  verified: {
+    color: "#22c55e",
+    fontWeight: "bold",
+    fontSize: "0.9rem",
+    whiteSpace: "nowrap",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  },
+  otpSection: {
+    background: "rgba(30,79,186,0.04)",
+    padding: "1rem",
+    borderRadius: "0.875rem",
+    border: "1.5px dashed rgba(30,79,186,0.2)",
+    marginBottom: "0.75rem",
+  },
+  otpHint: {
+    fontSize: "0.75rem",
+    color: "#7a8898",
+    marginBottom: "0.5rem",
+    marginTop: "0",
+  },
+  otpRow: {
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+  },
+  otpInput: {
+    flex: 1,
+    padding: "0.75rem",
+    border: "1.5px solid rgba(14,27,46,0.16)",
+    borderRadius: "0.875rem",
+    fontSize: "1.4rem",
+    textAlign: "center",
+    letterSpacing: "10px",
+    outline: "none",
+    background: "#faf8f4",
+    color: "#1e4fba",
+    fontWeight: "bold",
+  },
+  verifyBtn: {
+    padding: "0.75rem 1rem",
+    background: "#22c55e",
+    color: "white",
+    border: "none",
+    borderRadius: "0.875rem",
+    cursor: "pointer",
+    fontWeight: "bold",
+    fontSize: "0.85rem",
+    transition: "opacity 0.2s",
+  },
+  stepIndicator: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    marginBottom: "1.25rem",
+  },
+  stepDot: (active) => ({
+    width: active ? "24px" : "8px",
+    height: "8px",
+    borderRadius: "4px",
+    background: active ? "#1e4fba" : "#e2e8f0",
+    transition: "all 0.3s",
+  }),
+};
+
 /* ─── EYE ICON COMPONENT ─── */
 const EyeIcon = ({ open }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -152,18 +263,30 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { login: authLogin, logout: authLogout } = useAuth();
 
+  /* ── ALL STATES ── */
   const [modal,         setModal]         = useState(null);
   const [isLoggedIn,    setLoggedIn]       = useState(false);
   const [message,       setMessage]        = useState({ text: "", type: "" });
   const [loading,       setLoading]        = useState(false);
   const [activeTesti,   setActiveTesti]    = useState(0);
-  const [forgotMode, setForgotMode] = useState(false); // forgot password mode
-  const [forgotStep, setForgotStep] = useState(1); // 1=mobile, 2=otp, 3=newpass
-  const [forgotMobile, setForgotMobile] = useState("");
-  const [forgotOtp, setForgotOtp] = useState("");
-  const [forgotNewPass, setForgotNewPass] = useState("");
+
+  // Forgot password states
+  const [forgotMode,        setForgotMode]        = useState(false);
+  const [forgotStep,        setForgotStep]        = useState(1);
+  const [forgotMobile,      setForgotMobile]      = useState("");
+  const [forgotOtp,         setForgotOtp]         = useState("");
+  const [forgotNewPass,     setForgotNewPass]     = useState("");
   const [forgotConfirmPass, setForgotConfirmPass] = useState("");
 
+  // OTP Signup states
+  const [otpSent,     setOtpSent]     = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [signupOtp,   setSignupOtp]   = useState("");
+  const [otpConfirm,  setOtpConfirm]  = useState(null);
+  const [otpLoading,  setOtpLoading]  = useState(false);
+  const [signupStep,  setSignupStep]  = useState(1); // 1=phone+otp, 2=details
+
+  // Form data states
   const [loginData,  setLoginData]  = useState({ identifier: "", password: "" });
   const [signupData, setSignupData] = useState({
     full_name: "",
@@ -172,13 +295,12 @@ export default function HomePage() {
     confirm_password: "",
   });
 
-  /* auto-rotate testimonials */
+  /* ── EFFECTS ── */
   useEffect(() => {
     const t = setInterval(() => setActiveTesti(p => (p + 1) % TESTIMONIALS.length), 4500);
     return () => clearInterval(t);
   }, []);
 
-  /* redirect if already logged in */
   useEffect(() => {
     if (localStorage.getItem("access_token")) {
       setLoggedIn(true);
@@ -186,6 +308,7 @@ export default function HomePage() {
     }
   }, [navigate]);
 
+  /* ── MODAL HELPERS ── */
   const openModal = (type) => {
     setModal(type);
     setMessage({ text: "", type: "" });
@@ -195,7 +318,9 @@ export default function HomePage() {
     setForgotOtp("");
     setForgotNewPass("");
     setForgotConfirmPass("");
+    resetOtpStates();
   };
+
   const closeModal = () => {
     setModal(null);
     setMessage({ text: "", type: "" });
@@ -205,9 +330,23 @@ export default function HomePage() {
     setForgotOtp("");
     setForgotNewPass("");
     setForgotConfirmPass("");
+    resetOtpStates();
   };
 
-  // Reset helper
+  const resetOtpStates = () => {
+    setOtpSent(false);
+    setOtpVerified(false);
+    setSignupOtp("");
+    setOtpConfirm(null);
+    setOtpLoading(false);
+    setSignupStep(1);
+    setSignupData({ full_name: "", mobile_number: "", password: "", confirm_password: "" });
+    if (window.signupRecaptcha) {
+      try { window.signupRecaptcha.clear(); } catch (e) {}
+      window.signupRecaptcha = null;
+    }
+  };
+
   const resetForgot = () => {
     setForgotStep(1);
     setForgotMobile("");
@@ -217,18 +356,72 @@ export default function HomePage() {
     setMessage({ text: "", type: "" });
   };
 
+  /* ── FIREBASE OTP — SEND ── */
+  const handleSendSignupOtp = async () => {
+    if (!/^\d{10}$/.test(signupData.mobile_number)) {
+      setMessage({ text: "Enter valid 10-digit mobile number!", type: "error" });
+      return;
+    }
+    setOtpLoading(true);
+    setMessage({ text: "", type: "" });
+    try {
+      if (window.signupRecaptcha) {
+        try { window.signupRecaptcha.clear(); } catch (e) {}
+        window.signupRecaptcha = null;
+      }
+      window.signupRecaptcha = new RecaptchaVerifier(
+        auth,
+        "signup-recaptcha-container",
+        { size: "invisible" }
+      );
+      const result = await signInWithPhoneNumber(
+        auth,
+        "+91" + signupData.mobile_number,
+        window.signupRecaptcha
+      );
+      setOtpConfirm(result);
+      setOtpSent(true);
+      setMessage({ text: "OTP sent to +91 " + signupData.mobile_number + " ✅", type: "success" });
+    } catch (err) {
+      console.error("OTP Error:", err);
+      setMessage({ text: "Failed to send OTP. Try again!", type: "error" });
+      if (window.signupRecaptcha) {
+        try { window.signupRecaptcha.clear(); } catch (e) {}
+        window.signupRecaptcha = null;
+      }
+    }
+    setOtpLoading(false);
+  };
+
+  /* ── FIREBASE OTP — VERIFY ── */
+  const handleVerifySignupOtp = async () => {
+    if (signupOtp.length !== 6) {
+      setMessage({ text: "Enter valid 6-digit OTP!", type: "error" });
+      return;
+    }
+    setOtpLoading(true);
+    setMessage({ text: "", type: "" });
+    try {
+      await otpConfirm.confirm(signupOtp);
+      setOtpVerified(true);
+      setSignupStep(2);
+      setMessage({ text: "Phone verified! ✅ Now complete your profile.", type: "success" });
+    } catch (err) {
+      console.error("Verify Error:", err);
+      setMessage({ text: "Wrong OTP! Please try again.", type: "error" });
+    }
+    setOtpLoading(false);
+  };
+
   /* ── LOGIN SUBMIT ── */
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ text: "", type: "" });
-
-    // identifier can be mobile number or username
     const isMobile = /^\d+$/.test(loginData.identifier.trim());
     const payload = isMobile
       ? { mobile_number: loginData.identifier.trim(), password: loginData.password }
       : { username: loginData.identifier.trim(), password: loginData.password };
-
     try {
       const res = await publicAxios.post("auth/login/", payload);
       const userData = {
@@ -251,11 +444,12 @@ export default function HomePage() {
     e.preventDefault();
     setMessage({ text: "", type: "" });
 
+    if (!otpVerified) {
+      setMessage({ text: "Please verify your phone number first!", type: "error" });
+      return;
+    }
     if (!signupData.full_name.trim()) {
       setMessage({ text: "Please enter your full name.", type: "error" }); return;
-    }
-    if (!/^\d{10}$/.test(signupData.mobile_number.trim())) {
-      setMessage({ text: "Enter a valid 10-digit mobile number.", type: "error" }); return;
     }
     if (signupData.password.length < 6) {
       setMessage({ text: "Password must be at least 6 characters.", type: "error" }); return;
@@ -272,7 +466,7 @@ export default function HomePage() {
         password:      signupData.password,
       });
       setMessage({ text: "Account created successfully! Please sign in.", type: "success" });
-      setSignupData({ full_name: "", mobile_number: "", password: "", confirm_password: "" });
+      resetOtpStates();
       setTimeout(() => openModal("login"), 1200);
     } catch {
       setMessage({ text: "Mobile number already registered. Sign in instead.", type: "error" });
@@ -281,7 +475,7 @@ export default function HomePage() {
     }
   };
 
-  // Step 1: Send OTP
+  /* ── FORGOT PASSWORD ── */
   const handleSendOtp = async (e) => {
     e.preventDefault();
     if (!/^\d{10}$/.test(forgotMobile)) {
@@ -302,7 +496,6 @@ export default function HomePage() {
     }
   };
 
-  // Step 2: Verify OTP
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (forgotOtp.length !== 6) {
@@ -312,10 +505,7 @@ export default function HomePage() {
     setLoading(true);
     setMessage({ text: "", type: "" });
     try {
-      await publicAxios.post("auth/verify-otp/", {
-        phone: forgotMobile,
-        otp: forgotOtp,
-      });
+      await publicAxios.post("auth/verify-otp/", { phone: forgotMobile, otp: forgotOtp });
       setMessage({ text: "OTP verified! Set your new password.", type: "success" });
       setForgotStep(3);
     } catch (err) {
@@ -326,7 +516,6 @@ export default function HomePage() {
     }
   };
 
-  // Step 3: Reset password
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (forgotNewPass.length < 6) {
@@ -365,6 +554,18 @@ export default function HomePage() {
     navigate("/", { replace: true });
   };
 
+  /* ── PASSWORD STRENGTH ── */
+  const getPasswordScore = (password) => {
+    const len = password.length;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasNum   = /\d/.test(password);
+    const hasSpec  = /[^a-zA-Z0-9]/.test(password);
+    return (len >= 6 ? 1 : 0) + (len >= 8 ? 1 : 0) + (hasUpper || hasNum ? 1 : 0) + (hasSpec ? 1 : 0);
+  };
+
+  /* ══════════════════════════════════════════
+     RENDER
+  ══════════════════════════════════════════ */
   return (
     <div className="hp-page">
 
@@ -382,8 +583,8 @@ export default function HomePage() {
             <button className="hp-btn-ghost" onClick={handleLogout}>Logout</button>
           ) : (
             <>
-              <button className="hp-btn-ghost"   onClick={() => openModal("login")}>Sign In</button>
-              <button className="hp-btn-primary"  onClick={() => openModal("signup")}>Get Started Free →</button>
+              <button className="hp-btn-ghost"  onClick={() => openModal("login")}>Sign In</button>
+              <button className="hp-btn-primary" onClick={() => openModal("signup")}>Get Started Free →</button>
             </>
           )}
         </div>
@@ -648,12 +849,7 @@ export default function HomePage() {
             <p className="hp-footer-tag">
               Andhra Pradesh &amp; Telangana's trusted billing &amp; expense management app
             </p>
-            <a
-              href="https://wa.me/919550544441"
-              target="_blank"
-              rel="noreferrer"
-              className="hp-wa-link"
-            >
+            <a href="https://wa.me/919550544441" target="_blank" rel="noreferrer" className="hp-wa-link">
               💬 Chat on WhatsApp
             </a>
           </div>
@@ -684,13 +880,7 @@ export default function HomePage() {
       </footer>
 
       {/* WhatsApp float */}
-      <a
-        href="https://wa.me/919550544441"
-        target="_blank"
-        rel="noreferrer"
-        className="hp-wa-float"
-        title="Chat on WhatsApp"
-      >
+      <a href="https://wa.me/919550544441" target="_blank" rel="noreferrer" className="hp-wa-float" title="Chat on WhatsApp">
         💬
       </a>
 
@@ -699,7 +889,7 @@ export default function HomePage() {
       ══════════════════════════════════════════ */}
       {modal && (
         <div className="hp-overlay" onClick={e => e.target === e.currentTarget && closeModal()}>
-          <div className="hp-modal" style={{ maxWidth: modal === "signup" ? "420px" : "400px" }}>
+          <div className="hp-modal" style={{ maxWidth: modal === "signup" ? "440px" : "400px" }}>
             <button className="hp-modal-close" onClick={closeModal}>✕</button>
             <div className="hp-modal-logo">Mana<span>Bills</span></div>
 
@@ -709,107 +899,231 @@ export default function HomePage() {
                 <h2 className="hp-modal-h2">Create Free Account 🎉</h2>
                 <p className="hp-modal-desc">Join 12,000+ businesses across AP &amp; Telangana</p>
 
+                {/* Step indicator */}
+                <div style={otpStyles.stepIndicator}>
+                  <div style={otpStyles.stepDot(signupStep === 1)} />
+                  <div style={otpStyles.stepDot(signupStep === 2)} />
+                  <span style={{ fontSize: "0.72rem", color: "#7a8898", marginLeft: "4px" }}>
+                    {signupStep === 1 ? "Step 1: Verify Phone" : "Step 2: Complete Profile"}
+                  </span>
+                </div>
+
                 <form onSubmit={handleSignupSubmit}>
 
-                  {/* Full Name */}
-                  <div className="hp-field">
-                    <label htmlFor="su-name">Full Name</label>
-                    <input
-                      id="su-name"
-                      type="text"
-                      placeholder="Your full name"
-                      value={signupData.full_name}
-                      onChange={e => setSignupData({ ...signupData, full_name: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  {/* Mobile Number */}
-                  <div className="hp-field">
-                    <label htmlFor="su-mobile">Mobile Number</label>
-                    <input
-                      id="su-mobile"
-                      type="tel"
-                      placeholder="10-digit mobile number"
-                      value={signupData.mobile_number}
-                      onChange={e => setSignupData({ ...signupData, mobile_number: e.target.value.replace(/\D/g, "").slice(0, 10) })}
-                      maxLength={10}
-                      required
-                    />
-                  </div>
-
-                  {/* Create Password */}
-                  <div className="hp-field">
-                    <label htmlFor="su-pass">Create Password</label>
-                    <PasswordInput
-                      id="su-pass"
-                      placeholder="Min. 6 characters"
-                      value={signupData.password}
-                      onChange={e => setSignupData({ ...signupData, password: e.target.value })}
-                    />
-                    {/* Strength indicator */}
-                    {signupData.password.length > 0 && (
-                      <div style={{ marginTop: "6px", display: "flex", gap: "4px", alignItems: "center" }}>
-                        {[1, 2, 3, 4].map(lvl => {
-                          const len = signupData.password.length;
-                          const hasUpper = /[A-Z]/.test(signupData.password);
-                          const hasNum   = /\d/.test(signupData.password);
-                          const hasSpec  = /[^a-zA-Z0-9]/.test(signupData.password);
-                          const score = (len >= 6 ? 1 : 0) + (len >= 8 ? 1 : 0) + (hasUpper || hasNum ? 1 : 0) + (hasSpec ? 1 : 0);
-                          const colors = ["#ef4444", "#f97316", "#eab308", "#22c55e"];
-                          return (
-                            <div key={lvl} style={{
-                              flex: 1, height: "3px", borderRadius: "2px",
-                              background: lvl <= score ? colors[score - 1] : "#e5e7eb",
-                              transition: "background 0.3s",
-                            }} />
-                          );
-                        })}
-                        <span style={{ fontSize: "0.65rem", color: "var(--muted)", marginLeft: "4px", whiteSpace: "nowrap" }}>
-                          {signupData.password.length < 6 ? "Too short" :
-                           signupData.password.length < 8 ? "Weak" :
-                           /[^a-zA-Z0-9]/.test(signupData.password) ? "Strong" : "Good"}
-                        </span>
+                  {/* ── STEP 1: PHONE + OTP ── */}
+                  {signupStep === 1 && (
+                    <>
+                      {/* Phone Number */}
+                      <div className="hp-field">
+                        <label>Mobile Number</label>
+                        <div style={otpStyles.phoneRow}>
+                          <div style={otpStyles.phoneInputWrap}>
+                            <span style={otpStyles.prefix}>+91</span>
+                            <input
+                              type="tel"
+                              placeholder="Enter 10-digit number"
+                              value={signupData.mobile_number}
+                              onChange={e => setSignupData({
+                                ...signupData,
+                                mobile_number: e.target.value.replace(/\D/g, "").slice(0, 10)
+                              })}
+                              maxLength={10}
+                              disabled={otpVerified}
+                              style={otpStyles.phoneInput}
+                            />
+                          </div>
+                          {!otpVerified && (
+                            <button
+                              type="button"
+                              onClick={handleSendSignupOtp}
+                              disabled={otpLoading || signupData.mobile_number.length !== 10}
+                              style={{
+                                ...otpStyles.otpBtn,
+                                opacity: (otpLoading || signupData.mobile_number.length !== 10) ? 0.5 : 1,
+                              }}
+                            >
+                              {otpLoading ? "..." : otpSent ? "Resend" : "Get OTP"}
+                            </button>
+                          )}
+                          {otpVerified && (
+                            <span style={otpStyles.verified}>✅ Verified</span>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Re-enter Password */}
-                  <div className="hp-field">
-                    <label htmlFor="su-confirm">Re-enter Password</label>
-                    <PasswordInput
-                      id="su-confirm"
-                      placeholder="Confirm your password"
-                      value={signupData.confirm_password}
-                      onChange={e => setSignupData({ ...signupData, confirm_password: e.target.value })}
-                    />
-                    {/* Match indicator */}
-                    {signupData.confirm_password.length > 0 && (
+                      {/* OTP Input - shows after OTP sent */}
+                      {otpSent && !otpVerified && (
+                        <div style={otpStyles.otpSection}>
+                          <p style={otpStyles.otpHint}>
+                            📱 OTP sent to +91 {signupData.mobile_number}
+                          </p>
+                          <div style={otpStyles.otpRow}>
+                            <input
+                              type="tel"
+                              placeholder="- - - - - -"
+                              value={signupOtp}
+                              onChange={e => setSignupOtp(
+                                e.target.value.replace(/\D/g, "").slice(0, 6)
+                              )}
+                              maxLength={6}
+                              autoFocus
+                              style={otpStyles.otpInput}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleVerifySignupOtp}
+                              disabled={otpLoading || signupOtp.length !== 6}
+                              style={{
+                                ...otpStyles.verifyBtn,
+                                opacity: (otpLoading || signupOtp.length !== 6) ? 0.5 : 1,
+                              }}
+                            >
+                              {otpLoading ? "..." : "Verify ✓"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Hidden recaptcha */}
+                      <div id="signup-recaptcha-container"></div>
+
+                      {/* Show next button only after verified */}
+                      {otpVerified && (
+                        <button
+                          type="button"
+                          onClick={() => setSignupStep(2)}
+                          className="hp-modal-btn hp-modal-signup"
+                          style={{ marginTop: "0.5rem" }}
+                        >
+                          Next — Complete Profile →
+                        </button>
+                      )}
+
+                      {/* Hint if OTP not sent yet */}
+                      {!otpSent && (
+                        <p style={{ fontSize: "0.72rem", color: "#7a8898", marginTop: "0.5rem", textAlign: "center" }}>
+                          📲 We will send a free OTP to verify your number
+                        </p>
+                      )}
+                    </>
+                  )}
+
+                  {/* ── STEP 2: NAME + PASSWORD ── */}
+                  {signupStep === 2 && (
+                    <>
+                      {/* Verified phone badge */}
                       <div style={{
-                        marginTop: "5px", fontSize: "0.72rem", fontWeight: 600,
-                        color: signupData.password === signupData.confirm_password ? "#22c55e" : "#ef4444",
-                        display: "flex", alignItems: "center", gap: "4px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "0.6rem 1rem",
+                        background: "rgba(34,197,94,0.08)",
+                        border: "1.5px solid rgba(34,197,94,0.2)",
+                        borderRadius: "0.875rem",
+                        marginBottom: "1rem",
+                        fontSize: "0.82rem",
+                        color: "#166534",
+                        fontWeight: 600,
                       }}>
-                        {signupData.password === signupData.confirm_password ? "✓ Passwords match" : "✗ Passwords don't match"}
+                        ✅ +91 {signupData.mobile_number} — Verified
+                        <button
+                          type="button"
+                          onClick={() => { setSignupStep(1); setOtpVerified(false); setOtpSent(false); setSignupOtp(""); }}
+                          style={{ marginLeft: "auto", background: "none", border: "none", color: "#1e4fba", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600 }}
+                        >
+                          Change
+                        </button>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Terms note */}
-                  <p style={{ fontSize: "0.72rem", color: "var(--muted)", marginBottom: "0.5rem", lineHeight: 1.5 }}>
-                    By creating an account you agree to our{" "}
-                    <a href="#terms" style={{ color: "var(--blue)", textDecoration: "none" }}>Terms of Use</a>{" "}
-                    and{" "}
-                    <a href="#privacy" style={{ color: "var(--blue)", textDecoration: "none" }}>Privacy Policy</a>.
-                  </p>
+                      {/* Full Name */}
+                      <div className="hp-field">
+                        <label htmlFor="su-name">Full Name</label>
+                        <input
+                          id="su-name"
+                          type="text"
+                          placeholder="Your full name"
+                          value={signupData.full_name}
+                          onChange={e => setSignupData({ ...signupData, full_name: e.target.value })}
+                          required
+                          autoFocus
+                        />
+                      </div>
 
-                  <button
-                    type="submit"
-                    className="hp-modal-btn hp-modal-signup"
-                    disabled={loading || (signupData.confirm_password.length > 0 && signupData.password !== signupData.confirm_password)}
-                  >
-                    {loading ? "Creating account…" : "Create Free Account →"}
-                  </button>
+                      {/* Create Password */}
+                      <div className="hp-field">
+                        <label htmlFor="su-pass">Create Password</label>
+                        <PasswordInput
+                          id="su-pass"
+                          placeholder="Min. 6 characters"
+                          value={signupData.password}
+                          onChange={e => setSignupData({ ...signupData, password: e.target.value })}
+                        />
+                        {signupData.password.length > 0 && (
+                          <div style={{ marginTop: "6px", display: "flex", gap: "4px", alignItems: "center" }}>
+                            {[1, 2, 3, 4].map(lvl => {
+                              const score = getPasswordScore(signupData.password);
+                              const colors = ["#ef4444", "#f97316", "#eab308", "#22c55e"];
+                              return (
+                                <div key={lvl} style={{
+                                  flex: 1, height: "3px", borderRadius: "2px",
+                                  background: lvl <= score ? colors[score - 1] : "#e5e7eb",
+                                  transition: "background 0.3s",
+                                }} />
+                              );
+                            })}
+                            <span style={{ fontSize: "0.65rem", color: "var(--muted)", marginLeft: "4px", whiteSpace: "nowrap" }}>
+                              {signupData.password.length < 6 ? "Too short" :
+                               signupData.password.length < 8 ? "Weak" :
+                               /[^a-zA-Z0-9]/.test(signupData.password) ? "Strong" : "Good"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Re-enter Password */}
+                      <div className="hp-field">
+                        <label htmlFor="su-confirm">Re-enter Password</label>
+                        <PasswordInput
+                          id="su-confirm"
+                          placeholder="Confirm your password"
+                          value={signupData.confirm_password}
+                          onChange={e => setSignupData({ ...signupData, confirm_password: e.target.value })}
+                        />
+                        {signupData.confirm_password.length > 0 && (
+                          <div style={{
+                            marginTop: "5px", fontSize: "0.72rem", fontWeight: 600,
+                            color: signupData.password === signupData.confirm_password ? "#22c55e" : "#ef4444",
+                          }}>
+                            {signupData.password === signupData.confirm_password ? "✓ Passwords match" : "✗ Passwords don't match"}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Terms */}
+                      <p style={{ fontSize: "0.72rem", color: "var(--muted)", marginBottom: "0.5rem", lineHeight: 1.5 }}>
+                        By creating an account you agree to our{" "}
+                        <a href="#terms" style={{ color: "var(--blue)", textDecoration: "none" }}>Terms of Use</a>{" "}
+                        and{" "}
+                        <a href="#privacy" style={{ color: "var(--blue)", textDecoration: "none" }}>Privacy Policy</a>.
+                      </p>
+
+                      <button
+                        type="submit"
+                        className="hp-modal-btn hp-modal-signup"
+                        disabled={loading || (signupData.confirm_password.length > 0 && signupData.password !== signupData.confirm_password)}
+                      >
+                        {loading ? "Creating account…" : "Create Free Account →"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSignupStep(1)}
+                        style={{ background: "none", border: "none", color: "#7a8898", cursor: "pointer", fontSize: "0.8rem", width: "100%", marginTop: "0.5rem", fontFamily: "inherit" }}
+                      >
+                        ← Back
+                      </button>
+                    </>
+                  )}
                 </form>
               </>
             )}
@@ -821,8 +1135,6 @@ export default function HomePage() {
                 <p className="hp-modal-desc">Sign in to your ManaBills account</p>
 
                 <form onSubmit={handleLoginSubmit}>
-
-                  {/* Mobile / Username */}
                   <div className="hp-field">
                     <label htmlFor="li-id">Mobile Number or Username</label>
                     <input
@@ -839,7 +1151,6 @@ export default function HomePage() {
                     </span>
                   </div>
 
-                  {/* Password */}
                   <div className="hp-field">
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                       <label htmlFor="li-pass" style={{ margin: 0 }}>Password</label>
@@ -864,11 +1175,7 @@ export default function HomePage() {
                     />
                   </div>
 
-                  <button
-                    type="submit"
-                    className="hp-modal-btn hp-modal-login"
-                    disabled={loading}
-                  >
+                  <button type="submit" className="hp-modal-btn hp-modal-login" disabled={loading}>
                     {loading ? "Signing in…" : "Sign In →"}
                   </button>
                 </form>
@@ -878,7 +1185,6 @@ export default function HomePage() {
             {/* ══ FORGOT PASSWORD FLOW ══ */}
             {modal === "login" && forgotMode && (
               <>
-                {/* Back button */}
                 <button
                   type="button"
                   onClick={() => { setForgotMode(false); resetForgot(); setMessage({ text: "", type: "" }); }}
@@ -887,7 +1193,6 @@ export default function HomePage() {
                   ← Back to Sign In
                 </button>
 
-                {/* Step indicators */}
                 <div style={{ display: "flex", gap: "8px", marginBottom: "1.25rem" }}>
                   {[1, 2, 3].map(step => (
                     <div key={step} style={{
@@ -898,7 +1203,6 @@ export default function HomePage() {
                   ))}
                 </div>
 
-                {/* STEP 1 — Mobile */}
                 {forgotStep === 1 && (
                   <>
                     <h2 className="hp-modal-h2">Forgot Password? 🔑</h2>
@@ -923,13 +1227,11 @@ export default function HomePage() {
                   </>
                 )}
 
-                {/* STEP 2 — OTP */}
                 {forgotStep === 2 && (
                   <>
                     <h2 className="hp-modal-h2">Enter OTP 📱</h2>
                     <p className="hp-modal-desc">
-                      OTP sent to <strong>{forgotMobile}</strong>.
-                      <br />
+                      OTP sent to <strong>{forgotMobile}</strong>.{" "}
                       <button
                         type="button"
                         onClick={() => { setForgotStep(1); setForgotOtp(""); setMessage({ text: "", type: "" }); }}
@@ -969,7 +1271,6 @@ export default function HomePage() {
                   </>
                 )}
 
-                {/* STEP 3 — New Password */}
                 {forgotStep === 3 && (
                   <>
                     <h2 className="hp-modal-h2">Set New Password 🔐</h2>
@@ -1014,7 +1315,7 @@ export default function HomePage() {
               <p className={`hp-modal-msg ${message.type}`}>{message.text}</p>
             )}
 
-            {/* Switch between login / signup */}
+            {/* Switch login/signup */}
             {!forgotMode && (
               <p className="hp-modal-switch">
                 {modal === "login"
@@ -1027,19 +1328,12 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Inline styles for new auth UI elements */}
+      {/* Inline styles */}
       <style>{`
-        /* Eye button hover */
         .hp-field .pw-toggle-btn:hover { color: var(--navy) !important; }
-
-        /* Subtle modal divider styling */
         .hp-modal-h2 { margin-bottom: 0.25rem; }
         .hp-modal-desc { margin-bottom: 1.2rem; }
-
-        /* Disable signup button when passwords don't match */
         .hp-modal-btn:disabled { opacity: 0.6; cursor: not-allowed !important; }
-
-        /* Password input wrapper */
         .hp-field > div > input {
           width: 100%;
           padding: 0.75rem 2.8rem 0.75rem 1rem;
@@ -1059,11 +1353,7 @@ export default function HomePage() {
           box-shadow: 0 0 0 3px rgba(201,150,58,0.1);
         }
         .hp-field > div > input::placeholder { color: var(--muted, #7a8898); }
-
-        /* Forgot password button spacing */
         .hp-field label { margin-bottom: 0; }
-
-        /* Back arrow button */
         @media (max-width: 480px) {
           .hp-modal { padding: 1.75rem 1.25rem; }
         }
