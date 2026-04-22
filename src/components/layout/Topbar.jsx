@@ -62,7 +62,7 @@ const Topbar = () => {
   const initials    = rawName
     ? rawName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
     : "U";
-  const displayName = rawName.trim().split(" ")[0] || "User";
+  // const displayName = rawName.trim().split(" ")[0] || "User";
 
   useEffect(() => {
     const handleClickOutside = (e) => {
