@@ -1,35 +1,22 @@
 /**
  * ShopQROrder.jsx — Owner / Admin View
  *
- * Handles:
- *  - QR scanner display & toggle
- *  - Orders management (new → packing → ready → completed)
- *  - Notifications
- *  - PDF printing (shop slip + customer confirmation)
- *  - Demo toggle to show CustomerView side-by-side
- *
- * Imports CustomerView for the customer-facing browsing/ordering flow.
- *
- * FIXES APPLIED (from original monolithic file):
- *  1. Real QR code generation using qrcode library (canvas-based, scannable)
- *  2. Order ID tied to call-time, not module-load (no duplicate IDs)
- *  3. Stock deduction is atomic — read + validate + write in one pass
- *  4. useCallback on all stable event handlers
- *  5. print via iframe (not blocked by popup blockers)
- *  6. useEffect drives print (not fragile setTimeout)
- *  7. API errors logged to console.warn instead of swallowed silently
- *  8. PDF components moved outside + memoized (no remount on re-render)
- *  9. All magic numbers extracted to named constants
- * 10. Input sanitization on customer name/mobile (in CustomerView)
- * 11. CSS moved to single static <style> injected once
- * 12. CustomerView fully decoupled into its own file
+ * CHANGES IN THIS VERSION:
+ *  1. order_id (customer-facing number) shown prominently in orders list
+ *  2. "Collected" button opens PaymentModal asking how much customer paid
+ *  3. Payment amount passed to invoice history (authAxios.post to invoices)
+ *  4. After completing: WhatsApp opens with final receipt message
+ *  5. Customer PDF auto-triggers for download/share after completion
+ *  6. [NEW] Delete button for completed orders (local state only, no DB)
+ *  7. [NEW] Professional notification redesign with per-item delete
+ *  8. [NEW] Auto-delete notifications after 24 hours
  */
 
 import React, {
   useState, useEffect, useRef, useCallback, memo, useMemo,
 } from "react";
 import { authAxios } from "../../services/api";
-import QRCodeLib from "qrcode"; // npm install qrcode
+import QRCodeLib from "qrcode";
 import CustomerView from "../business_billing/CustomerView";
 
 // ─── Named Constants ──────────────────────────────────────────
@@ -37,11 +24,11 @@ const STOCK_KEY         = "mb_stock";
 const ORDERS_KEY        = "mb_shop_orders";
 const NOTIF_KEY         = "mb_shop_notifs";
 const TOAST_DURATION_MS = 3500;
-const MAX_ITEMS_PREVIEW = 12;
+const MAX_ITEMS_PREVIEW = Infinity;
+const NOTIF_TTL_MS      = 24 * 60 * 60 * 1000; // 24 hours
 
 const fmt = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
 
-// ─── Read stock from localStorage ────────────────────────────
 const readLocalStock = () => {
   try {
     return (JSON.parse(localStorage.getItem(STOCK_KEY)) || []).filter(
@@ -50,19 +37,37 @@ const readLocalStock = () => {
   } catch { return []; }
 };
 
-// ─── Persist helpers ──────────────────────────────────────────
 const loadOrders = () => { try { return JSON.parse(localStorage.getItem(ORDERS_KEY)) || []; } catch { return []; } };
 const saveOrders = (o) => localStorage.setItem(ORDERS_KEY, JSON.stringify(o));
-const loadNotifs = () => { try { return JSON.parse(localStorage.getItem(NOTIF_KEY)) || []; } catch { return []; } };
+
+// ── Notif helpers with 24h auto-prune ────────────────────────
+const pruneOldNotifs = (notifs) => {
+  const cutoff = Date.now() - NOTIF_TTL_MS;
+  return notifs.filter((n) => new Date(n.time).getTime() > cutoff);
+};
+const loadNotifs = () => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(NOTIF_KEY)) || [];
+    return pruneOldNotifs(raw);
+  } catch { return []; }
+};
 const saveNotifs = (n) => localStorage.setItem(NOTIF_KEY, JSON.stringify(n));
 
-// ─── Status config ────────────────────────────────────────────
 const SC = {
   new:       { label: "New Order",  bg: "#eff6ff", col: "#1e4fba", bdr: "#bfdbfe" },
   packing:   { label: "Packing",    bg: "#fffbeb", col: "#b45309", bdr: "#fde68a" },
   ready:     { label: "Ready",      bg: "#f0fdf4", col: "#15803d", bdr: "#bbf7d0" },
   completed: { label: "Completed",  bg: "#f8fafc", col: "#64748b", bdr: "#e2e8f0" },
   cancelled: { label: "Cancelled",  bg: "#fff5f5", col: "#dc2626", bdr: "#fecaca" },
+};
+
+// Notification type config — icon, accent, label
+const NT = {
+  new_order: { icon: "🛒", accent: "#1e4fba", bg: "#eff6ff", bdr: "#bfdbfe", label: "New Order"    },
+  packing:   { icon: "📦", accent: "#b45309", bg: "#fffbeb", bdr: "#fde68a", label: "Packing"      },
+  ready:     { icon: "✅", accent: "#15803d", bg: "#f0fdf4", bdr: "#bbf7d0", label: "Ready"        },
+  completed: { icon: "💰", accent: "#7c3aed", bg: "#faf5ff", bdr: "#e9d5ff", label: "Completed"    },
+  default:   { icon: "🔔", accent: "#64748b", bg: "#f8fafc", bdr: "#e2e8f0", label: "Notification" },
 };
 
 const ago = (iso) => {
@@ -73,15 +78,116 @@ const ago = (iso) => {
   return new Date(iso).toLocaleDateString("en-IN");
 };
 
-// ─── WA message builder ───────────────────────────────────────
-const buildWaMsg = (order, shop) => {
+const buildPackingMsg = (order, shop) => {
   const items = (order.items || [])
-    .map((it, i) => `${i + 1}. ${it.name} × ${it.qty} ${it.unit} = ₹${(Number(it.qty) * Number(it.price)).toLocaleString("en-IN")}`)
+    .map((it, i) => `  ${i+1}. ${it.name} × ${it.qty} ${it.unit}`)
     .join("\n");
-  return `*${shop?.shop_name || "ManaBills"}* 🛒\n━━━━━━━━━━━━━\n📦 *Order: ${order.id}*\n📅 ${new Date(order.created_at).toLocaleDateString("en-IN")}\n\n*Customer:* ${order.customer_name}\n📞 ${order.customer_mobile}\n\n*Items:*\n${items}\n\n━━━━━━━━━━━━━\n💰 *Total: ${fmt(order.subtotal)}*\n✅ Advance Paid: ${fmt(order.advance)}\n${Number(order.balance || 0) > 0 ? `🔴 Balance Due: ${fmt(order.balance)}` : "✅ FULLY PAID"}\n\n_ManaBills · manabills.in_`;
+  return (
+`🛍️ *${shop?.shop_name || "Our Shop"}*
+━━━━━━━━━━━━━━━━━━━━
+
+Hello *${order.customer_name}* 👋
+
+Your order *#${order.order_id || order.id}* has been received and we've started packing it right away!
+
+📦 *Items being packed:*
+${items}
+
+💰 *Order Summary:*
+  • Total: ₹${order.subtotal}
+  • Advance paid: ₹${order.advance}
+  • Balance at pickup: ₹${order.balance}
+
+⏳ We'll notify you as soon as your order is ready for pickup.
+
+Thank you for shopping with us! 🙏
+_${shop?.shop_name} · ${shop?.mobile || ""}_`
+  );
 };
 
-// ─── iframe print helper ──────────────────────────────────────
+const buildReadyMsg = (order, shop) => {
+  return (
+`✅ *${shop?.shop_name || "Our Shop"}*
+━━━━━━━━━━━━━━━━━━━━
+
+Hello *${order.customer_name}* 👋
+
+Great news! Your order *#${order.order_id || order.id}* is packed and *READY FOR PICKUP* 🎉
+
+🏪 *Visit us at:*
+  ${shop?.address || "our shop"}
+
+💵 *Amount to bring:*
+  ${Number(order.balance) > 0
+    ? `Balance due: *₹${order.balance}*`
+    : `✅ Fully paid — nothing to pay!`}
+
+📍 Please collect your order at your earliest convenience.
+
+See you soon! 😊
+_${shop?.shop_name} · ${shop?.mobile || ""}_`
+  );
+};
+
+// ── Completion WhatsApp message — handles full, partial, overpaid ─
+const buildCompletedMsg = (order, shop, amountPaid, isPartial = false) => {
+  const items = (order.items || [])
+    .map((it, i) => `  ${i+1}. ${it.name} × ${it.qty} ${it.unit}`)
+    .join("\n");
+  const balanceDue       = Number(order.balance || 0);
+  const paid             = Number(amountPaid);
+  const changeReturned   = order.change_returned || 0;
+  const remainingBalance = order.remaining_balance || 0;
+
+  if (isPartial) {
+    return (
+`🧾 *${shop?.shop_name || "Our Shop"} — Order Collected (Partial)*
+━━━━━━━━━━━━━━━━━━━━
+
+Hello *${order.customer_name}* 👋
+
+Your order *#${order.order_id || order.id}* has been collected.
+
+📦 *Items collected:*
+${items}
+
+💰 *Payment Summary:*
+  • Order Total: ₹${order.subtotal}
+  • Advance Paid: ₹${order.advance}
+  • Balance Due: ₹${balanceDue}
+  • Paid Now: ₹${paid}
+  • ⚠️ Remaining Balance: *₹${remainingBalance.toFixed(2)}*
+
+📌 *Please clear the remaining balance at your earliest convenience.*
+
+Thank you for shopping with us! 🙏
+_${shop?.shop_name} · ${shop?.mobile || ""}_`
+    );
+  }
+
+  return (
+`🧾 *${shop?.shop_name || "Our Shop"} — Order Complete*
+━━━━━━━━━━━━━━━━━━━━
+
+Hello *${order.customer_name}* 👋
+
+Your order *#${order.order_id || order.id}* has been *COMPLETED* ✅
+
+📦 *Items collected:*
+${items}
+
+💰 *Final Bill:*
+  • Order Total: ₹${order.subtotal}
+  • Advance Paid: ₹${order.advance}
+  • Balance Paid: ₹${paid}${changeReturned > 0 ? `\n  • Change Returned: ₹${changeReturned.toFixed(2)}` : ""}
+
+✅ *Fully settled — thank you!*
+
+Thank you for shopping with us! 🙏
+_${shop?.shop_name} · ${shop?.mobile || ""}_`
+  );
+};
+
 const printViaIframe = (html, title) => {
   try {
     const existing = document.getElementById("__mb_print_frame");
@@ -154,36 +260,213 @@ const QRCode = memo(({ value = "", size = 150 }) => {
 });
 
 // ══════════════════════════════════════════════════════════════
-//   PDF COMPONENTS — defined outside parent to prevent remounting
+//   PAYMENT COLLECTION MODAL — shown when owner clicks "Collected"
+// ══════════════════════════════════════════════════════════════
+const PaymentModal = memo(({ order, onConfirm, onCancel }) => {
+  const balanceDue  = Number(order?.balance || 0);
+  const [amountPaid, setAmountPaid] = useState(String(balanceDue));
+  const [err, setErr] = useState("");
+
+  const paid            = Number(amountPaid) || 0;
+  const change          = paid - balanceDue;
+  const remainingBalance = balanceDue - paid;
+  const isPartial       = paid > 0 && paid < balanceDue;
+  const isExact         = paid === balanceDue;
+  const isOverpaid      = paid > balanceDue;
+  const isFullySettled  = paid >= balanceDue;
+
+  const handleConfirm = () => {
+    if (!amountPaid || isNaN(paid) || paid < 0) {
+      setErr("Please enter a valid amount");
+      return;
+    }
+    if (paid === 0) {
+      setErr("Amount cannot be zero");
+      return;
+    }
+    onConfirm(paid);
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 10000,
+      background: "rgba(14,27,46,0.55)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "20px",
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 20, padding: "32px 28px",
+        width: "100%", maxWidth: 440,
+        boxShadow: "0 24px 80px rgba(14,27,46,0.22)",
+        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+        animation: "slideDown .25s ease",
+        maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>💰</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: "#0e1b2e" }}>Collect Payment</div>
+          <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>
+            Order <strong style={{ color: "#c9963a" }}>#{order?.order_id || order?.id}</strong> · {order?.customer_name}
+          </div>
+        </div>
+
+        <div style={{
+          background: "#f8fafc", borderRadius: 12, padding: "14px 16px",
+          marginBottom: 18, border: "1.5px solid #e5e7eb",
+        }}>
+          {[
+            ["Order Total",   fmt(order?.subtotal), "#0e1b2e"],
+            ["Advance Paid",  fmt(order?.advance),  "#15803d"],
+            ["Balance Due",   fmt(balanceDue),       "#dc2626"],
+          ].map(([l, v, c]) => (
+            <div key={l} style={{
+              display: "flex", justifyContent: "space-between",
+              padding: "5px 0", fontSize: 13,
+              borderBottom: l === "Advance Paid" ? "1px dashed #e5e7eb" : "none",
+            }}>
+              <span style={{ color: "#64748b" }}>{l}</span>
+              <span style={{ fontWeight: 800, color: c }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{
+            fontSize: 12, fontWeight: 700, color: "#374151",
+            textTransform: "uppercase", letterSpacing: ".06em",
+            display: "block", marginBottom: 8,
+          }}>
+            Amount Customer Paid Now (₹)
+          </label>
+          <div style={{ position: "relative" }}>
+            <span style={{
+              position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
+              fontSize: 16, fontWeight: 800, color: "#0e1b2e",
+            }}>₹</span>
+            <input
+              type="number"
+              min={0}
+              value={amountPaid}
+              onChange={(e) => { setAmountPaid(e.target.value); setErr(""); }}
+              onFocus={(e) => e.target.select()}
+              autoFocus
+              style={{
+                width: "100%", padding: "13px 14px 13px 32px",
+                fontSize: 22, fontWeight: 800, color: "#0e1b2e",
+                border: `2px solid ${err ? "#fca5a5" : isPartial ? "#fde68a" : isFullySettled && paid > 0 ? "#bbf7d0" : "#e5e7eb"}`,
+                borderRadius: 10, outline: "none", fontFamily: "inherit",
+                background: "#fff", boxSizing: "border-box",
+                transition: "border-color .15s",
+              }}
+            />
+          </div>
+          {err && <div style={{ fontSize: 12, color: "#dc2626", marginTop: 6, fontWeight: 600 }}>{err}</div>}
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 5 }}>
+            Partial payment allowed — remaining balance will be saved in Invoice History
+          </div>
+        </div>
+
+        {paid > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            {isPartial && (
+              <div style={{ background: "#fffbeb", border: "1.5px solid #fde68a", borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 16 }}>⚠️</span>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#92400e" }}>Partial Payment</div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0", color: "#78350f" }}>
+                  <span>Customer paying now</span>
+                  <span style={{ fontWeight: 800 }}>{fmt(paid)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0", color: "#dc2626", fontWeight: 900, borderTop: "1px dashed #fde68a", marginTop: 4 }}>
+                  <span>📌 Remaining balance (saved in invoice)</span>
+                  <span>{fmt(remainingBalance)}</span>
+                </div>
+              </div>
+            )}
+            {isExact && (
+              <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 18 }}>✅</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#15803d" }}>Exact amount — fully settled!</div>
+                  <div style={{ fontSize: 11, color: "#166534", marginTop: 2 }}>No change to return · Invoice marked paid</div>
+                </div>
+              </div>
+            )}
+            {isOverpaid && (
+              <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 16 }}>🔄</span>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#15803d" }}>Overpaid — return change</div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0", color: "#166534" }}>
+                  <span>Balance due</span><span style={{ fontWeight: 700 }}>{fmt(balanceDue)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0", color: "#166534" }}>
+                  <span>Customer paid</span><span style={{ fontWeight: 700 }}>{fmt(paid)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "6px 0", color: "#15803d", fontWeight: 900, borderTop: "1.5px solid #bbf7d0", marginTop: 4 }}>
+                  <span>💵 Return to customer</span><span>{fmt(change)}</span>
+                </div>
+                <div style={{ fontSize: 11, color: "#166534", marginTop: 4 }}>Invoice marked fully paid</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 14px", marginBottom: 20, fontSize: 12, color: "#374151" }}>
+          <strong style={{ color: "#1e4fba" }}>After confirming:</strong>
+          <div style={{ marginTop: 4, lineHeight: 1.8 }}>
+            {isPartial
+              ? <>📌 Invoice saved with <strong style={{ color: "#dc2626" }}>remaining balance {fmt(remainingBalance)}</strong><br/>📄 Customer PDF prints with partial payment note<br/>💬 WhatsApp receipt sent to customer</>
+              : <>✅ Invoice marked as <strong style={{ color: "#15803d" }}>Fully Settled</strong><br/>📄 Customer PDF prints with final receipt<br/>💬 WhatsApp receipt sent to customer</>
+            }
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: "12px", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "transparent", fontWeight: 700, fontSize: 14, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+          <button onClick={handleConfirm} style={{ flex: 2, padding: "12px", borderRadius: 10, border: "none", background: isPartial ? "linear-gradient(135deg,#b45309,#d97706)" : "linear-gradient(135deg,#0e1b2e,#1a2d47)", fontWeight: 800, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            {isPartial ? "💰 Save Partial & Complete" : "💰 Confirm & Complete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ══════════════════════════════════════════════════════════════
+//   PDF COMPONENTS
 // ══════════════════════════════════════════════════════════════
 
-const CustomerOrderPdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => {
+const CustomerOrderPdf = memo(React.forwardRef(({ order, shop, qrUrl, amountPaid }, ref) => {
   if (!order) return null;
-  const balance     = Number(order.balance || 0);
-  const statusColor = balance <= 0 ? "#15803d" : "#d97706";
+  const balance          = Number(order.balance || 0);
+  const finalPaid        = amountPaid != null ? Number(amountPaid) : null;
+  const remainingBalance = order.remaining_balance != null ? Number(order.remaining_balance) : null;
+  const changeReturned   = order.change_returned   != null ? Number(order.change_returned)   : null;
+  const isPartial        = remainingBalance != null && remainingBalance > 0;
+  const isFullySettled   = finalPaid != null && !isPartial;
 
   return (
     <div ref={ref} style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: "#fff", padding: "32px", color: "#111827", fontSize: "13px", lineHeight: 1.6 }}>
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2.5px solid #0e1b2e", paddingBottom: "16px", marginBottom: "16px" }}>
         <div>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: "1.5rem", fontWeight: 900, color: "#0e1b2e" }}>
-            Mana<span style={{ color: "#c9963a" }}>Bills</span>
-          </div>
-          <div style={{ fontSize: "0.62rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            AP & Telangana's Billing Platform
-          </div>
+          <div style={{ fontFamily: "Georgia, serif", fontSize: "1.5rem", fontWeight: 900, color: "#0e1b2e" }}>Mana<span style={{ color: "#c9963a" }}>Bills</span></div>
+          <div style={{ fontSize: "0.62rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.08em" }}>AP & Telangana's Billing Platform</div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontFamily: "Georgia, serif", fontSize: "1.1rem", fontWeight: 800, color: "#0e1b2e" }}>ORDER CONFIRMATION</div>
-          <div style={{ fontWeight: 800, color: "#c9963a", fontSize: "0.9rem", marginTop: "2px" }}># {order.id}</div>
+          <div style={{ fontWeight: 800, color: "#c9963a", fontSize: "1rem", marginTop: "2px" }}># {order.order_id || order.id}</div>
+          {order.order_id && order.id !== order.order_id && (
+            <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>Ref: {order.id}</div>
+          )}
           <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
             {new Date(order.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
           </div>
         </div>
       </div>
 
-      {/* Shop + Customer */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: "#f9fafb", borderRadius: "8px", padding: "14px 16px", marginBottom: "18px", border: "1px solid #e5e7eb" }}>
         <div>
           <div style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", color: "#9ca3af", marginBottom: "4px" }}>Shop</div>
@@ -202,7 +485,6 @@ const CustomerOrderPdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => 
         </div>
       </div>
 
-      {/* Items table */}
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
         <thead>
           <tr style={{ background: "#0e1b2e", color: "#fff" }}>
@@ -225,7 +507,6 @@ const CustomerOrderPdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => 
         </tbody>
       </table>
 
-      {/* Totals + QR */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "20px", marginBottom: "18px" }}>
         <div style={{ flex: 1 }}>
           <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "14px 16px" }}>
@@ -239,16 +520,43 @@ const CustomerOrderPdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => 
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "0.82rem", color: "#15803d", fontWeight: 800 }}>
               <span>Advance Paid</span><span>{fmt(order.advance)}</span>
             </div>
-            {balance > 0 && (
+            {finalPaid != null ? (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "0.82rem", color: "#15803d", fontWeight: 800 }}>
+                  <span>Paid at Pickup</span><span>{fmt(finalPaid)}</span>
+                </div>
+                {changeReturned > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "0.82rem", color: "#6b7280", fontWeight: 700 }}>
+                    <span>Change Returned</span><span>{fmt(changeReturned)}</span>
+                  </div>
+                )}
+                {isPartial ? (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: "0.92rem", color: "#dc2626", fontWeight: 900, borderTop: "1.5px dashed #fca5a5", marginTop: 6 }}>
+                    <span>⚠️ Remaining Balance</span><span>{fmt(remainingBalance)}</span>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: "0.92rem", color: "#15803d", fontWeight: 900, borderTop: "1.5px solid #bbf7d0", marginTop: 6 }}>
+                    <span>✅ Fully Settled</span><span>{fmt(order.subtotal)}</span>
+                  </div>
+                )}
+              </>
+            ) : balance > 0 ? (
               <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "0.88rem", color: "#dc2626", fontWeight: 800 }}>
                 <span>Balance at Pickup</span><span>{fmt(balance)}</span>
               </div>
-            )}
+            ) : null}
           </div>
-          <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "10px", background: balance <= 0 ? "#f0fdf4" : "#fff7ed", border: `1px solid ${balance <= 0 ? "#bbf7d0" : "#fed7aa"}`, borderRadius: "8px", padding: "10px 14px" }}>
-            <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: statusColor, flexShrink: 0 }} />
-            <div style={{ fontSize: "0.82rem", fontWeight: 700, color: statusColor }}>
-              {balance <= 0 ? "Fully Paid ✓" : `Balance ₹${balance.toLocaleString("en-IN")} due at pickup`}
+          <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "10px", background: isPartial ? "#fff7ed" : "#f0fdf4", border: `1px solid ${isPartial ? "#fed7aa" : "#bbf7d0"}`, borderRadius: "8px", padding: "10px 14px" }}>
+            <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: isPartial ? "#d97706" : "#15803d", flexShrink: 0 }} />
+            <div style={{ fontSize: "0.82rem", fontWeight: 700, color: isPartial ? "#92400e" : "#15803d" }}>
+              {isPartial
+                ? `⚠️ Partial — ₹${remainingBalance.toLocaleString("en-IN")} still due`
+                : finalPaid != null
+                  ? "Payment Collected ✓ Fully Settled"
+                  : balance <= 0
+                    ? "Fully Paid ✓"
+                    : `Balance ₹${balance.toLocaleString("en-IN")} due at pickup`
+              }
             </div>
           </div>
         </div>
@@ -262,23 +570,6 @@ const CustomerOrderPdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => 
         )}
       </div>
 
-      {/* Steps */}
-      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "8px", padding: "12px 14px", marginBottom: "16px" }}>
-        <div style={{ fontWeight: 700, fontSize: "0.78rem", color: "#1e4fba", marginBottom: "10px" }}>📦 What happens next?</div>
-        {[
-          "✅ Order confirmed — shop owner notified",
-          "📦 Shop owner packs your items",
-          "🔔 You'll be contacted when ready for pickup",
-          `🏪 Visit shop & pay balance ${balance > 0 ? fmt(balance) : "(fully paid)"}`,
-        ].map((step, i) => (
-          <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start", padding: "3px 0", fontSize: "0.78rem", color: "#374151" }}>
-            <span style={{ flexShrink: 0, marginTop: "1px" }}>{i === 0 ? "●" : "○"}</span>
-            <span style={{ fontWeight: i === 0 ? 700 : 400 }}>{step}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer */}
       <div style={{ borderTop: "1.5px solid #e5e7eb", paddingTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div style={{ fontSize: "0.65rem", color: "#9ca3af" }}>
           <div style={{ fontFamily: "Georgia, serif", fontSize: "0.85rem", fontWeight: 800, color: "#0e1b2e" }}>Mana<span style={{ color: "#c9963a" }}>Bills</span></div>
@@ -286,7 +577,7 @@ const CustomerOrderPdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => 
           <div>Thank you for your order 🙏</div>
         </div>
         <div style={{ fontSize: "0.6rem", color: "#9ca3af", textAlign: "right", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-          Order ID: <strong style={{ color: "#c9963a" }}>{order.id}</strong>
+          Order ID: <strong style={{ color: "#c9963a" }}>{order.order_id || order.id}</strong>
         </div>
       </div>
     </div>
@@ -298,12 +589,10 @@ const ShopInvoicePdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => {
   return (
     <div ref={ref} style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: "#fff", padding: "32px", color: "#111827", fontSize: "13px", lineHeight: 1.6 }}>
       <div style={{ position: "relative", overflow: "hidden" }}>
-        {/* Watermark */}
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", zIndex: 0 }}>
           <div style={{ fontFamily: "Georgia, serif", fontSize: "5rem", fontWeight: 900, color: "rgba(201,150,58,0.06)", transform: "rotate(-30deg)", whiteSpace: "nowrap", userSelect: "none" }}>ManaBills</div>
         </div>
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2.5px solid #0e1b2e", paddingBottom: "16px", marginBottom: "16px" }}>
             <div>
               <div style={{ fontFamily: "Georgia, serif", fontSize: "1.5rem", fontWeight: 900, color: "#0e1b2e" }}>Mana<span style={{ color: "#c9963a" }}>Bills</span></div>
@@ -311,7 +600,10 @@ const ShopInvoicePdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => {
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontFamily: "Georgia, serif", fontSize: "1.1rem", fontWeight: 800, color: "#0e1b2e" }}>SHOP ORDER</div>
-              <div style={{ fontWeight: 800, color: "#c9963a", fontSize: "0.9rem" }}>#{order.id}</div>
+              <div style={{ fontWeight: 800, color: "#c9963a", fontSize: "0.9rem" }}>#{order.order_id || order.id}</div>
+              {order.order_id && order.id !== order.order_id && (
+                <div style={{ fontSize: "0.65rem", color: "#9ca3af" }}>Ref: {order.id}</div>
+              )}
               <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
                 {new Date(order.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
               </div>
@@ -326,7 +618,6 @@ const ShopInvoicePdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => {
             </div>
           )}
 
-          {/* Customer row */}
           <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px 14px", marginBottom: "16px", display: "flex", gap: "20px" }}>
             <div>
               <div style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", color: "#9ca3af", marginBottom: "3px" }}>Customer</div>
@@ -339,7 +630,6 @@ const ShopInvoicePdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => {
             </div>
           </div>
 
-          {/* Items */}
           <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
             <thead>
               <tr style={{ background: "#0e1b2e", color: "#fff" }}>
@@ -362,7 +652,6 @@ const ShopInvoicePdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => {
             </tbody>
           </table>
 
-          {/* Totals + QR */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "20px" }}>
             <div style={{ flex: 1, maxWidth: "260px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: "0.82rem", borderBottom: "1px solid #f1f5f9" }}>
@@ -384,7 +673,6 @@ const ShopInvoicePdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => {
                   <QRCode value={qrUrl} size={100} />
                 </div>
                 <div style={{ fontSize: "0.6rem", color: "#6b7280", marginTop: "5px" }}>Shop QR Scanner</div>
-                <div style={{ fontSize: "0.58rem", color: "#9ca3af", marginTop: "2px", maxWidth: "110px", wordBreak: "break-all" }}>{qrUrl}</div>
               </div>
             )}
           </div>
@@ -394,9 +682,11 @@ const ShopInvoicePdf = memo(React.forwardRef(({ order, shop, qrUrl }, ref) => {
   );
 }));
 
-// ─── Static CSS for owner view (injected once) ─────────────────
+// ─── Static CSS ────────────────────────────────────────────────
 const OWNER_STYLES = `
   @keyframes slideDown { from{opacity:0;transform:translateX(-50%) translateY(-10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+  @keyframes modalIn { from{opacity:0;transform:translateY(20px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes fadeInUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
   .sqo-layout { display:grid; grid-template-columns:260px 1fr; min-height:calc(100vh - 115px); }
   @media(max-width:900px){ .sqo-layout{ grid-template-columns:1fr; } }
@@ -432,6 +722,8 @@ const OWNER_STYLES = `
   .sqo-btn-blue    { background:#1e4fba; color:#fff; }
   .sqo-btn-purple  { background:#7c3aed; color:#fff; }
   .sqo-btn-wa      { background:#25D366; color:#fff; }
+  .sqo-btn-danger  { background:transparent; color:#dc2626; border:1.5px solid #fca5a5; }
+  .sqo-btn-danger:hover { background:#fee2e2; border-color:#ef4444; }
 
   .sqo-card { background:#fff; border-radius:16px; border:1.5px solid rgba(14,27,46,.07); box-shadow:0 2px 10px rgba(14,27,46,.05); padding:20px; margin-bottom:16px; }
   .sqo-order-card { background:#fff; border-radius:16px; border:1.5px solid rgba(14,27,46,.07); box-shadow:0 2px 10px rgba(14,27,46,.05); padding:18px; margin-bottom:12px; transition:box-shadow .2s; }
@@ -447,8 +739,70 @@ const OWNER_STYLES = `
   .sqo-pill.on { background:#0e1b2e; color:#fff; border-color:#0e1b2e; }
 
   .sqo-empty { text-align:center; padding:56px 24px; background:#fff; border-radius:18px; border:1.5px dashed rgba(14,27,46,.12); }
-  .sqo-notif { border-radius:12px; border:1.5px solid; padding:14px 16px; margin-bottom:10px; cursor:pointer; display:flex; gap:12px; align-items:flex-start; }
+
   .sqo-order-actions { display:flex; gap:7px; flex-wrap:wrap; }
+
+  /* order_id highlight chip */
+  .sqo-orderid-chip {
+    display:inline-flex; align-items:center; gap:5px;
+    background:linear-gradient(135deg,rgba(201,150,58,.12),rgba(201,150,58,.06));
+    border:1.5px solid rgba(201,150,58,.35);
+    border-radius:100px; padding:3px 10px;
+    font-size:11px; font-weight:800; color:#92400e;
+    letter-spacing:.03em;
+  }
+
+  /* ── Professional Notification card ── */
+  .sqo-notif-card {
+    background:#fff;
+    border-radius:14px;
+    border:1.5px solid rgba(14,27,46,.07);
+    box-shadow:0 2px 8px rgba(14,27,46,.04);
+    padding:16px 18px;
+    margin-bottom:10px;
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    cursor:pointer;
+    transition:box-shadow .2s, transform .15s;
+    animation:fadeInUp .25s ease;
+    position:relative;
+  }
+  .sqo-notif-card:hover { box-shadow:0 6px 20px rgba(14,27,46,.09); transform:translateY(-1px); }
+  .sqo-notif-card.unread { border-color:transparent; }
+
+  .sqo-notif-icon {
+    width:40px; height:40px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; flex-shrink:0;
+  }
+  .sqo-notif-delete {
+    position:absolute; top:12px; right:14px;
+    background:transparent; border:none; cursor:pointer;
+    color:#cbd5e1; font-size:14px; padding:2px 6px;
+    border-radius:6px; transition:all .15s; line-height:1;
+    font-family:inherit;
+  }
+  .sqo-notif-delete:hover { background:#fee2e2; color:#ef4444; }
+
+  .sqo-notif-type-pill {
+    display:inline-block; font-size:9px; font-weight:800;
+    text-transform:uppercase; letter-spacing:.07em;
+    padding:2px 8px; border-radius:100px; margin-bottom:4px;
+  }
+
+  /* Notif header bar */
+  .sqo-notif-header {
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;
+  }
+  .sqo-notif-actions { display:flex; gap:8px; align-items:center; }
+  .sqo-notif-clear-all {
+    font-size:12px; font-weight:700; color:#64748b;
+    background:transparent; border:1.5px solid #e5e7eb;
+    padding:6px 14px; border-radius:8px; cursor:pointer;
+    font-family:inherit; transition:all .15s;
+  }
+  .sqo-notif-clear-all:hover { background:#f1f5f9; border-color:#cbd5e1; color:#0e1b2e; }
 `;
 
 if (typeof document !== "undefined" && !document.getElementById("__sqo_styles")) {
@@ -459,7 +813,7 @@ if (typeof document !== "undefined" && !document.getElementById("__sqo_styles"))
 }
 
 // ══════════════════════════════════════════════════════════════
-//   MAIN COMPONENT — ShopQROrder (Owner View)
+//   MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════
 export default function ShopQROrder() {
   const [tab,         setTab]         = useState("scanner");
@@ -472,13 +826,16 @@ export default function ShopQROrder() {
   const [toast,       setToast]       = useState(null);
   const [loading,     setLoading]     = useState(true);
   const [stockItems,  setStockItems]  = useState([]);
+  const [demo,        setDemo]        = useState(false);
 
-  // Demo toggle (owner ↔ customer)
-  const [demo, setDemo] = useState(false);
+  // Payment modal state
+  const [paymentModalOrder, setPaymentModalOrder] = useState(null);
 
-  // PDF print state — useEffect drives printing (not setTimeout)
-  const [shopPdfOrder,     setShopPdfOrder]     = useState(null);
-  const [customerPdfOrder, setCustomerPdfOrder] = useState(null);
+  // PDF print state
+  const [shopPdfOrder,         setShopPdfOrder]         = useState(null);
+  const [customerPdfOrder,     setCustomerPdfOrder]     = useState(null);
+  const [customerPdfAmountPaid, setCustomerPdfAmountPaid] = useState(null);
+
   const shopPdfRef     = useRef(null);
   const customerPdfRef = useRef(null);
 
@@ -489,6 +846,18 @@ export default function ShopQROrder() {
     setToast({ msg, type });
     const t = setTimeout(() => setToast(null), TOAST_DURATION_MS);
     return () => clearTimeout(t);
+  }, []);
+
+  // ── Auto-prune notifications every hour ──────────────────
+  useEffect(() => {
+    const pruneInterval = setInterval(() => {
+      setNotifs((prev) => {
+        const pruned = pruneOldNotifs(prev);
+        if (pruned.length !== prev.length) saveNotifs(pruned);
+        return pruned;
+      });
+    }, 60 * 60 * 1000); // every hour
+    return () => clearInterval(pruneInterval);
   }, []);
 
   // ── Load on mount ─────────────────────────────────────────
@@ -558,17 +927,16 @@ export default function ShopQROrder() {
   // ── useEffect-driven printing ─────────────────────────────
   useEffect(() => {
     if (shopPdfOrder && shopPdfRef.current) {
-      printViaIframe(shopPdfRef.current.innerHTML, `Shop Order ${shopPdfOrder.id}`);
+      printViaIframe(shopPdfRef.current.innerHTML, `Shop Order ${shopPdfOrder.order_id || shopPdfOrder.id}`);
     }
   }, [shopPdfOrder]);
 
   useEffect(() => {
     if (customerPdfOrder && customerPdfRef.current) {
-      printViaIframe(customerPdfRef.current.innerHTML, `Order Confirmation ${customerPdfOrder.id}`);
+      printViaIframe(customerPdfRef.current.innerHTML, `Order Confirmation ${customerPdfOrder.order_id || customerPdfOrder.id}`);
     }
   }, [customerPdfOrder]);
 
-  // ── Listen for print events emitted by CustomerView ───────
   useEffect(() => {
     const handler = (e) => setCustomerPdfOrder(e.detail);
     window.addEventListener("cust:printOrder", handler);
@@ -586,56 +954,199 @@ export default function ShopQROrder() {
     });
   }, [toast$]);
 
-  // ── Order status update ───────────────────────────────────
+  // ── Order status update (non-completion) ──────────────────
   const updateStatus = useCallback((oid, st) => {
     setOrders((prev) => prev.map((o) => o.id === oid ? { ...o, status: st } : o));
+
     authAxios.patch(`business/orders/${oid}/`, { status: st })
       .catch((err) => console.warn(`[ShopQROrder] status update for ${oid} failed:`, err));
 
-    if (st === "ready") {
-      setOrders((prev) => {
-        const o = prev.find((x) => x.id === oid);
-        if (o) {
-          setNotifs((n) => [{
-            id: Date.now(), type: "ready", read: false,
-            msg:  `Order ${oid} is ready for pickup`,
-            sub:  `Balance: ${fmt(o.balance)}`,
-            time: new Date().toISOString(),
-          }, ...n]);
+    setOrders((prev) => {
+      const order = prev.find((x) => x.id === oid);
+
+      if (st === "packing" && order) {
+        const mob = order.customer_mobile?.replace(/\D/g, "") || "";
+        if (mob) {
+          const msg = buildPackingMsg(order, shopProfile);
+          setTimeout(() => {
+            window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`, "_blank");
+          }, 300);
         }
-        return prev;
-      });
-      toast$(`✅ Order ${oid} marked Ready`);
-    } else if (st === "packing")  toast$(`📦 Packing started for ${oid}`, "info");
-    else if (st === "completed")  toast$(`💰 Order ${oid} completed!`);
-    else if (st === "cancelled")  toast$(`Order ${oid} cancelled`, "error");
+        toast$(`📦 Packing started — WhatsApp opening...`, "info");
+        setNotifs((n) => [{
+          id: Date.now(), type: "packing", read: false,
+          msg: `Order #${order?.order_id || oid} is now being packed`,
+          sub: `${order?.customer_name} · ${order?.items?.length || 0} item(s) · ${fmt(order?.subtotal)}`,
+          time: new Date().toISOString(),
+        }, ...n]);
+      }
+
+      if (st === "ready" && order) {
+        const mob = order.customer_mobile?.replace(/\D/g, "") || "";
+        if (mob) {
+          const msg = buildReadyMsg(order, shopProfile);
+          setTimeout(() => {
+            window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`, "_blank");
+          }, 300);
+        }
+        toast$(`✅ Order ${order?.order_id || oid} marked Ready — WhatsApp opening...`);
+        setNotifs((n) => [{
+          id: Date.now(), type: "ready", read: false,
+          msg: `Order #${order?.order_id || oid} is ready for pickup`,
+          sub: `${order?.customer_name} · Balance due: ${fmt(order?.balance)}`,
+          time: new Date().toISOString(),
+        }, ...n]);
+      }
+
+      if (st === "cancelled") {
+        toast$(`Order ${order?.order_id || oid} cancelled`, "error");
+      }
+
+      return prev;
+    });
+  }, [toast$, shopProfile]);
+
+  // ── "Collected" clicked — open payment modal ──────────────
+  const handleCollectedClick = useCallback((order) => {
+    setPaymentModalOrder(order);
+  }, []);
+
+  // ── Payment confirmed in modal ────────────────────────────
+  const handlePaymentConfirmed = useCallback((amountPaid) => {
+    const order = paymentModalOrder;
+    if (!order) return;
+    setPaymentModalOrder(null);
+
+    const oid        = order.id;
+    const orderId    = order.order_id || order.id;
+    const balanceDue = Number(order.balance || 0);
+    const paid       = Number(amountPaid);
+
+    const isPartial        = paid < balanceDue;
+    const changeReturned   = paid > balanceDue ? paid - balanceDue : 0;
+    const remainingBalance = isPartial ? balanceDue - paid : 0;
+    const paymentStatus    = isPartial ? "partial" : "paid";
+
+    // 1. Update order status to completed
+    setOrders((prev) => prev.map((o) => o.id === oid
+      ? {
+          ...o,
+          status:               "completed",
+          amount_paid_at_pickup: paid,
+          remaining_balance:    remainingBalance,
+          payment_status:       paymentStatus,
+        }
+      : o
+    ));
+
+    // 2. API: update order
+    authAxios.patch(`business/orders/${oid}/`, {
+      status:               "completed",
+      amount_paid_at_pickup: paid,
+      remaining_balance:    remainingBalance,
+      payment_status:       paymentStatus,
+    }).catch((err) => console.warn(`[ShopQROrder] complete order ${oid} failed:`, err));
+
+    // 3. API: post to invoice history
+    const invoicePayload = {
+      order_id:          oid,
+      order_ref:         orderId,
+      customer_name:     order.customer_name,
+      customer_mobile:   order.customer_mobile,
+      items:             order.items,
+      subtotal:          order.subtotal,
+      advance:           order.advance,
+      balance_due:       balanceDue,
+      amount_paid:       paid,
+      change_returned:   changeReturned,
+      remaining_balance: remainingBalance,
+      payment_status:    paymentStatus,
+      payment_date:      new Date().toISOString(),
+      source:            "qr_order",
+    };
+    authAxios.post("business/invoice-history/", invoicePayload)
+      .catch((err) => console.warn("[ShopQROrder] invoice-history post failed:", err));
+
+    // 4. Notification — auto-deletes in 24h
+    const notifSub = isPartial
+      ? `${order.customer_name} · Paid ${fmt(paid)} · Balance remaining: ${fmt(remainingBalance)}`
+      : changeReturned > 0
+        ? `${order.customer_name} · Paid ${fmt(paid)} · Change returned: ${fmt(changeReturned)}`
+        : `${order.customer_name} · ${fmt(paid)} collected · Fully settled`;
+
+    setNotifs((n) => [{
+      id: Date.now(), type: "completed", read: false,
+      msg: `Order #${orderId} ${isPartial ? "partially paid" : "completed & settled"}`,
+      sub: notifSub,
+      time: new Date().toISOString(),
+    }, ...n]);
+
+    toast$(
+      isPartial
+        ? `⚠️ Order ${orderId} — ₹${paid} paid, ₹${remainingBalance} balance kept`
+        : `💰 Order ${orderId} completed! ₹${paid} collected.`
+    );
+
+    // 5. Trigger customer PDF
+    setCustomerPdfAmountPaid(paid);
+    setCustomerPdfOrder({
+      ...order,
+      status:            "completed",
+      remaining_balance: remainingBalance,
+      payment_status:    paymentStatus,
+      change_returned:   changeReturned,
+    });
+
+    // 6. Open WhatsApp
+    setTimeout(() => {
+      const mob = order.customer_mobile?.replace(/\D/g, "") || "";
+      if (mob) {
+        const msg = buildCompletedMsg(
+          { ...order, remaining_balance: remainingBalance, change_returned: changeReturned },
+          shopProfile, paid, isPartial,
+        );
+        window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`, "_blank");
+      }
+    }, 800);
+
+    // 7. Remove from active list after 2.5s
+    setTimeout(() => {
+      setOrders((prev) => prev.filter((o) => o.id !== oid));
+    }, 2500);
+  }, [paymentModalOrder, shopProfile, toast$]);
+
+  // ── Notification helpers ──────────────────────────────────
+  const markAllRead   = useCallback(() => setNotifs((p) => p.map((n) => ({ ...n, read: true }))), []);
+  const deleteNotif   = useCallback((id) => setNotifs((p) => p.filter((n) => n.id !== id)), []);
+  const clearAllNotifs = useCallback(() => setNotifs([]), []);
+  const unread        = useMemo(() => notifs.filter((n) => !n.read).length, [notifs]);
+
+  // ── Delete completed order (local only) ──────────────────
+
+  const handleOrderPlaced = useCallback((newOrder) => {
+    setOrders((prev) => {
+      const already = prev.find((o) => o.id === newOrder.id || o.order_id === newOrder.order_id);
+      if (already) return prev;
+      return [newOrder, ...prev];
+    });
+    setNotifs((n) => [{
+      id: Date.now(),
+      type: "new_order",
+      read: false,
+      msg: `New order #${newOrder.order_id || newOrder.id} received`,
+      sub: `${newOrder.customer_name} · ${fmt(newOrder.subtotal)} · ${newOrder.items?.length || 0} item(s)`,
+      time: new Date().toISOString(),
+    }, ...n]);
+    toast$(`🛒 New order from ${newOrder.customer_name}!`);
   }, [toast$]);
 
-  const markAllRead = useCallback(() => setNotifs((p) => p.map((n) => ({ ...n, read: true }))), []);
-  const unread      = useMemo(() => notifs.filter((n) => !n.read).length, [notifs]);
-
-  // ── Callback: CustomerView placed an order ────────────────
-  const handleOrderPlaced = useCallback((newOrder, updatedNotifs) => {
-    setOrders((prev) => [newOrder, ...prev]);
-    setNotifs(updatedNotifs);
+  const handleStockRefresh = useCallback((freshStock) => setStockItems(freshStock), []);
+  const printShopSlip      = useCallback((order) => setShopPdfOrder(order), []);
+  const printCustomerSlip  = useCallback((order) => {
+    setCustomerPdfAmountPaid(null);
+    setCustomerPdfOrder(order);
   }, []);
 
-  // ── Callback: CustomerView deducted stock ─────────────────
-  const handleStockRefresh = useCallback((freshStock) => {
-    setStockItems(freshStock);
-  }, []);
-
-  // ── PDF / WA helpers ──────────────────────────────────────
-  const printShopSlip     = useCallback((order) => setShopPdfOrder(order),     []);
-  const printCustomerSlip = useCallback((order) => setCustomerPdfOrder(order), []);
-
-  const sendWa = useCallback((order) => {
-    const mob = order.customer_mobile?.replace(/\D/g, "") || "";
-    if (!mob) { toast$("No mobile number for this order", "error"); return; }
-    window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(buildWaMsg(order, shopProfile))}`, "_blank");
-  }, [shopProfile, toast$]);
-
-  // ── Order counts / filtered lists ─────────────────────────
   const oc = useMemo(() => ({
     all:       orders.length,
     new:       orders.filter((o) => o.status === "new").length,
@@ -651,12 +1162,46 @@ export default function ShopQROrder() {
 
   const shopName = shopProfile?.shop_name || "Your Shop";
 
-  // ── Dummy order for "Print QR" button ─────────────────────
   const QR_DISPLAY_ORDER = useMemo(() => ({
-    id: "QR-DISPLAY", customer_name: "Display Slip", customer_mobile: "",
+    id: "QR-DISPLAY", order_id: "QR-DISPLAY",
+    customer_name: "Display Slip", customer_mobile: "",
     items: [], subtotal: 0, advance: 0, balance: 0,
     status: "new", created_at: new Date().toISOString(),
   }), []);
+
+  // Poll every 15 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      authAxios.get("business/orders/")
+        .then((r) => {
+          if (Array.isArray(r.data) && r.data.length > 0) {
+            setOrders((prev) => {
+              const prevIds = new Set(prev.map((o) => o.id));
+              const newOnes = r.data.filter((o) => !prevIds.has(o.id));
+              if (newOnes.length > 0) {
+                toast$(`🛒 ${newOnes.length} new order(s) received!`);
+                setNotifs((n) => [
+                  ...newOnes.map((o) => ({
+                    id: Date.now() + Math.random(),
+                    type: "new_order",
+                    read: false,
+                    msg: `New order #${o.order_id || o.id} received`,
+                    sub: `${o.customer_name} · ${fmt(o.subtotal)} · ${o.items?.length || 0} item(s)`,
+                    time: new Date().toISOString(),
+                  })),
+                  ...n,
+                ]);
+              }
+              return r.data;
+            });
+            saveOrders(r.data);
+          }
+        })
+        .catch((err) => console.warn("[ShopQROrder] poll failed:", err));
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [toast$]);
 
   // ══════════════════════════════════════════════════════════
   //   RENDER
@@ -667,8 +1212,17 @@ export default function ShopQROrder() {
       {/* ── Hidden PDF containers ── */}
       <div style={{ display: "none" }}>
         <ShopInvoicePdf    ref={shopPdfRef}     order={shopPdfOrder}     shop={shopProfile} qrUrl={qrUrl} />
-        <CustomerOrderPdf  ref={customerPdfRef} order={customerPdfOrder} shop={shopProfile} qrUrl={qrUrl} />
+        <CustomerOrderPdf  ref={customerPdfRef} order={customerPdfOrder} shop={shopProfile} qrUrl={qrUrl} amountPaid={customerPdfAmountPaid} />
       </div>
+
+      {/* ── Payment Collection Modal ── */}
+      {paymentModalOrder && (
+        <PaymentModal
+          order={paymentModalOrder}
+          onConfirm={handlePaymentConfirmed}
+          onCancel={() => setPaymentModalOrder(null)}
+        />
+      )}
 
       {/* Toast */}
       {toast && (
@@ -683,23 +1237,6 @@ export default function ShopQROrder() {
       )}
 
       {/* Demo/Owner toggle bar */}
-      <div className="sqo-demobar">
-        <p style={{ margin: 0, color: "rgba(255,255,255,.55)", fontSize: 12 }}>
-          🔄 Toggle view · Customer URL:{" "}
-          <code style={{ color: "#c9963a", fontSize: 11 }}>{qrUrl || "loading..."}</code>
-        </p>
-        <div style={{ display: "flex", gap: 6 }}>
-          {[{ v: false, l: "🏪 Owner" }, { v: true, l: "📱 Customer" }].map(({ v, l }) => (
-            <button key={String(v)} onClick={() => setDemo(v)} style={{
-              padding: "7px 16px", borderRadius: 100, border: "1px solid",
-              fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", transition: "all .15s",
-              background:   demo === v ? "#c9963a" : "transparent",
-              color:        demo === v ? "#0e1b2e" : "rgba(255,255,255,.7)",
-              borderColor:  demo === v ? "#c9963a" : "rgba(255,255,255,.2)",
-            }}>{l}</button>
-          ))}
-        </div>
-      </div>
 
       {/* ════════════════════ CUSTOMER VIEW ════════════════════ */}
       {demo && (
@@ -741,7 +1278,7 @@ export default function ShopQROrder() {
               </div>
               <div className="sqo-plabel">Navigation</div>
               {[
-                { k: "scanner",       i: "📲", l: "QR Scanner",   b: null,          r: false },
+                { k: "scanner",       i: "📲", l: "QR Scanner",   b: null,           r: false },
                 { k: "orders",        i: "📦", l: "Orders",        b: oc.new || null, r: false },
                 { k: "notifications", i: "🔔", l: "Notifications", b: unread || null, r: true  },
               ].map(({ k, i, l, b, r }) => (
@@ -780,7 +1317,6 @@ export default function ShopQROrder() {
                     </div>
                   </div>
 
-                  {/* Stats */}
                   <div className="sqo-stats">
                     {[
                       { l: "Stock Items",     v: stockItems.length, c: "#1e4fba" },
@@ -795,7 +1331,6 @@ export default function ShopQROrder() {
                     ))}
                   </div>
 
-                  {/* QR Card */}
                   <div className="sqo-card" style={{ overflow: "hidden", padding: 0 }}>
                     <div style={{ background: "linear-gradient(135deg,#0e1b2e,#1a2d47)", padding: "20px 24px", position: "relative", overflow: "hidden" }}>
                       <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: "radial-gradient(circle,rgba(201,150,58,.2),transparent 70%)" }} />
@@ -812,7 +1347,6 @@ export default function ShopQROrder() {
                     </div>
                     <div style={{ padding: 24 }}>
                       <div style={{ display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap" }}>
-                        {/* QR code */}
                         <div style={{ flexShrink: 0 }}>
                           <div style={{ background: "#fff", border: "2.5px solid #0e1b2e", borderRadius: 14, padding: 12, display: "inline-block" }}>
                             {scannerId && <QRCode value={qrUrl} size={160} />}
@@ -825,7 +1359,6 @@ export default function ShopQROrder() {
                           </div>
                         </div>
 
-                        {/* How it works */}
                         <div style={{ flex: 1, minWidth: 220 }}>
                           <div style={{ fontWeight: 700, fontSize: 13, color: "#0e1b2e", marginBottom: 10 }}>How it works:</div>
                           {[
@@ -846,12 +1379,11 @@ export default function ShopQROrder() {
                     </div>
                   </div>
 
-                  {/* Stock preview */}
                   {!loading && stockItems.length > 0 && (
                     <div className="sqo-card">
                       <div style={{ fontWeight: 700, fontSize: 14, color: "#0e1b2e", marginBottom: 14 }}>📦 Visible to Customers ({stockItems.length} items)</div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 10 }}>
-                        {stockItems.slice(0, MAX_ITEMS_PREVIEW).map((p) => (
+                        {stockItems.map((p) => (
                           <div key={p.id} style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 700, color: "#0e1b2e" }}>{p.name}</div>
@@ -861,9 +1393,6 @@ export default function ShopQROrder() {
                           </div>
                         ))}
                       </div>
-                      {stockItems.length > MAX_ITEMS_PREVIEW && (
-                        <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "#94a3b8" }}>+{stockItems.length - MAX_ITEMS_PREVIEW} more items</div>
-                      )}
                     </div>
                   )}
 
@@ -907,15 +1436,19 @@ export default function ShopQROrder() {
                     </div>
                   ) : filteredOrders.map((order) => {
                     const sc = SC[order.status] || SC.new;
+                    const isCompleted = order.status === "completed";
                     return (
-                      <div key={order.id} className="sqo-order-card">
+                      <div key={order.id} className="sqo-order-card" style={isCompleted ? { opacity: 0.82, borderColor: "#e2e8f0" } : {}}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
                           <div>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                              <span style={{ fontWeight: 800, fontSize: 14, color: "#0e1b2e" }}>{order.id}</span>
+                              <span className="sqo-orderid-chip">🎫 #{order.order_id || order.id}</span>
                               <span className="sqo-badge" style={{ background: sc.bg, color: sc.col, borderColor: sc.bdr }}>{sc.label}</span>
                             </div>
-                            <div style={{ fontSize: 13, color: "#64748b", marginTop: 3 }}>👤 {order.customer_name} · 📱 {order.customer_mobile}</div>
+                            {order.order_id && String(order.order_id) !== String(order.id) && (
+                              <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>Ref: {order.id}</div>
+                            )}
+                            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>👤 {order.customer_name} · 📱 {order.customer_mobile}</div>
                             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>🕐 {ago(order.created_at)}</div>
                           </div>
                           <div style={{ fontWeight: 900, fontSize: 18, color: "#0e1b2e" }}>{fmt(order.subtotal)}</div>
@@ -947,12 +1480,28 @@ export default function ShopQROrder() {
 
                         {/* Actions */}
                         <div className="sqo-order-actions">
-                          {order.status === "new"     && <><button className="sqo-btn sqo-btn-blue"  onClick={() => updateStatus(order.id, "packing")}>📦 Start Packing</button><button className="sqo-btn sqo-btn-outline" style={{ color: "#dc2626", borderColor: "#fca5a5" }} onClick={() => updateStatus(order.id, "cancelled")}>✕ Cancel</button></>}
-                          {order.status === "packing"  && <button className="sqo-btn sqo-btn-green"  onClick={() => updateStatus(order.id, "ready")}>✅ Mark Ready</button>}
-                          {order.status === "ready"    && <button className="sqo-btn sqo-btn-dark"   onClick={() => updateStatus(order.id, "completed")}>💰 Collected</button>}
-                          <button className="sqo-btn sqo-btn-outline" onClick={() => printShopSlip(order)}>🖨️ Shop Slip</button>
-                          <button className="sqo-btn sqo-btn-purple"  onClick={() => printCustomerSlip(order)}>📄 Customer PDF</button>
-                          <button className="sqo-btn sqo-btn-wa"      onClick={() => sendWa(order)} disabled={!order.customer_mobile}>💬 WhatsApp</button>
+                          {order.status === "new" && (
+                            <>
+                              <button className="sqo-btn sqo-btn-blue" onClick={() => updateStatus(order.id, "packing")}>📦 Start Packing</button>
+                              <button className="sqo-btn sqo-btn-outline" style={{ color: "#dc2626", borderColor: "#fca5a5" }} onClick={() => updateStatus(order.id, "cancelled")}>✕ Cancel</button>
+                              <button className="sqo-btn sqo-btn-outline" onClick={() => printShopSlip(order)}>🖨️ Shop Slip</button>
+                              <button className="sqo-btn sqo-btn-purple" onClick={() => printCustomerSlip(order)}>📄 Customer PDF</button>
+                            </>
+                          )}
+                          {order.status === "packing" && (
+                            <>
+                              <button className="sqo-btn sqo-btn-green" onClick={() => updateStatus(order.id, "ready")}>✅ Mark Ready</button>
+                              <button className="sqo-btn sqo-btn-outline" onClick={() => printShopSlip(order)}>🖨️ Shop Slip</button>
+                              <button className="sqo-btn sqo-btn-purple" onClick={() => printCustomerSlip(order)}>📄 Customer PDF</button>
+                            </>
+                          )}
+                          {order.status === "ready" && (
+                            <>
+                              <button className="sqo-btn sqo-btn-dark" onClick={() => handleCollectedClick(order)}>💰 Collected</button>
+                              <button className="sqo-btn sqo-btn-outline" onClick={() => printShopSlip(order)}>🖨️ Shop Slip</button>
+                              <button className="sqo-btn sqo-btn-purple" onClick={() => printCustomerSlip(order)}>📄 Customer PDF</button>
+                            </>
+                          )}                          
                         </div>
                       </div>
                     );
@@ -963,33 +1512,97 @@ export default function ShopQROrder() {
               {/* ── NOTIFICATIONS TAB ── */}
               {tab === "notifications" && (
                 <>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  {/* Header */}
+                  <div className="sqo-notif-header">
                     <div>
-                      <h2 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 800, color: "#0e1b2e" }}>Notifications</h2>
-                      <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>{unread} unread</p>
+                      <h2 style={{ margin: "0 0 3px", fontSize: 20, fontWeight: 800, color: "#0e1b2e" }}>Notifications</h2>
+                      <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>
+                        {unread > 0
+                          ? <><span style={{ fontWeight: 700, color: "#1e4fba" }}>{unread} unread</span> · Auto-cleared after 24 hrs</>
+                          : "All caught up · Auto-cleared after 24 hrs"
+                        }
+                      </p>
                     </div>
-                    {unread > 0 && <button className="sqo-btn sqo-btn-outline" onClick={markAllRead}>✓ Mark all read</button>}
+                    <div className="sqo-notif-actions">
+                      {unread > 0 && (
+                        <button className="sqo-notif-clear-all" onClick={markAllRead}>✓ Mark all read</button>
+                      )}
+                      {notifs.length > 0 && (
+                        <button className="sqo-notif-clear-all" style={{ color: "#dc2626", borderColor: "#fecaca" }} onClick={clearAllNotifs}>
+                          🗑️ Clear all
+                        </button>
+                      )}
+                    </div>
                   </div>
+
                   {notifs.length === 0 ? (
                     <div className="sqo-empty">
-                      <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: "#0e1b2e", marginBottom: 4 }}>No notifications</div>
-                      <div style={{ fontSize: 13, color: "#94a3b8" }}>Order alerts appear here in real time</div>
-                    </div>
-                  ) : notifs.map((n) => (
-                    <div key={n.id} className="sqo-notif"
-                      style={{ background: n.read ? "transparent" : "#eff6ff", borderColor: n.read ? "rgba(14,27,46,.08)" : "#bfdbfe" }}
-                      onClick={() => setNotifs((prev) => prev.map((x) => x.id === n.id ? { ...x, read: true } : x))}
-                    >
-                      <span style={{ fontSize: 22, flexShrink: 0 }}>{n.type === "new_order" ? "🛒" : n.type === "ready" ? "✅" : "💰"}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: n.read ? 600 : 800, color: "#0e1b2e" }}>{n.msg}</div>
-                        {n.sub && <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{n.sub}</div>}
-                        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{ago(n.time)}</div>
+                      <div style={{ fontSize: 44, marginBottom: 12 }}>🔔</div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#0e1b2e", marginBottom: 6 }}>No notifications</div>
+                      <div style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.7 }}>
+                        Order alerts, status updates and payment confirmations<br/>will appear here in real time.
                       </div>
-                      {!n.read && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e4fba", flexShrink: 0, marginTop: 5 }} />}
                     </div>
-                  ))}
+                  ) : notifs.map((n) => {
+                    const cfg = NT[n.type] || NT.default;
+                    return (
+                      <div
+                        key={n.id}
+                        className={`sqo-notif-card${!n.read ? " unread" : ""}`}
+                        style={!n.read ? { borderLeft: `4px solid ${cfg.accent}`, background: cfg.bg, borderColor: cfg.bdr } : {}}
+                        onClick={() => setNotifs((prev) => prev.map((x) => x.id === n.id ? { ...x, read: true } : x))}
+                      >
+                        {/* Icon */}
+                        <div className="sqo-notif-icon" style={{ background: n.read ? "#f1f5f9" : cfg.bg, border: `1.5px solid ${n.read ? "#e2e8f0" : cfg.bdr}` }}>
+                          {cfg.icon}
+                        </div>
+
+                        {/* Body */}
+                        <div style={{ flex: 1, minWidth: 0, paddingRight: 28 }}>
+                          {/* Type pill */}
+                          <span
+                            className="sqo-notif-type-pill"
+                            style={{ background: n.read ? "#f1f5f9" : cfg.bg, color: cfg.accent, border: `1px solid ${n.read ? "#e2e8f0" : cfg.bdr}` }}
+                          >
+                            {cfg.label}
+                          </span>
+                          {/* Message */}
+                          <div style={{ fontSize: 13.5, fontWeight: n.read ? 600 : 800, color: "#0e1b2e", marginBottom: 3, lineHeight: 1.4 }}>
+                            {n.msg}
+                          </div>
+                          {/* Sub text */}
+                          {n.sub && (
+                            <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>{n.sub}</div>
+                          )}
+                          {/* Footer: time + unread dot */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                            <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>🕐 {ago(n.time)}</span>
+                            {!n.read && (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 800, color: cfg.accent, background: cfg.bg, border: `1px solid ${cfg.bdr}`, padding: "1px 7px", borderRadius: 100 }}>
+                                ● NEW
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* ── Per-notification delete button ── */}
+                        <button
+                          className="sqo-notif-delete"
+                          onClick={(e) => { e.stopPropagation(); deleteNotif(n.id); }}
+                          title="Dismiss notification"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {/* Footer hint */}
+                  {notifs.length > 0 && (
+                    <div style={{ textAlign: "center", fontSize: 11, color: "#cbd5e1", marginTop: 20, padding: "12px 0", borderTop: "1px solid #f1f5f9" }}>
+                      Notifications older than 24 hours are automatically removed
+                    </div>
+                  )}
                 </>
               )}
 

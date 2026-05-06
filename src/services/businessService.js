@@ -131,3 +131,8 @@ export const getGstReports = async (year, view = "monthly") => {
 
 export const updateInvoiceItems = (id, data) =>
   authAxios.patch(`${BASE}invoices/${id}/`, data).then((r) => r.data);
+
+/* ── Jobs ────────────────────────────────────────────────── */
+export const getJobs   = () => authAxios.get(`${BASE}jobs/`).then(r => r.data);
+export const createJob = (data) => authAxios.post(`${BASE}jobs/`, data).then(r => r.data);
+export const deleteJob = (id) => authAxios.delete(`${BASE}jobs/${id}/`);

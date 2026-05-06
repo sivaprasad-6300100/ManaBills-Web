@@ -19,9 +19,9 @@ import Products from "../pages/business_billing/Products";
 import Customers from "../pages/business_billing/Customers";
 import GstReports from "../pages/business_billing/GstReports";
 import ShopProfile from "../pages/business_billing/ShopProfile";
-import DefaultItems from "../pages/business_billing/DefaultItems";
 import Shopqrorder from "../pages/business_billing/Shopqrorder";
 import CustomerView from "../pages/business_billing/CustomerView";
+import JobServices from "../pages/business_billing/JobServices";
 // import CustomerViewWrapper from "../pages/business_billing/CustomerViewWrapper";
 // import Stockservice from "../pages/business_billing/Stockservice";
 
@@ -110,10 +110,10 @@ const AppRoutes = () => {
           <Route path="create-invoice" element={<CreateInvoice />} />
           <Route path="invoices" element={<InvoiceHistory />} />
           <Route path="customers" element={<Customers />} />
-          <Route path="default-items" element={<DefaultItems />} />
           <Route path="shop-profile" element={<ShopProfile />} />
           <Route path="gst" element={<GstReports />} />
-          <Route path="stock" element={<stockServices />} />
+          {/* <Route path="stock" element={<stockServices />} /> */}
+          <Route path="job-services" element={<JobServices />} />
           <Route path="shopqroder" element={ <Shopqrorder /> } />
         </Route>
 

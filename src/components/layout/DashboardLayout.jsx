@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import "../../styles/global/dashboard.css";
 
+/* ════════════════════════════════════════
+   ICONS
+════════════════════════════════════════ */
 const HomeIcon     = ({ active }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
     stroke={active ? "#c9963a" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -53,46 +56,50 @@ const ICON_PATHS = {
   payments:  "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z",
   estimate:  "M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-3M16 5l2 2-5 5m0 0l-2-2",
   quotation: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+  defaultitems: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M5 12h14M5 16h6",
+  gst:         "M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+  qrorder:     "M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z",
+  customerview:"M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z",
+  shopprofile: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z",
 };
 
+/* ════════════════════════════════════════
+   NAV CONFIG
+════════════════════════════════════════ */
 const DEFAULT_NAV = [
   { to: "/dashboard",              Icon: HomeIcon,     label: "Home",    end: true },
   { to: "/dashboard/business",     Icon: BusinessIcon, label: "Business"           },
   { to: "/dashboard/home-expense", Icon: ExpenseIcon,  label: "Expenses"           },
   { to: "/dashboard/construction", Icon: BuildIcon,    label: "construction"       },
-  // { to: "/dashboard/account",      Icon: AccountIcon,  label: "Account"            },
   { to: "/dashboard/custom",       Icon: AccountIcon,  label: "custom"             },
 ];
 
 const MODULE_NAVS = {
   business: [
-    { to: null,                                   iconPath: "modules",   label: "Modules",  isBack: true },
-    { to: "/dashboard/business",                  iconPath: "overview",  label: "Overview", end: true    },
-    { to: "/dashboard/business/create-invoice",   iconPath: "invoice",   label: "Invoice"               },
-    { to: "/dashboard/business/products",         iconPath: "stock",     label: "Stock"                 },
-    { to: "/dashboard/business/shopqroder",           iconPath: "quotation", label: "Orders"                },
-    { to: "/dashboard/business/customers",        iconPath: "customers", label: "Customers"             },
+    { to: "/dashboard",                         iconPath: "overview",  label: "Home",      end: true },
+    { to: "/dashboard/business/create-invoice", iconPath: "invoice",   label: "Invoices"             },
+    { to: "/dashboard/business/products",       iconPath: "stock",     label: "Stock"                },
+    { to: "/dashboard/business/shopqroder",     iconPath: "quotation", label: "Orders"               },
+    // { to: "/dashboard/business/customers",      iconPath: "customers", label: "Customers"            },
+    { to: "/dashboard/business/invoices",       iconPath: "invoice", label: "Invoices"               },
   ],
   "home-expense": [
-    { to: null,                                   iconPath: "modules",  label: "Modules",  isBack: true },
-    { to: "/dashboard/home-expense",              iconPath: "overview", label: "Overview", end: true    },
-    { to: "/dashboard/home-expense/add-expense",  iconPath: "addexp",   label: "Add"                   },
-    { to: "/dashboard/home-expense/summary",      iconPath: "summary",  label: "Summary"               },
-    { to: "/dashboard/home-expense/reports",      iconPath: "reports",  label: "Reports"               },
+    { to: "/dashboard/home-expense",             iconPath: "overview", label: "Home",    end: true },
+    { to: "/dashboard/home-expense/add-expense", iconPath: "addexp",   label: "Add"                },
+    { to: "/dashboard/home-expense/summary",     iconPath: "summary",  label: "Summary"            },
+    { to: "/dashboard/home-expense/reports",     iconPath: "reports",  label: "Reports"            },
   ],
   construction: [
-    { to: null,                                   iconPath: "modules",   label: "Modules",  isBack: true },
-    { to: "/dashboard/construction",              iconPath: "overview",  label: "Overview", end: true    },
-    { to: "/dashboard/construction/Budget",       iconPath: "budget",    label: "Budget"                },
-    { to: "/dashboard/construction/WorkBills",    iconPath: "workbills", label: "Bills"                 },
-    { to: "/dashboard/construction/payments",     iconPath: "payments",  label: "Payments"              },
+    { to: "/dashboard/construction",           iconPath: "overview",  label: "Home",     end: true },
+    { to: "/dashboard/construction/Budget",    iconPath: "budget",    label: "Budget"              },
+    { to: "/dashboard/construction/WorkBills", iconPath: "workbills", label: "Bills"               },
+    { to: "/dashboard/construction/payments",  iconPath: "payments",  label: "Payments"            },
   ],
   custom: [
-    { to: null,                                   iconPath: "modules",   label: "Modules",  isBack: true },
-    { to: "/dashboard/custom",                    iconPath: "overview",  label: "Overview", end: true    },
-    { to: "/dashboard/custom/create-estimate",    iconPath: "estimate",  label: "Estimate"              },
-    { to: "/dashboard/custom/quotations",         iconPath: "quotation", label: "Quotes"                },
-    { to: "/dashboard/custom/custom-bills",       iconPath: "invoice",   label: "Bills"                 },
+    { to: "/dashboard/custom",                 iconPath: "overview",  label: "Home",    end: true },
+    { to: "/dashboard/custom/create-estimate", iconPath: "estimate",  label: "Estimate"            },
+    { to: "/dashboard/custom/quotations",      iconPath: "quotation", label: "Quotes"              },
+    { to: "/dashboard/custom/custom-bills",    iconPath: "invoice",   label: "Bills"               },
   ],
 };
 
@@ -102,6 +109,9 @@ const MODULE_COLORS = {
   construction:   "#c2410c",
   custom:         "#7c3aed",
 };
+
+/* Key used in localStorage to remember which module the user entered */
+const STORAGE_KEY = "app_active_module";
 
 const getActiveModule = (pathname) => {
   if (pathname.startsWith("/dashboard/business"))     return "business";
@@ -114,13 +124,13 @@ const getActiveModule = (pathname) => {
 /* ════════════════════════════════════════
    SMART BOTTOM NAV
 ════════════════════════════════════════ */
-const SmartBottomNav = ({ activeModule, onGoHome }) => {
+const SmartBottomNav = ({ lockedModule }) => {
   const location = useLocation();
-  const accent   = MODULE_COLORS[activeModule] || "#c9963a";
 
-  /* ── MODULE-SPECIFIC bottom nav ── */
-  if (activeModule && MODULE_NAVS[activeModule]) {
-    const items = MODULE_NAVS[activeModule];
+  /* If a module is locked in, always show that module's nav */
+  if (lockedModule && MODULE_NAVS[lockedModule]) {
+    const items  = MODULE_NAVS[lockedModule];
+    const accent = MODULE_COLORS[lockedModule] || "#c9963a";
 
     return (
       <nav className="mobile-bottom-nav" style={{ "--module-accent": accent }}>
@@ -130,24 +140,6 @@ const SmartBottomNav = ({ activeModule, onGoHome }) => {
         }} />
         <div className="mobile-nav-inner">
           {items.map((item) => {
-            if (item.isBack) {
-              return (
-                <button
-                  key="back"
-                  onClick={onGoHome}
-                  className="mobile-nav-item"
-                  style={{ background: "none", border: "none", cursor: "pointer" }}
-                >
-                  <div className="mobile-nav-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                      stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d={ICON_PATHS.modules} />
-                    </svg>
-                  </div>
-                  <span className="mobile-nav-label" style={{ color: "#94a3b8" }}>{item.label}</span>
-                </button>
-              );
-            }
             const isActive = item.end
               ? location.pathname === item.to
               : location.pathname.startsWith(item.to);
@@ -159,14 +151,22 @@ const SmartBottomNav = ({ activeModule, onGoHome }) => {
                 className={`mobile-nav-item${isActive ? " active" : ""}`}
                 style={isActive ? { "--active-color": accent } : {}}
               >
-                <div className="mobile-nav-icon" style={isActive ? { background: `${accent}18`, borderRadius: "8px" } : {}}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                <div
+                  className="mobile-nav-icon"
+                  style={isActive ? { background: `${accent}18`, borderRadius: "8px" } : {}}
+                >
+                  <svg
+                    width="22" height="22" viewBox="0 0 24 24" fill="none"
                     stroke={isActive ? accent : "#94a3b8"}
-                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  >
                     <path d={ICON_PATHS[item.iconPath]} />
                   </svg>
                 </div>
-                <span className="mobile-nav-label" style={{ color: isActive ? accent : "#94a3b8", fontWeight: isActive ? 700 : 500 }}>
+                <span
+                  className="mobile-nav-label"
+                  style={{ color: isActive ? accent : "#94a3b8", fontWeight: isActive ? 700 : 500 }}
+                >
                   {item.label}
                 </span>
                 {isActive && (
@@ -185,7 +185,7 @@ const SmartBottomNav = ({ activeModule, onGoHome }) => {
     );
   }
 
-  /* ── DEFAULT bottom nav ── */
+  /* No module locked yet → show default onboarding nav */
   return (
     <nav className="mobile-bottom-nav">
       <div className="mobile-nav-inner">
@@ -219,22 +219,37 @@ const SmartBottomNav = ({ activeModule, onGoHome }) => {
    MAIN LAYOUT
 ════════════════════════════════════════ */
 const DashboardLayout = () => {
-  const navigate     = useNavigate();
   const location     = useLocation();
   const activeModule = getActiveModule(location.pathname);
-  const handleGoHome = () => navigate("/dashboard");
+
+  /*
+   * lockedModule: once the user navigates into ANY module for the first time,
+   * we persist that module key to localStorage and never show the onboarding
+   * module-selection screen again. The bottom nav stays locked to that module
+   * permanently — even when the user is on /dashboard (the "Home" tab inside
+   * the module nav goes to the module overview, not back to onboarding).
+   */
+  const [lockedModule, setLockedModule] = useState(() => {
+    return localStorage.getItem(STORAGE_KEY) || null;
+  });
+
+  useEffect(() => {
+    if (activeModule && activeModule !== lockedModule) {
+      localStorage.setItem(STORAGE_KEY, activeModule);
+      setLockedModule(activeModule);
+    }
+  }, [activeModule, lockedModule]);
 
   return (
     <div className="dashboard-container">
       <Sidebar />
       <div className="dashboard-main">
         <Topbar />
-        {/* ── "← All Modules | Business Billing" breadcrumb REMOVED ── */}
         <div className="dashboard-content">
           <Outlet />
         </div>
       </div>
-      <SmartBottomNav activeModule={activeModule} onGoHome={handleGoHome} />
+      <SmartBottomNav lockedModule={lockedModule} />
     </div>
   );
 };

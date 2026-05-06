@@ -6,8 +6,54 @@ import {
   deleteInvoice,
   getShopProfile,
   searchProducts,
+  getCustomers,
+  createCustomer,
 } from "../../services/businessService";
 import { authAxios } from "../../services/api";
+
+/* ═══════════════════════════════════════════════
+   AUTO-SYNC: push invoice customers → Customers DB
+   Called after invoices load. Skips if mobile exists.
+═══════════════════════════════════════════════ */
+const syncInvoiceCustomers = async (invoices) => {
+  try {
+    // 1. Fetch all existing customers (load all, search="")
+    const existing = await getCustomers("");
+    const existingMobiles = new Set(
+      existing.map((c) => (c.mobile || "").replace(/\D/g, "").slice(-10)).filter(Boolean)
+    );
+
+    // 2. Deduplicate invoice customers by mobile
+    const seen = new Set();
+    const toCreate = [];
+    for (const inv of invoices) {
+      const name   = (inv.customer_name   || "").trim();
+      const mobile = (inv.customer_mobile || "").replace(/\D/g, "").slice(-10);
+      if (!name || !mobile) continue;                  // skip anonymous
+      if (seen.has(mobile))        continue;           // dedup within invoices
+      if (existingMobiles.has(mobile)) continue;       // already in Customers
+      seen.add(mobile);
+      toCreate.push({
+        name,
+        mobile,
+        email:      inv.customer_email   || "",
+        gst_number: inv.customer_gst     || "",
+        address:    inv.customer_address || "",
+      });
+    }
+
+    // 3. Create missing customers one by one
+    for (const payload of toCreate) {
+      try {
+        await createCustomer(payload);
+      } catch {
+        // ignore per-customer errors (e.g. duplicate race condition)
+      }
+    }
+  } catch {
+    // Sync is best-effort; don't surface errors to user
+  }
+};
 
 /* ═══════════════════════════════════════════════
    STYLES
@@ -183,7 +229,6 @@ const STYLES = `
     to   { opacity:1; transform:translateY(0) scale(1); }
   }
 
-  /* Modal header */
   .em-head {
     padding:1.25rem 1.5rem 1rem;
     border-bottom:1px solid var(--border);
@@ -202,7 +247,6 @@ const STYLES = `
   }
   .em-close:hover { background:var(--navy); color:#fff; border-color:var(--navy); }
 
-  /* Stock alert banner inside modal */
   .em-stock-banner {
     margin:0 1.5rem; padding:8px 14px; border-radius:var(--r-md);
     font-size:0.8rem; font-weight:600; display:flex; align-items:center; gap:8px;
@@ -211,12 +255,10 @@ const STYLES = `
   .em-stock-banner.restore { background:#f0fdf4; border:1px solid #86efac; color:#15803d; margin-top:12px; }
   .em-stock-banner.deduct  { background:#fffbeb; border:1px solid #fde68a; color:#92400e; margin-top:8px; }
 
-  /* Scrollable body */
   .em-body { flex:1; overflow-y:auto; padding:1.25rem 1.5rem; display:flex; flex-direction:column; gap:18px; }
   .em-body::-webkit-scrollbar { width:4px; }
   .em-body::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
 
-  /* Section title inside modal */
   .em-section-title {
     font-size:0.68rem; font-weight:800; text-transform:uppercase;
     letter-spacing:0.08em; color:var(--muted); margin-bottom:10px;
@@ -224,7 +266,6 @@ const STYLES = `
   }
   .em-section-title::after { content:''; flex:1; height:1px; background:var(--border); }
 
-  /* Field grid */
   .em-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .em-grid.three { grid-template-columns:1fr 1fr 1fr; }
   .em-field { display:flex; flex-direction:column; gap:5px; }
@@ -238,7 +279,6 @@ const STYLES = `
   .em-input:focus { border-color:var(--gold); background:var(--white); box-shadow:0 0 0 3px rgba(201,150,58,0.1); }
   .em-input:disabled { opacity:0.5; cursor:not-allowed; }
 
-  /* ITEMS TABLE inside modal */
   .em-items-wrap {
     background:var(--bg); border:1px solid var(--border);
     border-radius:var(--r-lg); overflow:hidden;
@@ -269,7 +309,6 @@ const STYLES = `
   .em-item-input:focus { border-color:var(--gold); box-shadow:0 0 0 2px rgba(201,150,58,0.1); }
   .em-item-input.stock-linked { border-color:#22c55e; background:#f0fdf4; }
 
-  /* Autocomplete suggestion dropdown */
   .em-suggest {
     position:absolute; top:calc(100% + 2px); left:14px; right:14px; z-index:100;
     background:var(--white); border:1px solid var(--border2); border-radius:var(--r-md);
@@ -306,7 +345,6 @@ const STYLES = `
   }
   .em-add-item-btn:hover { background:rgba(201,150,58,0.1); border-color:rgba(201,150,58,0.6); }
 
-  /* Summary panel inside modal */
   .em-summary {
     background:var(--bg); border:1px solid var(--border);
     border-radius:var(--r-lg); padding:14px 16px;
@@ -316,7 +354,6 @@ const STYLES = `
   .em-sum-row.balance { color:var(--red); font-weight:800; font-size:0.88rem; }
   .em-sum-row.paid-row { color:var(--green); font-weight:700; }
 
-  /* Stock diff preview */
   .em-stock-diff {
     background:#fffbeb; border:1px solid #fde68a;
     border-radius:var(--r-md); padding:12px 14px;
@@ -326,7 +363,6 @@ const STYLES = `
   .em-stock-diff-item .restore { color:var(--green); font-weight:700; }
   .em-stock-diff-item .deduct  { color:var(--red); font-weight:700; }
 
-  /* Footer */
   .em-foot {
     padding:1rem 1.5rem;
     border-top:1px solid var(--border);
@@ -348,7 +384,6 @@ const STYLES = `
   }
   .em-cancel:hover { border-color:var(--navy); color:var(--navy); }
 
-  /* Stock pill badge on item row */
   .em-stock-pill {
     display:inline-flex; align-items:center; gap:3px;
     font-size:0.6rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;
@@ -455,9 +490,6 @@ const STYLES = `
   .pdf-powered { font-size:0.6rem; color:#9ca3af; text-transform:uppercase; letter-spacing:0.08em; text-align:right; }
   .pdf-powered strong { color:#c9963a; }
 
-  /* ═════════════════════════════════════════════════════
-     MOBILE CARD VIEW (≤ 640px)
-  ═════════════════════════════════════════════════════ */
   @media (max-width:640px) {
     .ih-page { padding:0.85rem; }
     .ih-kpi-row { grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:14px; }
@@ -470,8 +502,6 @@ const STYLES = `
     .ih-search  { min-width:0; width:100%; }
     .ih-tab-row { width:100%; }
     .ih-tab { flex:1; text-align:center; padding:6px 8px; font-size:0.72rem; }
-
-    /* Desktop table hidden → card list */
     .ih-table-wrap { background:transparent; border:none; box-shadow:none; border-radius:0; }
     .ih-table-scroll { overflow:visible; }
     .ih-table { display:block; min-width:unset; width:100%; }
@@ -480,8 +510,6 @@ const STYLES = `
     .ih-table tbody tr { display:block; background:var(--white); border:1px solid var(--border); border-radius:var(--r-lg); padding:14px; box-shadow:var(--sh-sm); }
     .ih-table tbody tr:hover td { background:transparent; }
     .ih-table tbody td { display:none; padding:0; border:none; font-size:0.84rem; }
-
-    /* EDIT MODAL mobile */
     .em-overlay { padding:0; align-items:flex-end; }
     .em-modal { max-width:100%; border-radius:var(--r-lg) var(--r-lg) 0 0; max-height:95vh; }
     .em-head { padding:1rem 1.1rem 0.85rem; }
@@ -494,8 +522,6 @@ const STYLES = `
     .em-foot { padding:0.85rem 1.1rem; flex-direction:column; }
     .em-save   { width:100%; }
     .em-cancel { width:100%; text-align:center; }
-
-    /* PDF modal mobile */
     .pdf-overlay { padding:0; align-items:flex-end; }
     .pdf-modal { max-width:100%; border-radius:var(--r-lg) var(--r-lg) 0 0; max-height:95vh; }
     .pdf-modal-head { flex-direction:column; gap:10px; padding:1rem 1rem 0.75rem; }
@@ -520,7 +546,6 @@ const STYLES = `
   }
 `;
 
-/* Mobile card CSS (inline trick with extra data attrs) */
 const MOBILE_CARD_STYLES = `
   @media (min-width:641px) {
     .m-card { display:table-cell !important; white-space:nowrap; }
@@ -721,7 +746,6 @@ const ItemRow = ({ item, idx, onChange, onRemove, originalItems }) => {
   const [showSuggest, setShowSuggest] = useState(false);
   const debounceRef = useRef(null);
 
-  const originalItem = originalItems?.find(o => o.id === item._originalId);
   const isNew = item._new && !item._originalId;
 
   const handleNameChange = (val) => {
@@ -761,7 +785,6 @@ const ItemRow = ({ item, idx, onChange, onRemove, originalItems }) => {
 
   return (
     <div className={rowCls} style={{position:"relative"}}>
-      {/* Name */}
       <div style={{position:"relative"}}>
         <input
           className={`em-item-input${item.isStockItem ? " stock-linked" : ""}`}
@@ -796,7 +819,6 @@ const ItemRow = ({ item, idx, onChange, onRemove, originalItems }) => {
         </div>
       </div>
 
-      {/* Qty */}
       <div>
         <input
           className="em-item-input"
@@ -815,7 +837,6 @@ const ItemRow = ({ item, idx, onChange, onRemove, originalItems }) => {
         )}
       </div>
 
-      {/* Price */}
       <input
         className="em-item-input"
         type="number" min="0" step="0.01"
@@ -824,19 +845,17 @@ const ItemRow = ({ item, idx, onChange, onRemove, originalItems }) => {
         style={{textAlign:"right"}}
       />
 
-      {/* Amount */}
       <div style={{fontWeight:800,fontSize:"0.88rem",color:"var(--navy)",textAlign:"right",display:"flex",alignItems:"center",justifyContent:"flex-end"}}>
         {fmt(Number(item.qty||0)*Number(item.price||0))}
       </div>
 
-      {/* Remove */}
       <button className="em-item-remove" onClick={() => onRemove(idx)} title="Remove item">✕</button>
     </div>
   );
 };
 
 /* ═══════════════════════════════════════════════
-   EDIT MODAL — MAIN (with Items + Stock logic)
+   EDIT MODAL
 ═══════════════════════════════════════════════ */
 const EditModal = ({ invoice, shop, onClose, onSaved }) => {
   const [form, setForm] = useState({
@@ -850,7 +869,6 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
     is_gst:          invoice?.is_gst          || false,
   });
 
-  // Items: we tag each with _originalId to track identity
   const [items, setItems] = useState(() =>
     (invoice?.items || []).map((it, i) => ({
       ...it,
@@ -864,7 +882,6 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
     }))
   );
   const originalItems = useRef([...items]).current;
-
   const [saving, setSaving] = useState(false);
 
   const handleFieldChange = (e) => {
@@ -887,16 +904,13 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
 
   const handleAddItem = () => setItems(prev => [...prev, emptyItem()]);
 
-  // Computed totals
   const subtotal = items.filter(i=>i.name.trim()).reduce((s,i) => s + Number(i.qty||0)*Number(i.price||0), 0);
   const gstAmt   = form.is_gst ? Math.round(subtotal * 0.05) : 0;
   const total    = subtotal + gstAmt - Number(form.discount||0);
   const balance  = total - Number(form.advance||0);
 
-  // Compute stock diff for preview
   const stockDiff = (() => {
     const diff = [];
-    // Items that existed before but are now removed
     originalItems.forEach(orig => {
       if (!orig.isStockItem || !orig.productId) return;
       const current = items.find(i => i._originalId === orig._originalId);
@@ -908,7 +922,6 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
         if (delta < 0) diff.push({ name: orig.name, type:"deduct",  qty: -delta, unit: orig.unit });
       }
     });
-    // Newly added stock items
     items.forEach(item => {
       if (item._new && item.isStockItem && item.productId) {
         diff.push({ name: item.name, type:"deduct", qty: Number(item.qty), unit: item.unit });
@@ -943,7 +956,6 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
             _new:          i._new || false,
           })),
       };
-      // PATCH /api/business/invoices/<id>/
       const { data } = await authAxios.patch(`business/invoices/${invoice.id}/`, payload);
       onSaved(data);
     } catch (err) {
@@ -957,8 +969,6 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
   return (
     <div className="em-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="em-modal">
-
-        {/* Header */}
         <div className="em-head">
           <div className="em-head-left">
             <div className="em-head-title">Edit Invoice</div>
@@ -970,7 +980,6 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
           <button className="em-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* Stock diff banner */}
         {stockDiff.length > 0 && (
           <div style={{padding:"0 1.5rem",marginTop:10,flexShrink:0}}>
             <div className="em-stock-diff">
@@ -987,10 +996,7 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
           </div>
         )}
 
-        {/* Scrollable body */}
         <div className="em-body">
-
-          {/* Customer Info */}
           <div>
             <div className="em-section-title">Customer Details</div>
             <div className="em-grid">
@@ -1011,7 +1017,6 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* Payment & Billing */}
           <div>
             <div className="em-section-title">Payment & Billing</div>
             <div className="em-grid three">
@@ -1044,7 +1049,6 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* Items */}
           <div>
             <div className="em-section-title">
               Items
@@ -1052,7 +1056,6 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
                 — Type product name to auto-fill from stock
               </span>
             </div>
-
             <div className="em-items-wrap">
               <div className="em-items-header">
                 <div>Product / Item</div>
@@ -1061,7 +1064,6 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
                 <div style={{textAlign:"right"}}>Amount</div>
                 <div></div>
               </div>
-
               {items.map((item, i) => (
                 <ItemRow
                   key={item.id || i}
@@ -1073,13 +1075,9 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
                 />
               ))}
             </div>
-
-            <button className="em-add-item-btn" onClick={handleAddItem}>
-              + Add Item
-            </button>
+            <button className="em-add-item-btn" onClick={handleAddItem}>+ Add Item</button>
           </div>
 
-          {/* Summary */}
           <div>
             <div className="em-section-title">Invoice Summary</div>
             <div className="em-summary">
@@ -1102,10 +1100,8 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
               </div>
             </div>
           </div>
-
         </div>
 
-        {/* Footer */}
         <div className="em-foot">
           <button className="em-cancel" onClick={onClose}>Cancel</button>
           <button className="em-save" onClick={handleSave} disabled={saving || !form.customer_name.trim()}>
@@ -1133,9 +1129,7 @@ const InvoiceRow = ({ inv, idx, onPreview, onEdit, onSendWa, onMarkPaid, onDelet
       <td><div className={`ih-bal ${balance>0?"red":"green"}`}>{fmt(balance)}</div></td>
       <td><span className={`ih-badge ${badgeCls(inv.status)}`}>{badgeIcon(inv.status)} {inv.status||"Pending"}</span></td>
 
-      {/* Mobile card td */}
       <td className="ih-actions-cell m-card">
-        {/* top */}
         <div className="m-card-top">
           <div>
             <span className="ih-inv-id" style={{fontSize:"0.85rem"}}>{inv.invoice_id||"—"}{inv.is_gst&&<span className="ih-gst-badge">GST</span>}</span>
@@ -1143,7 +1137,6 @@ const InvoiceRow = ({ inv, idx, onPreview, onEdit, onSendWa, onMarkPaid, onDelet
           </div>
           <span className={`ih-badge ${badgeCls(inv.status)}`}>{badgeIcon(inv.status)} {inv.status||"Pending"}</span>
         </div>
-        {/* info */}
         <div className="m-card-info">
           <div>
             <div style={{fontSize:"0.62rem",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"var(--muted)",marginBottom:2}}>Customer</div>
@@ -1157,7 +1150,6 @@ const InvoiceRow = ({ inv, idx, onPreview, onEdit, onSendWa, onMarkPaid, onDelet
             <div style={{fontSize:"0.7rem",color:"var(--muted)",marginTop:2}}>{inv.payment}</div>
           </div>
         </div>
-        {/* actions */}
         <div className="ih-actions">
           <button className="ih-btn pdf"  onClick={()=>onPreview(inv)}>📄 View</button>
           <button className="ih-btn edit" onClick={()=>onEdit(inv)}>✏️ Edit</button>
@@ -1184,7 +1176,7 @@ const InvoiceHistory = () => {
   const [filterPayment,  setFilterPayment]  = useState("All");
   const [loading,        setLoading]        = useState(true);
   const [toast,          setToast]          = useState(null);
-  const [editInvoice,    setEditInvoice]    = useState(null);   // invoice obj with items
+  const [editInvoice,    setEditInvoice]    = useState(null);
   const [previewInvoice, setPreviewInvoice] = useState(null);
   const [confirmDel,     setConfirmDel]     = useState(null);
   const [loadingEdit,    setLoadingEdit]    = useState(false);
@@ -1201,7 +1193,13 @@ const InvoiceHistory = () => {
         authAxios.get("business/invoices/", { params }).then(r=>r.data),
         getShopProfile(),
       ]);
-      if (invData.status  === "fulfilled") setInvoices(invData.value);
+      if (invData.status  === "fulfilled") {
+        const invoiceList = invData.value;
+        setInvoices(invoiceList);
+        // ── AUTO-SYNC: push new invoice customers → Customers DB ──
+        // Run in background; don't block or show errors to user
+        syncInvoiceCustomers(invoiceList);
+      }
       if (shopData.status === "fulfilled") setShop(shopData.value);
     } catch { showToast("Failed to load invoices.", "error"); }
     finally { setLoading(false); }
@@ -1218,7 +1216,6 @@ const InvoiceHistory = () => {
     return () => clearTimeout(t);
   }, [search, filterStatus, filterPayment, loadData]);
 
-  // Open edit modal — fetch full detail (with items)
   const handleOpenEdit = async (inv) => {
     setLoadingEdit(true);
     showToast("Loading invoice details…", "info");
@@ -1233,7 +1230,6 @@ const InvoiceHistory = () => {
     }
   };
 
-  // Open preview — fetch full detail
   const handleOpenPreview = async (inv) => {
     try {
       const detail = await authAxios.get(`business/invoices/${inv.id}/`).then(r=>r.data);
@@ -1248,6 +1244,8 @@ const InvoiceHistory = () => {
     setInvoices(prev => prev.map(i => i.id === updated.id ? { ...i, ...updated } : i));
     setEditInvoice(null);
     showToast("Invoice updated successfully ✓");
+    // Re-sync customers after edit (customer name/mobile may have changed)
+    syncInvoiceCustomers([updated]);
   };
 
   const handleMarkPaid = async (id) => {
@@ -1297,7 +1295,6 @@ const InvoiceHistory = () => {
           </div>
         </div>
 
-        {/* KPIs */}
         <div className="ih-kpi-row">
           <div className="ih-kpi blue">
             <span>Total Billed</span>
@@ -1313,7 +1310,6 @@ const InvoiceHistory = () => {
           </div>
         </div>
 
-        {/* Filters */}
         <div className="ih-filters">
           <input
             className="ih-search"
@@ -1334,7 +1330,6 @@ const InvoiceHistory = () => {
           )}
         </div>
 
-        {/* Table / Cards */}
         {loading ? (
           <div className="ih-empty">
             <div className="ih-empty-icon">⏳</div>
@@ -1387,7 +1382,6 @@ const InvoiceHistory = () => {
 
       </div>
 
-      {/* EDIT MODAL */}
       {editInvoice && (
         <EditModal
           invoice={editInvoice}
@@ -1397,7 +1391,6 @@ const InvoiceHistory = () => {
         />
       )}
 
-      {/* PDF PREVIEW MODAL */}
       {previewInvoice && (
         <PdfPreviewModal
           invoice={previewInvoice}

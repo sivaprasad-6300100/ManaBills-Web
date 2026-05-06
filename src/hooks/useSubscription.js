@@ -9,7 +9,7 @@ const useSubscription = () => {
     const sub = subscriptions[module];
     if (!sub) return false;
     if (sub.expiresAt && Date.now() > sub.expiresAt) return false;
-    return true;
+    return true;  
   };
 
   return { subscriptions, hasAccess, subscribe, unsubscribe, loading };

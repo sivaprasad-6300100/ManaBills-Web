@@ -434,6 +434,7 @@ const DashboardHome = () => {
 
           {/* ── KPI CARDS ── */}
           {hasBusiness && (
+            <div>
             <div className="db-kpi-grid">
               {[
                 { label: "Today",      value: dailyInvoices,   sub: "Invoices Created", accent: "#1e4fba", icon: "📄" },
@@ -452,6 +453,8 @@ const DashboardHome = () => {
                 </div>
               ))}
             </div>
+                <button className="db-section-link" onClick={() => navigate("/dashboard/business")}>OverView →→</button>
+          </div>
           )}
 
           {/* ── QUICK ACTIONS ── */}
@@ -459,7 +462,6 @@ const DashboardHome = () => {
             <>
               <div className="db-section-row">
                 <div className="db-section-title">Quick Actions</div>
-                <button className="db-section-link" onClick={() => navigate("/subscription")}>+ Add Module →</button>
               </div>
               <div className="db-quick-grid">
                 {QUICK_ACTIONS.map((qa) => (
@@ -475,7 +477,7 @@ const DashboardHome = () => {
           {/* ── ACTIVE MODULE CARDS ── */}
           <div className="db-section-row">
             <div className="db-section-title">My Modules</div>
-            <button className="db-section-link" onClick={() => navigate("/subscription")}>+ Add Module →</button>
+            {/* <button className="db-section-link" onClick={() => navigate("/subscription")}>+ Add Module →</button> */}
           </div>
           <div className="db-module-grid">
             {activeModules.map((m) => (
@@ -704,8 +706,10 @@ const DashboardHome = () => {
           letter-spacing: -0.01em;
         }
         .db-section-link {
-          font-size: 0.78rem;
-          font-weight: 700;
+          font-size: 1rem;
+          font-weight: 800;
+          padding-left:850px;
+          margin-top:10px;
           color: #c9963a;
           background: none;
           border: none;
@@ -820,13 +824,28 @@ const DashboardHome = () => {
         }
         .db-activity-empty button:hover { background: rgba(201,150,58,0.15); }
 
+        
+
         /* ── Responsive ── */
         @media (max-width: 480px) {
           .db-quick-grid { grid-template-columns: repeat(3, 1fr); }
           .db-kpi-grid   { grid-template-columns: repeat(2, 1fr); }
           .db-greeting-h2 { font-size: 1.2rem; }
           .db-kpi-value   { font-size: 1.5rem; }
-        }
+          .db-section-link {
+              font-size: 0.78rem;
+              font-weight: 700;
+              padding-left:250px;
+              margin-top:10px;
+              color: #c9963a;
+              background: none;
+              border: none;
+              cursor: pointer;
+              font-family: inherit;
+              transition: opacity 0.18s;
+            }
+            .db-section-link:hover { opacity: 0.7; }
+            }
         @media (max-width: 360px) {
           .db-quick-grid { grid-template-columns: repeat(2, 1fr); }
         }
