@@ -261,3 +261,24 @@
   .topbar-title      { display: block; }
   .user-name         { display: inline; }
 }
+
+
+
+/* Make bottom nav taller to give scan button room */
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    height: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow: visible !important;  /* allow scan button to pop above */
+  }
+
+  .mobile-nav-inner {
+    overflow: visible !important;
+    align-items: flex-end;
+    padding-bottom: 6px;
+  }
+
+  /* Each nav item — reduce label size so it fits */
+  .mobile-nav-label {
+    font-size: 9px !important;
+  }
+}

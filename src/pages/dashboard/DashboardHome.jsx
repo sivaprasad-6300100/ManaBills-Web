@@ -2,8 +2,9 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubscriptionContext } from "../../context/SubscriptionContext";
 import { BusinessStatsContext } from "../../context/BusinessStatsContext";
-import SummaryCard from "../../components/cards/SummaryCard";
-import UpgradeCard from "../../components/cards/UpgradeCard";
+// import { SubscriptionContext } from "../../context/SubscriptionContext";
+// import SummaryCard from "../../components/cards/SummaryCard";
+// import UpgradeCard from "../../components/cards/UpgradeCard";
 
 /* ── Module config ── */
 const MODULES = [
@@ -38,7 +39,7 @@ const MODULES = [
     desc:        "Add and track your daily household expenses",
     trend:       "-5%",
     trendUp:     false,
-    price:       "₹99/mo",
+    price:       "Coming Soon",
     accent:      "#15803d",
     accentBg:    "rgba(21,128,61,0.10)",
     tag:         "Family Plan",
@@ -56,7 +57,7 @@ const MODULES = [
     desc:        "Manage construction projects, labour and materials",
     trend:       "+28%",
     trendUp:     true,
-    price:       "₹699/mo",
+    price:       "Coming Soon",
     accent:      "#c2410c",
     accentBg:    "rgba(194,65,12,0.10)",
     tag:         "Pro",
@@ -74,7 +75,7 @@ const MODULES = [
     desc:        "Create custom estimates and billing formats",
     trend:       "Live",
     trendUp:     true,
-    price:       "₹199/mo",
+    price:       "Coming Soon",
     accent:      "#6d28d9",
     accentBg:    "rgba(109,40,217,0.10)",
     tag:         "Flexible",
@@ -89,6 +90,13 @@ const QUICK_ACTIONS = [
   { icon: "📊", label: "GST Reports",  route: "/dashboard/business/gst",            color: "#c9963a" },
   { icon: "🧾", label: "Invoices",     route: "/dashboard/business/invoices",       color: "#6d28d9" },
   { icon: "🏪", label: "Shop Profile", route: "/dashboard/business/shop-profile",   color: "#c2410c" },
+];
+
+/* ── Period tabs config ── */
+const PERIODS = [
+  { key: "today", label: "Today" },
+  { key: "week",  label: "Week"  },
+  { key: "month", label: "Month" },
 ];
 
 /* ── Helper: get display name — never show mobile number ── */
@@ -122,7 +130,7 @@ const useCounter = (target, duration = 1400, active = false) => {
 };
 
 /* ═══════════════════════════════════════════
-   PRE-SUBSCRIPTION HERO SECTION  (File 1)
+   PRE-SUBSCRIPTION HERO SECTION
 ═══════════════════════════════════════════ */
 const PreSubscriptionView = ({ greet, displayName, navigate }) => {
   const [visible, setVisible] = useState(false);
@@ -203,14 +211,10 @@ const PreSubscriptionView = ({ greet, displayName, navigate }) => {
           marginBottom: "1.1rem",
         }}
       >
-        {/* Decorative glow blobs */}
         <div style={{ position: "absolute", top: "-40px", right: "-30px", width: "220px", height: "220px", borderRadius: "50%", background: "radial-gradient(circle, rgba(201,150,58,0.18) 0%, transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: "-50px", left: "10%", width: "180px", height: "180px", borderRadius: "50%", background: "radial-gradient(circle, rgba(30,79,186,0.14) 0%, transparent 70%)", pointerEvents: "none" }} />
-
-        {/* Gold top stripe */}
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg, #c9963a, #e8a020, #f4c542, #e8a020, #c9963a)", borderRadius: "24px 24px 0 0" }} />
 
-        {/* Floating chips */}
         <div style={{ position: "absolute", top: "14px", right: "18px", display: "flex", gap: "8px" }}>
           {["GST Ready", "Cloud Backup", "Offline Works"].map((chip, i) => (
             <div
@@ -232,7 +236,6 @@ const PreSubscriptionView = ({ greet, displayName, navigate }) => {
           ))}
         </div>
 
-        {/* Content */}
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "rgba(201,150,58,0.14)", border: "1px solid rgba(201,150,58,0.30)", color: "#e8a020", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "0.22rem 0.8rem", borderRadius: "100px", marginBottom: "1rem" }}>
             <span style={{ width: 6, height: 6, background: "#c9963a", borderRadius: "50%", animation: "presub-pulse-ring 1.8s ease-out infinite" }} />
@@ -283,8 +286,6 @@ const PreSubscriptionView = ({ greet, displayName, navigate }) => {
       <div className="presub-upgrade-wrap" style={{ background: "#fff", border: "1.5px solid rgba(201,150,58,0.22)", borderRadius: "22px", overflow: "hidden", boxShadow: "0 8px 32px rgba(14,27,46,0.08)", marginBottom: "1.25rem" }}>
         <div style={{ height: "4px", background: "linear-gradient(90deg, #1e4fba 0%, #c9963a 50%, #15803d 100%)" }} />
         <div style={{ padding: "1.5rem 1.5rem 1.4rem", display: "flex", gap: "1.5rem", flexWrap: "wrap", alignItems: "flex-start" }}>
-
-          {/* Left */}
           <div style={{ flex: 1, minWidth: "220px" }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "rgba(201,150,58,0.1)", border: "1px solid rgba(201,150,58,0.25)", color: "#c9963a", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "0.2rem 0.7rem", borderRadius: "100px", marginBottom: "0.7rem" }}>
               ✦ No Active Subscription
@@ -304,8 +305,6 @@ const PreSubscriptionView = ({ greet, displayName, navigate }) => {
               ))}
             </div>
           </div>
-
-          {/* Right — price card */}
           <div style={{ background: "linear-gradient(145deg, #0e1b2e 0%, #1a2d47 100%)", borderRadius: "16px", padding: "1.25rem 1.4rem", minWidth: "160px", textAlign: "center", boxShadow: "0 8px 24px rgba(14,27,46,0.22)", flexShrink: 0, position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: "-20px", right: "-20px", width: 80, height: 80, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,150,58,0.2) 0%, transparent 70%)" }} />
             <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.5rem" }}>Plans starting at</div>
@@ -318,43 +317,129 @@ const PreSubscriptionView = ({ greet, displayName, navigate }) => {
           </div>
         </div>
       </div>
-
       {/* ── 4. MODULE PREVIEW CARDS ── */}
-      <div className="presub-modules-wrap">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.85rem" }}>
-          <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1rem", fontWeight: 800, color: "#0e1b2e", letterSpacing: "-0.01em" }}>Available Modules</div>
-          <button onClick={() => navigate("/subscription")} style={{ background: "none", border: "none", fontSize: "0.78rem", fontWeight: 700, color: "#c9963a", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>View All Plans →</button>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "1px", background: "rgba(14,27,46,0.08)", border: "1.5px solid rgba(14,27,46,0.08)", borderRadius: "20px", overflow: "hidden", boxShadow: "0 4px 16px rgba(14,27,46,0.06)" }}>
-          {MODULES.map((m) => (
-            <div key={m.key} className="presub-module-card" onClick={() => navigate("/subscription")} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem 1.25rem", background: "#fff", cursor: "pointer", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: "3px", background: m.accent, borderRadius: "0 3px 3px 0", opacity: 0.7 }} />
-              <div style={{ width: 44, height: 44, borderRadius: "12px", background: m.accentBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.3rem", flexShrink: 0 }}>{m.icon}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.15rem" }}>
-                  <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.9rem", fontWeight: 800, color: "#0e1b2e" }}>{m.title}</span>
-                  <span style={{ fontSize: "0.58rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: m.accentBg, color: m.accent, padding: "0.12rem 0.5rem", borderRadius: "100px", border: `1px solid ${m.accent}30` }}>{m.tag}</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px", background: "rgba(14,27,46,0.08)", border: "1.5px solid rgba(14,27,46,0.08)", borderRadius: "20px", overflow: "hidden", boxShadow: "0 4px 16px rgba(14,27,46,0.06)" }}>
+            {MODULES.map((m) => {
+              const isLocked = m.price === "Coming Soon";
+            
+              return (
+                <div
+                  key={m.key}
+                  className="presub-module-card"
+                  onClick={() => !isLocked && navigate("/subscription")}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "1rem",
+                    padding: "1rem 1.25rem", background: "#fff",
+                    cursor: isLocked ? "not-allowed" : "pointer",
+                    position: "relative", overflow: "hidden",
+                    opacity: isLocked ? 0.6 : 1,
+                    pointerEvents: isLocked ? "none" : "auto",   // ← disables click entirely
+                  }}
+                >
+                  {/* Left accent bar */}
+                  <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: "3px", background: m.accent, borderRadius: "0 3px 3px 0", opacity: 0.7 }} />
+                
+                  {/* Icon */}
+                  <div style={{ width: 44, height: 44, borderRadius: "12px", background: m.accentBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.3rem", flexShrink: 0 }}>
+                    {m.icon}
+                  </div>
+                
+                  {/* Text */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.15rem" }}>
+                      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.9rem", fontWeight: 800, color: "#0e1b2e" }}>{m.title}</span>
+                      <span style={{ fontSize: "0.58rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: m.accentBg, color: m.accent, padding: "0.12rem 0.5rem", borderRadius: "100px", border: `1px solid ${m.accent}30` }}>{m.tag}</span>
+                    </div>
+                    <p style={{ fontSize: "0.77rem", color: "#6b7280", margin: 0, lineHeight: 1.4 }}>{m.desc}</p>
+                  </div>
+                
+                  {/* Right side — lock badge OR price */}
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    {isLocked ? (
+                      /* 🔒 Lock badge */
+                      <div style={{
+                        display: "inline-flex", alignItems: "center", gap: "4px",
+                        background: "rgba(14,27,46,0.06)",
+                        border: "1px solid rgba(14,27,46,0.12)",
+                        borderRadius: "20px", padding: "3px 8px 3px 6px",
+                      }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                          stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2"/>
+                          <path d="M7 11V7a5 5 0 0110 0v4"/>
+                        </svg>
+                        <span style={{ fontSize: "9px", fontWeight: 700, color: "#64748b", letterSpacing: "0.06em", textTransform: "uppercase" }}>Soon</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "0.92rem", fontWeight: 800, color: m.accent }}>{m.price}</div>
+                        <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginTop: "2px" }}>Free trial →</div>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <p style={{ fontSize: "0.77rem", color: "#6b7280", margin: 0, lineHeight: 1.4 }}>{m.desc}</p>
-              </div>
-              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "0.92rem", fontWeight: 800, color: m.accent }}>{m.price}</div>
-                <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginTop: "2px" }}>Free trial →</div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        </>
+      );
+    }; 
 
-        <div style={{ textAlign: "center", marginTop: "1rem", padding: "0.75rem", background: "rgba(201,150,58,0.06)", border: "1px dashed rgba(201,150,58,0.28)", borderRadius: "12px" }}>
-          <span style={{ fontSize: "0.8rem", color: "#6b7280", fontWeight: 500 }}>
-            🔒 All modules include <strong style={{ color: "#0e1b2e" }}>free trial</strong> · No credit card required · <strong style={{ color: "#0e1b2e" }}>Cancel anytime</strong>
-          </span>
-        </div>
-      </div>
-    </>
-  );
-};
+      
+  
+/* ═══════════════════════════════════════════
+   PERIOD TAB SELECTOR COMPONENT
+═══════════════════════════════════════════ */
+const PeriodTabs = ({ active, onChange }) => (
+  <>
+    <style>{`
+      .period-tabs-wrap {
+        display: inline-flex;
+        align-items: center;
+        background: #fff;
+        border-radius: 10px;
+        padding: 3px;
+        gap: 2px;
+        border: 1.5px solid rgba(14,27,46,0.09);
+        box-shadow: 0 1px 6px rgba(14,27,46,0.06);
+      }
+      .period-tab {
+        padding: 0.36rem 1rem;
+        border-radius: 7px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        letter-spacing: 0.02em;
+        border: none;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        background: transparent;
+        color: #9ca3af;
+        white-space: nowrap;
+      }
+      .period-tab.active {
+        background: #0e1b2e;
+        color: #c9963a;
+        box-shadow: 0 2px 8px rgba(14,27,46,0.18);
+      }
+      .period-tab:not(.active):hover {
+        color: #374151;
+        background: #f8fafc;
+      }
+    `}</style>
+    <div className="period-tabs-wrap">
+      {PERIODS.map((p) => (
+        <button
+          key={p.key}
+          className={`period-tab${active === p.key ? " active" : ""}`}
+          onClick={() => onChange(p.key)}
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  </>
+);
 
 /* ═══════════════════════════════════════════
    MAIN DASHBOARD HOME
@@ -363,7 +448,10 @@ const DashboardHome = () => {
   const navigate = useNavigate();
   const { subscriptions: subData } = useContext(SubscriptionContext);
   const { stats: businessStats, loading: statsLoading } = useContext(BusinessStatsContext);
-  const subscriptions  = Object.keys(subData);
+
+  const [period, setPeriod] = useState("today");
+
+  const subscriptions  = Object.keys(subData).filter(k => subData[k]?.is_active === true)
   const hasAny         = subscriptions.length > 0;
   const hasBusiness    = subscriptions.includes("business");
 
@@ -373,22 +461,41 @@ const DashboardHome = () => {
   const greetEmoji   = hour < 12 ? "☀️" : hour < 17 ? "👋" : "🌙";
   const today        = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
 
-  // Format currency
   const fmt = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
 
-  // Use real business stats from API, fallback to defaults
-  const dailyInvoices   = businessStats?.today_invoice_count || 0;
-  const monthlyInvoices = businessStats?.month_invoice_count || 0;
-  const monthlyBilling  = fmt(businessStats?.month_billing || 0);
-  const pendingAmount   = fmt(businessStats?.unpaid_amount || 0);
-  const paidAmount      = fmt(businessStats?.paid_amount || 0);
+  const getStatsByPeriod = () => {
+    if (period === "today") {
+      return {
+        invoiceCount: businessStats?.today_invoice_count || 0,
+        revenue:      fmt((businessStats?.today_paid_amount || 0) + (businessStats?.today_unpaid_amount || 0)),
+        pending:      fmt(businessStats?.today_unpaid_amount || 0),
+        collected:    fmt(businessStats?.today_paid_amount  || 0),
+      };
+    }
+    if (period === "week") {
+      return {
+        invoiceCount: businessStats?.week_invoice_count || 0,
+        revenue:      fmt((businessStats?.week_paid_amount || 0) + (businessStats?.week_unpaid_amount || 0)),
+        pending:      fmt(businessStats?.week_unpaid_amount || 0),
+        collected:    fmt(businessStats?.week_paid_amount  || 0),
+      };
+    }
+    return {
+      invoiceCount: businessStats?.month_invoice_count || 0,
+      revenue:      fmt((businessStats?.paid_amount || 0) + (businessStats?.unpaid_amount || 0)),
+      pending:      fmt(businessStats?.unpaid_amount  || 0),
+      collected:    fmt(businessStats?.paid_amount    || 0),
+    };
+  };
 
-  // Update business module with real stats
+  const periodStats = getStatsByPeriod();
+  const periodLabel = PERIODS.find((p) => p.key === period)?.label || "Today";
+
   const getBusinessModule = () => {
     const base = MODULES.find((m) => m.key === "business") || {};
     return {
       ...base,
-      value: monthlyBilling,
+      value: fmt(businessStats?.month_billing || 0),
       subtitle: "Total Billing This Month",
     };
   };
@@ -401,7 +508,7 @@ const DashboardHome = () => {
     <div className="db-home">
 
       {/* ══════════════════════════════
-          NO SUBSCRIPTION  (File 1 UI)
+          NO SUBSCRIPTION
       ══════════════════════════════ */}
       {!hasAny && (
         <PreSubscriptionView
@@ -412,7 +519,7 @@ const DashboardHome = () => {
       )}
 
       {/* ══════════════════════════════
-          ACTIVE SUBSCRIPTION  (File 2 UI)
+          ACTIVE SUBSCRIPTION
       ══════════════════════════════ */}
       {hasAny && (
         <>
@@ -432,29 +539,41 @@ const DashboardHome = () => {
             )}
           </div>
 
-          {/* ── KPI CARDS ── */}
+          {/* ── KPI SECTION ── */}
           {hasBusiness && (
             <div>
-            <div className="db-kpi-grid">
-              {[
-                { label: "Today",      value: dailyInvoices,   sub: "Invoices Created", accent: "#1e4fba", icon: "📄" },
-                { label: "This Month", value: monthlyInvoices, sub: "Invoices Created", accent: "#15803d", icon: "📅" },
-                { label: "Pending",    value: pendingAmount,   sub: "Awaiting Payment", accent: "#c2410c", icon: "⏳" },
-                { label: "Collected",  value: paidAmount,      sub: "This Month",       accent: "#c9963a", icon: "💰" },
-              ].map((kpi) => (
-                <div key={kpi.label} className="db-kpi-card" style={{ "--kpi-accent": kpi.accent }}>
-                  <div className="db-kpi-top">
-                    <span className="db-kpi-icon">{kpi.icon}</span>
-                    <span className="db-kpi-label">{kpi.label}</span>
+              <div className="db-kpi-section-header">
+                <div className="db-section-title">Business Overview</div>
+                <PeriodTabs active={period} onChange={setPeriod} />
+              </div>
+              <div className="db-kpi-grid">
+                {[
+                  { label: "Invoices", value: statsLoading ? "..." : periodStats.invoiceCount, sub: `Created · ${periodLabel}`, accent: "#1e4fba", icon: "📄", isCurrency: false },
+                  { label: "Revenue",  value: statsLoading ? "..." : periodStats.revenue,      sub: `Total Billed · ${periodLabel}`, accent: "#c9963a", icon: "💹", isCurrency: true, highlight: true },
+                  { label: "Pending",  value: statsLoading ? "..." : periodStats.pending,      sub: `Awaiting Payment · ${periodLabel}`, accent: "#c2410c", icon: "⏳", isCurrency: true },
+                  { label: "Collected",value: statsLoading ? "..." : periodStats.collected,    sub: `Payments Received · ${periodLabel}`, accent: "#15803d", icon: "✅", isCurrency: true },
+                ].map((kpi) => (
+                  <div
+                    key={kpi.label}
+                    className={`db-kpi-card${kpi.highlight ? " db-kpi-card--highlight" : ""}`}
+                    style={{ "--kpi-accent": kpi.accent }}
+                  >
+                    <div className="db-kpi-top">
+                      <span className="db-kpi-icon">{kpi.icon}</span>
+                      <span className="db-kpi-label">{kpi.label}</span>
+                    </div>
+                    <div className={`db-kpi-value${kpi.highlight ? " db-kpi-value--gold" : ""}`}>
+                      {kpi.value}
+                    </div>
+                    <div className="db-kpi-sub">{kpi.sub}</div>
+                    <div className="db-kpi-bar" />
                   </div>
-                  <div className="db-kpi-value">{statsLoading && kpi.label !== "Today" && kpi.label !== "This Month" ? "..." : kpi.value}</div>
-                  <div className="db-kpi-sub">{kpi.sub}</div>
-                  <div className="db-kpi-bar" />
-                </div>
-              ))}
+                ))}
+              </div>
+              <button className="db-section-link" onClick={() => navigate("/dashboard/business")}>
+                Full Overview →
+              </button>
             </div>
-                <button className="db-section-link" onClick={() => navigate("/dashboard/business")}>OverView →→</button>
-          </div>
           )}
 
           {/* ── QUICK ACTIONS ── */}
@@ -477,7 +596,6 @@ const DashboardHome = () => {
           {/* ── ACTIVE MODULE CARDS ── */}
           <div className="db-section-row">
             <div className="db-section-title">My Modules</div>
-            {/* <button className="db-section-link" onClick={() => navigate("/subscription")}>+ Add Module →</button> */}
           </div>
           <div className="db-module-grid">
             {activeModules.map((m) => (
@@ -509,28 +627,68 @@ const DashboardHome = () => {
           <div className="db-section-row" style={{ marginTop: "0.5rem" }}>
             <div className="db-section-title">Recent Activity</div>
             {hasBusiness && (
-              <button className="db-section-link" onClick={() => navigate("/dashboard/business/invoices")}>View All →</button>
+              <button className="db-section-link-inline" onClick={() => navigate("/dashboard/business/invoices")}>View All →</button>
             )}
           </div>
-          <div className="db-activity-card">
-            {hasBusiness ? (
-              <div className="db-activity-empty">
-                <span>📋</span>
-                <p>Your recent invoices will appear here.</p>
-                <button onClick={() => navigate("/dashboard/business/create-invoice")}>Create your first invoice →</button>
+
+          {hasBusiness ? (
+            <div className="db-activity-card">
+              {/* ── INSIGHTS BAR ── */}
+              <div className="db-insights-bar">
+                {[
+                  { icon: "⚠️", text: `₹${Number(businessStats?.unpaid_amount || 0).toLocaleString("en-IN")} unpaid`, color: "#c2410c", bg: "rgba(194,65,12,0.08)", border: "rgba(194,65,12,0.18)" },
+                  { icon: "📈", text: `${businessStats?.month_invoice_count || 0} invoices this month`, color: "#1e4fba", bg: "rgba(30,79,186,0.08)", border: "rgba(30,79,186,0.18)" },
+                  { icon: "🏆", text: "View top customer", color: "#c9963a", bg: "rgba(201,150,58,0.08)", border: "rgba(201,150,58,0.22)" },
+                ].map((chip, i) => (
+                  <div key={i} className="db-insight-chip" style={{ "--chip-color": chip.color, "--chip-bg": chip.bg, "--chip-border": chip.border }}>
+                    <span>{chip.icon}</span>
+                    <span>{chip.text}</span>
+                  </div>
+                ))}
               </div>
-            ) : (
+
+              {/* ── LIVE INVOICE FEED ── */}
+              <div className="db-feed-divider" />
+              <div className="db-feed-list">
+                {businessStats?.recent_invoices?.length > 0 ? (
+                  businessStats.recent_invoices.slice(0, 5).map((inv, i) => (
+                    <div key={i} className="db-feed-row" onClick={() => navigate(`/dashboard/business/invoices/${inv.id}`)}>
+                      <div className="db-feed-dot" style={{ "--dot-color": inv.payment_status === "paid" ? "#15803d" : "#c9963a" }} />
+                      <div className="db-feed-info">
+                        <span className="db-feed-name">{inv.customer_name || "Customer"}</span>
+                        <span className="db-feed-time">{inv.created_at ? new Date(inv.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—"}</span>
+                      </div>
+                      <div className="db-feed-right">
+                        <span className="db-feed-amount">₹{Number(inv.total_amount || 0).toLocaleString("en-IN")}</span>
+                        <span className="db-feed-status" style={{ color: inv.payment_status === "paid" ? "#15803d" : "#c9963a" }}>
+                          {inv.payment_status === "paid" ? "Paid" : "Pending"}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="db-activity-empty">
+                    <span>📋</span>
+                    <p>Your recent invoices will appear here.</p>
+                    <button onClick={() => navigate("/dashboard/business/create-invoice")}>Create your first invoice →</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="db-activity-card">
               <div className="db-activity-empty">
                 <span>📊</span>
                 <p>Activity from your active modules will appear here.</p>
               </div>
-            )}
-          </div>
-        </>
+            </div>
+          )}
+
+        </> 
       )}
 
       {/* ══════════════════════════════
-          SHARED CSS  (post-subscription)
+          SHARED CSS
       ══════════════════════════════ */}
       <style>{`
         .db-home {
@@ -604,6 +762,14 @@ const DashboardHome = () => {
         }
         .db-greeting-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(201,150,58,0.45); }
 
+        /* ── KPI Section Header ── */
+        .db-kpi-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 0.85rem;
+        }
+
         /* ── KPI Cards ── */
         .db-kpi-grid {
           display: grid;
@@ -621,6 +787,14 @@ const DashboardHome = () => {
           transition: all 0.2s;
         }
         .db-kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(14,27,46,0.10); }
+        .db-kpi-card--highlight {
+          background: linear-gradient(145deg, #0e1b2e 0%, #1a2d47 100%);
+          border: 1px solid rgba(201,150,58,0.28);
+          box-shadow: 0 4px 20px rgba(14,27,46,0.18);
+        }
+        .db-kpi-card--highlight .db-kpi-label { color: rgba(255,255,255,0.5); }
+        .db-kpi-card--highlight .db-kpi-sub   { color: rgba(255,255,255,0.35); }
+        .db-kpi-card--highlight .db-kpi-icon  { filter: none; }
         .db-kpi-top {
           display: flex;
           align-items: center;
@@ -637,14 +811,22 @@ const DashboardHome = () => {
         }
         .db-kpi-value {
           font-family: 'Playfair Display', Georgia, serif;
-          font-size: 1.75rem;
+          font-size: 1.55rem;
           font-weight: 900;
           color: #0e1b2e;
           line-height: 1;
           margin-bottom: 0.25rem;
+          letter-spacing: -0.02em;
+        }
+        .db-kpi-value--gold {
+          background: linear-gradient(135deg, #c9963a 0%, #f4c542 60%, #c9963a 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          font-size: 1.45rem;
         }
         .db-kpi-sub {
-          font-size: 0.7rem;
+          font-size: 0.68rem;
           color: #9ca3af;
           font-weight: 500;
         }
@@ -706,10 +888,23 @@ const DashboardHome = () => {
           letter-spacing: -0.01em;
         }
         .db-section-link {
-          font-size: 1rem;
-          font-weight: 800;
-          padding-left:850px;
-          margin-top:10px;
+          display: block;
+          text-align: right;
+          margin-top: 0.5rem;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #c9963a;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
+          transition: opacity 0.18s;
+          width: 100%;
+        }
+        .db-section-link:hover { opacity: 0.7; }
+        .db-section-link-inline {
+          font-size: 0.78rem;
+          font-weight: 700;
           color: #c9963a;
           background: none;
           border: none;
@@ -717,7 +912,7 @@ const DashboardHome = () => {
           font-family: inherit;
           transition: opacity 0.18s;
         }
-        .db-section-link:hover { opacity: 0.7; }
+        .db-section-link-inline:hover { opacity: 0.7; }
 
         /* ── Active Module Cards ── */
         .db-module-grid {
@@ -824,28 +1019,114 @@ const DashboardHome = () => {
         }
         .db-activity-empty button:hover { background: rgba(201,150,58,0.15); }
 
-        
+        /* ── Insights Bar ── */
+        .db-insights-bar {
+          display: flex;
+          gap: 0.5rem;
+          overflow-x: auto;
+          padding-bottom: 2px;
+          scrollbar-width: none;
+        }
+        .db-insights-bar::-webkit-scrollbar { display: none; }
+        .db-insight-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.32rem 0.7rem;
+          border-radius: 100px;
+          background: var(--chip-bg);
+          border: 1px solid var(--chip-border);
+          color: var(--chip-color);
+          font-size: 0.72rem;
+          font-weight: 700;
+          white-space: nowrap;
+          flex-shrink: 0;
+          cursor: default;
+        }
+
+        /* ── Live Feed ── */
+        .db-feed-divider {
+          height: 1px;
+          background: rgba(14,27,46,0.06);
+          margin: 0.85rem 0 0.65rem;
+        }
+        .db-feed-list {
+          display: flex;
+          flex-direction: column;
+        }
+        .db-feed-row {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.65rem 0.1rem;
+          border-bottom: 1px solid rgba(14,27,46,0.05);
+          cursor: pointer;
+          transition: all 0.15s;
+          border-radius: 8px;
+        }
+        .db-feed-row:last-child { border-bottom: none; }
+        .db-feed-row:hover { background: rgba(14,27,46,0.03); padding-left: 0.4rem; }
+        .db-feed-dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          background: var(--dot-color);
+          flex-shrink: 0;
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-color) 18%, transparent);
+          animation: db-dot-pulse 2.4s ease-in-out infinite;
+        }
+        @keyframes db-dot-pulse {
+          0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-color) 18%, transparent); }
+          50%       { box-shadow: 0 0 0 6px color-mix(in srgb, var(--dot-color) 8%, transparent); }
+        }
+        .db-feed-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+          min-width: 0;
+        }
+        .db-feed-name {
+          font-size: 0.84rem;
+          font-weight: 700;
+          color: #0e1b2e;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .db-feed-time {
+          font-size: 0.66rem;
+          color: #9ca3af;
+          font-weight: 500;
+        }
+        .db-feed-right {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 1px;
+          flex-shrink: 0;
+        }
+        .db-feed-amount {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 0.9rem;
+          font-weight: 800;
+          color: #0e1b2e;
+        }
+        .db-feed-status {
+          font-size: 0.66rem;
+          font-weight: 700;
+          text-transform: capitalize;
+        }
 
         /* ── Responsive ── */
         @media (max-width: 480px) {
           .db-quick-grid { grid-template-columns: repeat(3, 1fr); }
           .db-kpi-grid   { grid-template-columns: repeat(2, 1fr); }
           .db-greeting-h2 { font-size: 1.2rem; }
-          .db-kpi-value   { font-size: 1.5rem; }
-          .db-section-link {
-              font-size: 0.78rem;
-              font-weight: 700;
-              padding-left:250px;
-              margin-top:10px;
-              color: #c9963a;
-              background: none;
-              border: none;
-              cursor: pointer;
-              font-family: inherit;
-              transition: opacity 0.18s;
-            }
-            .db-section-link:hover { opacity: 0.7; }
-            }
+          .db-kpi-value   { font-size: 1.3rem; }
+          .db-kpi-value--gold { font-size: 1.2rem; }
+          .db-kpi-section-header { flex-wrap: wrap; gap: 0.5rem; }
+        }
         @media (max-width: 360px) {
           .db-quick-grid { grid-template-columns: repeat(2, 1fr); }
         }

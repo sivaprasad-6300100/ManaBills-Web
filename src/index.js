@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { SubscriptionProvider } from "./context/SubscriptionContext";
+import { BranchProvider } from "./context//BranchContext";
 import { BusinessStatsProvider } from "./context/BusinessStatsContext";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -11,9 +12,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <AuthProvider>
         <SubscriptionProvider>
-          <BusinessStatsProvider>
-            <App />
-          </BusinessStatsProvider>
+          <BranchProvider>
+            <BusinessStatsProvider>
+              <App />
+            </BusinessStatsProvider>
+          </BranchProvider>
         </SubscriptionProvider>
       </AuthProvider>
     </BrowserRouter>

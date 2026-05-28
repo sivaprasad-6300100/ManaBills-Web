@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { getShopProfile, saveShopProfile, deleteShopProfile } from "../../services/businessService";
+// import { getShopProfile, saveShopProfile, deleteShopProfile } from "../../services/businessService";
+import { getShopProfile, saveShopProfile, deleteShopProfile, getProducts } from "../../services/businessService";
 
 const defaultShop = {
   shop_name:    "",
@@ -32,6 +33,7 @@ const shopTypeIcons = {
   "HardWare": "🔧",
   "Clothing": "👗",
   "Resturants": "🍽️",
+  "Aluminium Shop":  "🪟",
   "Medical": "💊",
   "Genral Store": "🏪",
   "Gold and Silver": "💍",
@@ -39,12 +41,38 @@ const shopTypeIcons = {
 };
 
 const ShopProfile = () => {
+  const [hasStock, setHasStock] = useState(false);
   const [shop,      setShop]      = useState(defaultShop);
   const [savedShop, setSavedShop] = useState(null);
   const [isEditing, setIsEditing] = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [toast,     setToast]     = useState(null);
   const [activeSection, setActiveSection] = useState("basic");
+  const [customShopType,     setCustomShopType]     = useState("");
+  const [showCustomShopType, setShowCustomShopType] = useState(false);
+  const [customShopCategories, setCustomShopCategories] = useState([]);
+  const [customShopUnits,      setCustomShopUnits]      = useState([]);
+  const [showCustomPicker,     setShowCustomPicker]     = useState(false);
+
+  const ALL_CATEGORIES = [
+  "General","Electronics","Grocery","Clothing","Hardware","Medical",
+  "Stationery","Food & Beverages","Atta & Rice","Dal & Pulses","Oil & Ghee",
+  "Sugar & Salt","Spices","Dry Fruits","Biscuits & Snacks","Beverages",
+  "Soap & Detergent","Dairy","Tablets","Syrups","Injections","Surgical",
+  "OTC Medicines","Vitamins & Supplements","Ayurvedic","Cosmetics","Baby Care",
+  "Gold Jewellery","Silver Jewellery","Coins & Bars","Diamonds","Gemstones",
+  "Fasteners","Hardware Fittings","Furniture Fittings","Wood & Boards","Doors",
+  "Adhesives & Chemicals","Electrical & Lighting","Paint & Finishing","Plumbing",
+  "Kitchen & Bathroom","Tools & Safety","Glass","Men","Women","Boy","Girl","Unisex",
+  "Aluminium Section","Aluminium Rods","Handles","Locks","Sliding Channel",
+  "Rubber Beading","Breakfast","Lunch","Dinner","Snacks","Sweets","Bakery","Other",
+];
+
+const ALL_UNITS = [
+  "piece","kg","gram","litre","ml","bag","box","dozen","metre","set",
+  "packet","roll","bundle","strip","bottle","tube","sachet","vial",
+  "pair","sqft","foot","inch","sqm","sheet","plate","can","jar","carton",
+];
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -52,27 +80,31 @@ const ShopProfile = () => {
   };
 
   useEffect(() => {
-    getShopProfile()
-      .then((data) => {
-        setSavedShop(data);
-        setShop({
-          shop_name:    data.shop_name    || "",
-          owner_name:   data.owner_name   || "",
-          mobile:       data.mobile       || "",
-          extra_mobile: data.extra_mobile || "",
-          address:      data.address      || "",
-          shop_type:    data.shop_type    || "",
-          timings:      data.timings      || "",
-          gst_enabled:  data.gst_enabled  || false,
-          gst_number:   data.gst_number   || "",
-          logo_url:     data.logo_url     || "",
-        });
-        setIsEditing(false);
-      })
-      .catch(() => {
-        setIsEditing(true);
+  getShopProfile()
+    .then((data) => {
+      setSavedShop(data);
+      setShop({
+        shop_name:    data.shop_name    || "",
+        owner_name:   data.owner_name   || "",
+        mobile:       data.mobile       || "",
+        extra_mobile: data.extra_mobile || "",
+        address:      data.address      || "",
+        shop_type:    data.shop_type    || "",
+        timings:      data.timings      || "",
+        gst_enabled:  data.gst_enabled  || false,
+        gst_number:   data.gst_number   || "",
+        logo_url:     data.logo_url     || "",
       });
-  }, []);
+      setIsEditing(false);
+    })
+    .catch(() => setIsEditing(true));
+
+  // Check if stock exists to lock shop_type
+  getProducts()
+    .then((products) => setHasStock(products.length > 0))
+    .catch(() => setHasStock(false));
+}, []);
+
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -89,7 +121,21 @@ const ShopProfile = () => {
     }
     setSaving(true);
     try {
-      const data = await saveShopProfile(shop);
+      // Build a clean payload without File objects
+      const payload = {
+        shop_name:    shop.shop_name,
+        owner_name:   shop.owner_name,
+        mobile:       shop.mobile,
+        extra_mobile: shop.extra_mobile,
+        address:      shop.address,
+        shop_type:    shop.shop_type,
+        timings:      shop.timings,
+        gst_enabled:  shop.gst_enabled,
+        gst_number:   shop.gst_number,
+        logo_url:     shop.logo_url || "",
+      };
+
+      const data = await saveShopProfile(payload);  // ✅ payload not shop
       setSavedShop(data);
       setIsEditing(false);
       showToast("Shop details saved successfully ✅");
@@ -657,18 +703,200 @@ const ShopProfile = () => {
                       />
                     </div>
                     <div className="sp-field">
-                      <label>Shop Type</label>
-                      <select name="shop_type" value={shop.shop_type} onChange={handleChange}>
+                    <label>Shop Type</label>
+                    <select
+                      name="shop_type"
+                      value={shop.shop_type}
+                      disabled={hasStock}
+                      style={{ opacity: hasStock ? 0.6 : 1, cursor: hasStock ? "not-allowed" : "pointer" }}
+                      onChange={(e) => {
+                        if (e.target.value === "__custom__") {
+                          setShowCustomShopType(true);
+                          setShowCustomPicker(false);
+                        } else {
+                          setShowCustomShopType(false);
+                          setShowCustomPicker(false);
+                          handleChange(e);
+                        }
+                      }}
+                    >
+
+
                         <option value="">Select shop type</option>
                         <option value="Kirana Store">🛒 Kirana Store</option>
                         <option value="HardWare">🔧 Hardware</option>
+                        <option value="Aluminium Shop">🪟 Aluminium Shop</option>
                         <option value="Clothing">👗 Clothing</option>
-                        <option value="Resturants">🍽️ Restaurants</option>
+                        {/* <option value="Resturants">🍽️ Restaurants</option> */}
                         <option value="Medical">💊 Medical</option>
-                        <option value="Genral Store">🏪 General Store</option>
+                        {/* <option value="Genral Store">🏪 General Store</option> */}
                         <option value="Gold and Silver">💍 Gold and Silver</option>
-                        <option value="Others">🏢 Others</option>
+                        {JSON.parse(localStorage.getItem("customShopTypes") || "[]").map((t) => (
+                          <option key={t} value={t}>🏷️ {t} ✓</option>
+                        ))}
+                       <option value="__custom__">✏️ Add Custom…</option>  
                       </select>
+                      {hasStock && (
+  <span style={{ fontSize: "0.75rem", color: "#dc2626", marginTop: "4px", display: "block" }}>
+    🔒 Clear all stock items first to change shop type
+  </span>
+)}
+{!hasStock && shop.shop_type && (
+  <span style={{ fontSize: "0.75rem", color: "#f59e0b", marginTop: "4px", display: "block" }}>
+    ⚠️ Changing shop type will reset your categories and units
+  </span>
+)}
+
+                      {/* Custom shop type input box */}
+{showCustomShopType && (
+  <div style={{
+    marginTop: "10px",
+    background: "#f0f9ff",
+    border: "1.5px solid #1a73e855",
+    borderRadius: "10px",
+    padding: "12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  }}>
+    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1a73e8", textTransform: "uppercase" }}>
+      ✏️ Custom Shop Type
+    </span>
+    <div style={{ display: "flex", gap: "8px" }}>
+      <input
+        placeholder="e.g. Bakery, Salon, Pharmacy…"
+        value={customShopType}
+        onChange={(e) => setCustomShopType(e.target.value)}
+        onKeyDown={(e) => {
+  if (e.key === "Enter" && customShopType.trim()) {
+    const name = customShopType.trim();
+    setShop((prev) => ({ ...prev, shop_type: name }));
+    setShowCustomShopType(false);
+    setShowCustomPicker(true);
+  }
+}}
+        style={{
+          flex: 1,
+          padding: "9px 12px",
+          borderRadius: "8px",
+          border: "1.5px solid #e2e8f0",
+          fontSize: "14px",
+          outline: "none",
+        }}
+      />
+      <button
+      onClick={() => {
+  if (!customShopType.trim()) return;
+  const name = customShopType.trim();
+  setShop((prev) => ({ ...prev, shop_type: name }));
+  setShowCustomShopType(false);
+  setShowCustomPicker(true);
+}}
+        style={{
+          padding: "9px 16px",
+          borderRadius: "8px",
+          border: "none",
+          background: customShopType.trim() ? "#1a73e8" : "#e2e8f0",
+          color: customShopType.trim() ? "#fff" : "#94a3b8",
+          fontWeight: 700,
+          cursor: customShopType.trim() ? "pointer" : "not-allowed",
+        }}
+      >
+        ✓ Set
+      </button>
+    </div>
+    <span style={{ fontSize: "0.7rem", color: "#0369a1" }}>
+      Press Set or Enter. Then select your categories and units.
+    </span>
+  </div>
+)}
+
+{/* Category + Unit Picker — appears after custom shop type is set */}
+{showCustomPicker && (
+  <div style={{
+    marginTop: "16px",
+    background: "#f8fafc",
+    border: "1.5px solid #1a73e855",
+    borderRadius: "12px",
+    padding: "16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  }}>
+    <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#1a73e8" }}>
+      🏷️ Select Units for "{shop.shop_type}"
+    </span>
+
+
+    {/* Units picker */}
+    <div>
+      <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#475569", marginBottom: "8px" }}>
+        SELECT UNITS (choose all that apply)
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+        {ALL_UNITS.map((unit) => {
+          const selected = customShopUnits.includes(unit);
+          return (
+            <button
+              key={unit}
+              onClick={() => {
+                setCustomShopUnits((prev) =>
+                  selected ? prev.filter((u) => u !== unit) : [...prev, unit]
+                );
+              }}
+              style={{
+                padding: "5px 12px",
+                borderRadius: "100px",
+                border: `1.5px solid ${selected ? "#ea580c" : "#e2e8f0"}`,
+                background: selected ? "#ea580c" : "#fff",
+                color: selected ? "#fff" : "#64748b",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {selected ? "✓ " : ""}{unit}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+
+    {/* Confirm button */}
+    <button
+      onClick={() => {
+        if (customShopUnits.length === 0) {
+          alert("Please select at least one unit.");
+          return;
+        }
+        const name = shop.shop_type;
+        const existing = JSON.parse(localStorage.getItem("customShopTypes") || "[]");
+        if (!existing.includes(name)) {
+          localStorage.setItem("customShopTypes", JSON.stringify([...existing, name]));
+        }
+        localStorage.setItem(`customCats_shoptype_${name}`,  JSON.stringify(customShopCategories));
+        localStorage.setItem(`customUnits_shoptype_${name}`, JSON.stringify(customShopUnits));
+        setShowCustomPicker(false);
+        showToast(`"${name}" saved with ${customShopUnits.length} units ✅`);
+      }}
+      disabled={customShopUnits.length === 0}
+      style={{
+        padding: "10px 20px",
+        borderRadius: "10px",
+        border: "none",
+        background: customShopUnits.length > 0 ? "#1a73e8" : "#e2e8f0",
+        color: customShopUnits.length > 0 ? "#fff" : "#94a3b8",
+        fontWeight: 700,
+        fontSize: "0.88rem",
+        cursor: customShopUnits.length > 0 ? "pointer" : "not-allowed",
+        alignSelf: "flex-start",
+      }}
+    >
+      ✅ Confirm — Save Categories & Units
+    </button>
+  </div>
+)}
+
                       <div className="sp-field full">
                         <label>Shop Logo</label>
                         <input

@@ -1,172 +1,1125 @@
-import React, { useEffect, useState } from "react";
-import { getGstReports } from "../../services/businessService";
+import React, { useEffect, useState, useMemo, useRef } from "react";
+import { authAxios } from "../../services/api";
+import { getShopProfile } from "../../services/businessService";
+// import { getGstReports } from "../../services/businessService";
 
-// ─── Backend returns exactly this shape per row ───────────────
-// { month, invoice_count, taxable_value, gst_collected, total_value }
+// ─── MOCK DATA (replace with real API calls) ──────────────────
+const mockGetGstReports = async (year) => {
+  await new Promise(r => setTimeout(r, 600));
+  const now = new Date();
+  return Array.from({ length: 12 }, (_, i) => {
+    const hasData = i <= now.getMonth() || year < now.getFullYear();
+    const base = hasData ? Math.random() * 500000 + 50000 : 0;
+    return {
+      month: i + 1,
+      invoice_count: hasData ? Math.floor(Math.random() * 80 + 10) : 0,
+      b2b_count:     hasData ? Math.floor(Math.random() * 50 + 5)  : 0,
+      b2c_count:     hasData ? Math.floor(Math.random() * 30 + 5)  : 0,
+      taxable_value: base,
+      gst_collected: base * 0.18,
+      total_value:   base * 1.18,
+      // ITC from purchases
+      itc_eligible:  hasData ? base * 0.12 : 0,
+      itc_claimed:   hasData ? base * 0.10 : 0,
+      itc_pending:   hasData ? base * 0.02 : 0,
+      // Payment status
+      gst_paid:      hasData ? (Math.random() > 0.4) : false,
+      gst_paid_date: hasData && Math.random() > 0.4 ? `${year}-0${i+1}-15` : null,
+      gst_due_amount: hasData ? base * 0.18 * 0.3 : 0,
+    };
+  });
+};
 
+const mockGetITCStock = async () => {
+  await new Promise(r => setTimeout(r, 400));
+  return [
+    { item: "Office Supplies",     category: "Stationery",    qty: 120, unit: "pcs",  purchase_value: 24000,  itc_rate: 12, itc_amount: 2880,  status: "eligible",   proof: null },
+    { item: "Raw Material A",      category: "Manufacturing", qty: 500, unit: "kg",   purchase_value: 185000, itc_rate: 18, itc_amount: 33300, status: "eligible",   proof: null },
+    { item: "Laptop - Dell",       category: "Capital Goods", qty: 3,   unit: "nos",  purchase_value: 180000, itc_rate: 18, itc_amount: 32400, status: "claimed",    proof: "invoice_laptop.pdf" },
+    { item: "Packaging Material",  category: "Consumables",   qty: 800, unit: "rolls",purchase_value: 32000,  itc_rate: 12, itc_amount: 3840,  status: "eligible",   proof: null },
+    { item: "Machine Parts",       category: "Capital Goods", qty: 10,  unit: "nos",  purchase_value: 95000,  itc_rate: 18, itc_amount: 17100, status: "pending",    proof: null },
+    { item: "Fuel (Non-eligible)", category: "Fuel",          qty: 200, unit: "ltrs", purchase_value: 18000,  itc_rate: 0,  itc_amount: 0,     status: "blocked",    proof: null },
+    { item: "Software License",    category: "IT Services",   qty: 1,   unit: "yr",   purchase_value: 60000,  itc_rate: 18, itc_amount: 10800, status: "claimed",    proof: "invoice_sw.pdf" },
+    { item: "Raw Material B",      category: "Manufacturing", qty: 300, unit: "kg",   purchase_value: 75000,  itc_rate: 18, itc_amount: 13500, status: "pending",    proof: null },
+  ];
+};
+
+// ─── CONSTANTS ────────────────────────────────────────────────
+const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_FULL   = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const GST_FILING_DATES = {
+  1:"11 Feb",2:"11 Mar",3:"11 Apr",4:"11 May",5:"11 Jun",6:"11 Jul",
+  7:"11 Aug",8:"11 Sep",9:"11 Oct",10:"11 Nov",11:"11 Dec",12:"11 Jan",
+};
+
+const ITC_STATUS_CONFIG = {
+  eligible: { label:"Eligible",  color:"#10b981", bg:"#ecfdf5", border:"#a7f3d0" },
+  claimed:  { label:"Claimed",   color:"#3b82f6", bg:"#eff6ff", border:"#bfdbfe" },
+  pending:  { label:"Pending",   color:"#f59e0b", bg:"#fffbeb", border:"#fde68a" },
+  blocked:  { label:"Blocked",   color:"#ef4444", bg:"#fef2f2", border:"#fecaca" },
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────
+const fmt  = (n) => Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtK = (n) => {
+  n = Number(n||0);
+  if(n>=1e7) return `₹${(n/1e7).toFixed(2)} Cr`;
+  if(n>=1e5) return `₹${(n/1e5).toFixed(2)} L`;
+  if(n>=1e3) return `₹${(n/1e3).toFixed(1)} K`;
+  return `₹${n.toFixed(0)}`;
+};
+const fmtDate = (s) => s ? new Date(s).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}) : "—";
+
+const useIsMobile = () => {
+  const [m, setM] = useState(()=>typeof window!=="undefined"&&window.innerWidth<=768);
+  useEffect(()=>{
+    const h=()=>setM(window.innerWidth<=768);
+    window.addEventListener("resize",h);
+    return ()=>window.removeEventListener("resize",h);
+  },[]);
+  return m;
+};
+
+// ─── GLOBAL CSS ──────────────────────────────────────────────
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+  .gr { font-family:'Plus Jakarta Sans',sans-serif; background:#f5f6fa; color:#1a1d23; min-height:100vh; }
+  .gr * { box-sizing:border-box; margin:0; padding:0; }
+
+  /* Header */
+  .gr-header { background:#fff; border-bottom:1px solid #e8eaf0; padding:20px 28px 0; position:sticky; top:0; z-index:50; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+  .gr-header.mob { padding:14px 14px 0; }
+  .gr-body { padding:22px 28px; max-width:1280px; }
+  .gr-body.mob { padding:14px; }
+
+  /* Stat card */
+  .sc { background:#fff; border:1px solid #e8eaf0; border-radius:14px; padding:18px 20px; flex:1 1 160px; min-width:0; position:relative; overflow:hidden; transition:box-shadow .2s,transform .2s; cursor:default; }
+  .sc:hover { box-shadow:0 6px 20px rgba(0,0,0,.08); transform:translateY(-2px); }
+  .sc-bar { position:absolute; top:0; left:0; right:0; height:3px; border-radius:14px 14px 0 0; }
+  .sc-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1rem; margin-bottom:11px; }
+  .sc-label { font-size:0.66rem; font-weight:700; color:#7b8494; text-transform:uppercase; letter-spacing:.07em; margin-bottom:5px; }
+  .sc-value { font-size:1.42rem; font-weight:800; color:#1a1d23; line-height:1; margin-bottom:3px; }
+  .sc-sub { font-size:0.69rem; color:#a0a8b8; }
+  .sc-delta { font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:100px; margin-top:5px; display:inline-block; }
+
+  /* Section */
+  .sec { background:#fff; border:1px solid #e8eaf0; border-radius:14px; padding:20px 22px; margin-bottom:14px; }
+  .sec-title { font-size:0.69rem; font-weight:700; color:#7b8494; text-transform:uppercase; letter-spacing:.07em; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .dot { width:6px; height:6px; border-radius:50%; display:inline-block; flex-shrink:0; }
+
+  /* Controls */
+  .yr-sel { background:#f5f6fa; border:1px solid #e8eaf0; color:#1a1d23; border-radius:10px; padding:8px 12px; font-size:0.78rem; font-weight:600; font-family:inherit; cursor:pointer; outline:none; }
+  .period-wrap { display:flex; background:#f5f6fa; border:1px solid #e8eaf0; border-radius:10px; overflow:hidden; }
+  .period-btn { padding:8px 15px; border:none; background:transparent; font-family:inherit; font-size:0.76rem; font-weight:600; color:#7b8494; cursor:pointer; transition:all .15s; }
+  .period-btn.active { background:#fff; color:#1a1d23; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .exp-btn { padding:8px 14px; border:1px solid #e8eaf0; border-radius:10px; background:#fff; font-family:inherit; font-size:0.76rem; font-weight:600; color:#7b8494; cursor:pointer; transition:all .15s; }
+  .exp-btn:hover { border-color:#3b82f6; color:#3b82f6; }
+  .ref-btn { padding:8px 12px; border:1px solid #e8eaf0; border-radius:10px; background:#fff; font-family:inherit; font-size:0.76rem; font-weight:600; color:#7b8494; cursor:pointer; transition:all .15s; }
+  .ref-btn:hover { border-color:#10b981; color:#10b981; }
+  .ref-btn.spin svg { animation:spin 1s linear infinite; }
+
+  /* Tabs */
+  .tab-bar { display:flex; border-bottom:1px solid #e8eaf0; margin-top:14px; overflow-x:auto; }
+  .tab-bar::-webkit-scrollbar { display:none; }
+  .tab-btn { padding:10px 18px; border:none; background:none; font-family:inherit; font-size:0.78rem; font-weight:600; color:#7b8494; border-bottom:2px solid transparent; cursor:pointer; transition:all .15s; white-space:nowrap; }
+  .tab-btn.mob { padding:9px 12px; font-size:0.73rem; }
+  .tab-btn:hover { color:#4a5568; }
+  .tab-btn.active { color:#1a1d23; border-bottom-color:#3b82f6; }
+
+  /* Table */
+  .tbl-wrap { overflow-x:auto; border-radius:10px; border:1px solid #e8eaf0; }
+  .tbl { width:100%; border-collapse:collapse; font-size:0.81rem; }
+  .tbl thead th { padding:10px 14px; background:#f9fafc; font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#7b8494; border-bottom:1px solid #e8eaf0; white-space:nowrap; }
+  .tbl thead th:first-child { text-align:left; }
+  .tbl thead th:not(:first-child) { text-align:right; }
+  .tbl tbody tr { border-bottom:1px solid #f0f2f7; transition:background .12s; }
+  .tbl tbody tr:hover { background:#f9fafc; }
+  .tbl tbody tr.empty { opacity:.38; }
+  .tbl tbody td { padding:11px 14px; white-space:nowrap; }
+  .tbl tbody td:first-child { text-align:left; font-weight:600; color:#1a1d23; }
+  .tbl tbody td:not(:first-child) { text-align:right; color:#4a5568; }
+  .tbl tfoot td { padding:13px 14px; text-align:right; background:#f9fafc; font-weight:700; border-top:2px solid #e8eaf0; color:#1a1d23; font-size:0.83rem; }
+  .tbl tfoot td:first-child { text-align:left; }
+
+  /* Badge */
+  .badge { display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; font-size:0.62rem; font-weight:700; letter-spacing:.03em; }
+
+  /* Chips */
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .chip { background:#f5f6fa; border:1px solid #e8eaf0; border-radius:8px; padding:5px 12px; font-size:0.74rem; font-weight:600; color:#4a5568; }
+  .chip b { color:#1a1d23; }
+
+  /* Month grid */
+  .month-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
+  .month-cell { border-radius:10px; padding:12px 13px; border:1px solid #e8eaf0; background:#f9fafc; transition:box-shadow .15s; cursor:default; }
+  .month-cell.now { background:#eff6ff; border-color:#bfdbfe; }
+  .month-cell:hover { box-shadow:0 2px 8px rgba(0,0,0,.06); }
+
+  /* Half-year card */
+  .half-card { border-radius:12px; padding:18px 20px; border-left:4px solid; }
+
+  /* ITC bar */
+  .itc-bar-wrap { height:7px; background:#f0f2f7; border-radius:100px; overflow:hidden; margin-top:5px; }
+  .itc-bar-fill { height:100%; border-radius:100px; transition:width .6s cubic-bezier(.4,0,.2,1); }
+
+  /* Paid button */
+  .pay-btn { padding:5px 12px; border-radius:8px; font-family:inherit; font-size:0.7rem; font-weight:700; border:none; cursor:pointer; transition:all .15s; white-space:nowrap; }
+  .pay-btn.unpaid { background:#fef2f2; color:#ef4444; border:1px solid #fecaca; }
+  .pay-btn.unpaid:hover { background:#ef4444; color:#fff; }
+  .pay-btn.paid { background:#ecfdf5; color:#10b981; border:1px solid #a7f3d0; cursor:default; }
+
+  /* Proof upload zone */
+  .proof-zone { border:1.5px dashed #e8eaf0; border-radius:10px; padding:20px; text-align:center; cursor:pointer; transition:all .2s; }
+  .proof-zone:hover { border-color:#3b82f6; background:#f8fbff; }
+  .proof-zone.dragging { border-color:#3b82f6; background:#eff6ff; }
+  .proof-chip { display:inline-flex; align-items:center; gap:6px; background:#f5f6fa; border:1px solid #e8eaf0; border-radius:8px; padding:5px 10px; font-size:0.72rem; font-weight:600; color:#4a5568; }
+
+  /* ITC Manual Entry */
+  .itc-form { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; padding:16px; background:#f9fafc; border-radius:10px; border:1px solid #e8eaf0; margin-bottom:14px; }
+  .itc-input { padding:8px 12px; border:1px solid #e8eaf0; border-radius:8px; font-family:inherit; font-size:0.78rem; background:#fff; color:#1a1d23; outline:none; transition:border .15s; }
+  .itc-input:focus { border-color:#3b82f6; }
+  .itc-add-btn { padding:9px 18px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-family:inherit; font-size:0.78rem; font-weight:700; cursor:pointer; transition:background .15s; }
+  .itc-add-btn:hover { background:#2563eb; }
+
+  /* Modal */
+  .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:200; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .modal { background:#fff; border-radius:16px; padding:24px; max-width:480px; width:100%; box-shadow:0 24px 60px rgba(0,0,0,.18); }
+  .modal-title { font-size:1rem; font-weight:800; color:#1a1d23; margin-bottom:4px; }
+  .modal-sub { font-size:0.73rem; color:#7b8494; margin-bottom:20px; }
+  .modal-close { float:right; background:none; border:none; font-size:1.2rem; cursor:pointer; color:#7b8494; }
+
+  /* Toast */
+  .toast { position:fixed; top:18px; left:50%; transform:translateX(-50%); z-index:9999; padding:10px 22px; border-radius:100px; font-weight:700; font-size:0.78rem; white-space:nowrap; color:#fff; box-shadow:0 8px 24px rgba(0,0,0,.15); }
+
+  /* Progress ring */
+  .ring-wrap { position:relative; display:inline-flex; align-items:center; justify-content:center; }
+  .ring-label { position:absolute; font-size:0.7rem; font-weight:800; color:#1a1d23; text-align:center; }
+
+  /* Note box */
+  .note-box { background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:14px 16px; margin-bottom:14px; }
+  .note-box.blue { background:#eff6ff; border-color:#bfdbfe; }
+  .note-box.green { background:#ecfdf5; border-color:#a7f3d0; }
+  .note-box.red { background:#fef2f2; border-color:#fecaca; }
+  .note-title { font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+  .note-text { font-size:0.73rem; line-height:1.7; color:#4a5568; }
+
+  /* Reconcile table */
+  .rec-row { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid #f0f2f7; font-size:0.8rem; }
+  .rec-row:last-child { border-bottom:none; }
+  .rec-label { font-weight:600; color:#1a1d23; }
+  .rec-val { font-weight:700; }
+
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+  .fade-up { animation:fadeUp .28s ease forwards; }
+  .slide-in { animation:slideIn .22s ease forwards; }
+
+  /* Scrollbar */
+  .tbl-wrap::-webkit-scrollbar { height:4px; }
+  .tbl-wrap::-webkit-scrollbar-track { background:#f5f6fa; }
+  .tbl-wrap::-webkit-scrollbar-thumb { background:#e0e3ec; border-radius:2px; }
+`;
+
+// ─── STAT CARD ────────────────────────────────────────────────
+const StatCard = ({ label, value, sub, color, bg, icon, delta }) => (
+  <div className="sc">
+    <div className="sc-bar" style={{background:color}}/>
+    <div className="sc-icon" style={{background:bg}}>{icon}</div>
+    <div className="sc-label">{label}</div>
+    <div className="sc-value">{value}</div>
+    {sub   && <div className="sc-sub">{sub}</div>}
+    {delta && <div className="sc-delta" style={{background:bg,color}}>{delta}</div>}
+  </div>
+);
+
+// ─── ITC DONUT ────────────────────────────────────────────────
+const DonutRing = ({ pct, color, size=72 }) => {
+  const r = 28; const circ = 2 * Math.PI * r;
+  const dash = (pct/100)*circ;
+  return (
+    <div className="ring-wrap" style={{width:size,height:size}}>
+      <svg width={size} height={size} viewBox="0 0 72 72">
+        <circle cx="36" cy="36" r={r} fill="none" stroke="#f0f2f7" strokeWidth="8"/>
+        <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="8"
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+          transform="rotate(-90 36 36)" style={{transition:"stroke-dasharray .7s"}}/>
+      </svg>
+      <div className="ring-label">{pct}%</div>
+    </div>
+  );
+};
+
+// ─── PROOF UPLOAD ─────────────────────────────────────────────
+const ProofUpload = ({ onUpload, existing }) => {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef();
+  const handle = (files) => { if(files[0]) onUpload(files[0]); };
+  return (
+    <div>
+      {existing ? (
+        <div className="proof-chip">
+          <span>📎</span>
+          <span style={{maxWidth:160,overflow:"hidden",textOverflow:"ellipsis"}}>{existing}</span>
+          <button onClick={()=>onUpload(null)} style={{background:"none",border:"none",cursor:"pointer",color:"#ef4444",fontWeight:700,fontSize:"0.8rem"}}>×</button>
+        </div>
+      ) : (
+        <div
+          className={`proof-zone ${dragging?"dragging":""}`}
+          style={{padding:"12px"}}
+          onClick={()=>inputRef.current.click()}
+          onDragOver={e=>{e.preventDefault();setDragging(true);}}
+          onDragLeave={()=>setDragging(false)}
+          onDrop={e=>{e.preventDefault();setDragging(false);handle(e.dataTransfer.files);}}
+        >
+          <div style={{fontSize:"1.2rem",marginBottom:"4px"}}>📎</div>
+          <div style={{fontSize:"0.7rem",color:"#7b8494",fontWeight:600}}>Upload Proof</div>
+          <div style={{fontSize:"0.62rem",color:"#a0a8b8"}}>PDF, JPG, PNG</div>
+          <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{display:"none"}}
+            onChange={e=>handle(e.target.files)}/>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── MAIN COMPONENT ───────────────────────────────────────────
 const GstReports = () => {
   const [reportData,   setReportData]   = useState([]);
+  const [itcStock,     setItcStock]     = useState([]);
   const [view,         setView]         = useState("monthly");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading,      setLoading]      = useState(true);
-  const [years,        setYears]        = useState([new Date().getFullYear()]);
+  const [refreshing,   setRefreshing]   = useState(false);
+  const [years,        setYears]        = useState([]);
+  const [activeTab,    setActiveTab]    = useState("summary");
+  const [toast,        setToast]        = useState(null);
+  const [payingMonth,  setPayingMonth]  = useState(null);  // modal
+  const [proofModal,   setProofModal]   = useState(null);  // {rowIdx}
+  const [itcFilter,    setItcFilter]    = useState("all");
+  const [showITCForm,  setShowITCForm]  = useState(false);
+  const [newITC,       setNewITC]       = useState({ item:"", category:"", qty:"", unit:"", purchase_value:"", itc_rate:"18" });
 
-  // ── Load from API whenever year or view changes ───────────
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const data = await getGstReports(selectedYear, view);
-        setReportData(data);
-      } catch {
-        setReportData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [selectedYear, view]);
+  const isMobile = useIsMobile();
 
-  // ── Build year list: current year ± a few ─────────────────
-  useEffect(() => {
+  useEffect(()=>{
     const cur = new Date().getFullYear();
-    setYears([cur - 1, cur, cur + 1]);
-  }, []);
+    setYears([cur-2, cur-1, cur]);
+  },[]);
 
-  // ── Grand totals ──────────────────────────────────────────
-  const grandInvoices  = reportData.reduce((s, r) => s + (r.invoice_count || 0), 0);
-  const grandTaxable   = reportData.reduce((s, r) => s + Number(r.taxable_value || 0), 0);
-  const grandGst       = reportData.reduce((s, r) => s + Number(r.gst_collected || 0), 0);
-  const grandTotal     = reportData.reduce((s, r) => s + Number(r.total_value   || 0), 0);
+  const loadData = async (isRefresh=false) => {
+    if(isRefresh) setRefreshing(true); else setLoading(true);
+    try {
+      const [rpt, itc] = await Promise.all([
+        authAxios.get("business/gst-reports/", { params: { year: selectedYear, view } }).then(r => r.data),
+        authAxios.get("business/products/").then(r => r.data).then(products =>
+  products
+    .filter(p => Number(p.purchase_price) > 0)  // filter by purchase_price not purchase_gst
+    .map(p => ({
+      item:           p.name,
+      category:       p.category       || "General",
+      qty:            Number(p.qty)    || 0,
+      unit:           p.unit           || "nos",
+      purchase_value: Number(p.purchase_price) || 0,
+      itc_rate:       Number(p.gst_rate)       || 0,
+      // calculate ITC here on frontend if backend returns 0
+      itc_amount:     Number(p.purchase_gst) > 0
+                        ? Number(p.purchase_gst)
+                        : (Number(p.purchase_price) * Number(p.gst_rate)) / 100,
+      status: p.supplier_gstin ? "eligible" : "pending",
+      proof:  null,
+    }))
+    .filter(p => p.itc_amount > 0)  // filter AFTER calculating
+),   
+      ]);
+      setReportData(Array.isArray(rpt) ? rpt : []);
+      setItcStock(Array.isArray(itc) ? itc : []);
+      if(isRefresh) showToast("Data refreshed ✓");
+    } catch {
+      showToast("Failed to load data", "error");
+    } finally {
+      setLoading(false); setRefreshing(false);
+    }
+  };
 
-  return (
-    <div className="gst-page">
+  useEffect(()=>{ loadData(); },[selectedYear, view]);
 
-      {/* Header */}
-      <div className="gst-header">
-        <div className="gst-title-wrap">
-          <h2 className="gst-title">GST Reports</h2>
-          <p className="gst-subtitle">
-            Monthly &amp; quarterly GST summary for your business
-          </p>
-        </div>
-        <div className="gst-controls">
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="gst-select"
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-          <div className="gst-toggle-buttons">
-            <button
-              className={`gst-view-btn ${view === "monthly" ? "active" : ""}`}
-              onClick={() => setView("monthly")}
-            >
-              Monthly
-            </button>
-            <button
-              className={`gst-view-btn ${view === "quarterly" ? "active" : ""}`}
-              onClick={() => setView("quarterly")}
-            >
-              Quarterly
-            </button>
+  const showToast = (msg, type="success") => {
+    setToast({msg,type});
+    setTimeout(()=>setToast(null), 3000);
+  };
+
+  // ── Mark as Paid ─────────────────────────────────────────────
+
+  const confirmPaid = async (monthIdx) => {
+    const monthData = reportData[monthIdx];
+    const gst       = Number(monthData?.gst_collected || 0);
+    const itcC      = Number(monthData?.itc_claimed   || 0);
+    const netPayable = Math.max(0, gst - itcC);
+
+    try {
+        await authAxios.post("business/gst-mark-paid/", {
+            year:        selectedYear,
+            month:       monthIdx + 1,
+            paid_amount: netPayable,
+        });
+
+        // Update local state so UI reflects immediately
+        setReportData(prev => prev.map((r, i) =>
+            i === monthIdx
+                ? { ...r, gst_paid: true, gst_paid_date: new Date().toISOString().slice(0, 10), gst_due_amount: 0 }
+                : r
+        ));
+
+        setPayingMonth(null);
+        showToast(`${MONTH_FULL[monthIdx]} GST marked as paid ✓`);
+    } catch {
+        showToast("Failed to save payment. Try again.", "error");
+    }
+};
+
+  // ── ITC proof upload ─────────────────────────────────────────
+  const handleProofUpload = (rowIdx, file) => {
+    setItcStock(prev => prev.map((r, i) =>
+      i === rowIdx ? { ...r, proof: file ? file.name : null } : r
+    ));
+    setProofModal(null);
+    if(file) showToast(`Proof uploaded: ${file.name} ✓`);
+    else showToast("Proof removed", "error");
+  };
+
+  // ── Add ITC Entry ─────────────────────────────────────────────
+  const addITCEntry = () => {
+    if(!newITC.item || !newITC.purchase_value) { showToast("Item name and purchase value required","error"); return; }
+    const pv = Number(newITC.purchase_value);
+    const rate = Number(newITC.itc_rate);
+    setItcStock(prev=>[...prev, {
+      item: newITC.item, category: newITC.category||"General",
+      qty: Number(newITC.qty)||1, unit: newITC.unit||"nos",
+      purchase_value: pv, itc_rate: rate, itc_amount: pv*(rate/100),
+      status:"eligible", proof:null,
+    }]);
+    setNewITC({ item:"", category:"", qty:"", unit:"", purchase_value:"", itc_rate:"18" });
+    setShowITCForm(false);
+    showToast("ITC entry added ✓");
+  };
+
+  // ── Computed totals ───────────────────────────────────────────
+  const totals = useMemo(()=>({
+    invoices:    reportData.reduce((s,r)=>s+(r.invoice_count||0),0),
+    b2b:         reportData.reduce((s,r)=>s+(r.b2b_count||0),0),
+    b2c:         reportData.reduce((s,r)=>s+(r.b2c_count||0),0),
+    taxable:     reportData.reduce((s,r)=>s+Number(r.taxable_value||0),0),
+    gst:         reportData.reduce((s,r)=>s+Number(r.gst_collected||0),0),
+    total:       reportData.reduce((s,r)=>s+Number(r.total_value||0),0),
+    itcEligible: reportData.reduce((s,r)=>s+Number(r.itc_eligible||0),0),
+    itcClaimed:  reportData.reduce((s,r)=>s+Number(r.itc_claimed||0),0),
+    itcPending:  reportData.reduce((s,r)=>s+Number(r.itc_pending||0),0),
+    paidMonths:  reportData.filter(r=>r.gst_paid).length,
+    dueAmount:   reportData.filter(r=>!r.gst_paid).reduce((s,r)=>s+Number(r.gst_due_amount||0),0),
+  }),[reportData]);
+
+  const itcTotals = useMemo(()=>({
+    eligible: itcStock.filter(r=>r.status==="eligible").reduce((s,r)=>s+r.itc_amount,0),
+    claimed:  itcStock.filter(r=>r.status==="claimed").reduce((s,r)=>s+r.itc_amount,0),
+    pending:  itcStock.filter(r=>r.status==="pending").reduce((s,r)=>s+r.itc_amount,0),
+    blocked:  itcStock.filter(r=>r.status==="blocked").reduce((s,r)=>s+r.itc_amount,0),
+    total:    itcStock.reduce((s,r)=>s+r.itc_amount,0),
+  }),[itcStock]);
+
+  const h1 = useMemo(()=>({
+    gst:   reportData.slice(0,6).reduce((s,r)=>s+Number(r.gst_collected||0),0),
+    total: reportData.slice(0,6).reduce((s,r)=>s+Number(r.total_value||0),0),
+    inv:   reportData.slice(0,6).reduce((s,r)=>s+(r.invoice_count||0),0),
+    b2b:   reportData.slice(0,6).reduce((s,r)=>s+(r.b2b_count||0),0),
+    b2c:   reportData.slice(0,6).reduce((s,r)=>s+(r.b2c_count||0),0),
+    paid:  reportData.slice(0,6).filter(r=>r.gst_paid).length,
+  }),[reportData]);
+
+  const h2 = useMemo(()=>({
+    gst:   reportData.slice(6,12).reduce((s,r)=>s+Number(r.gst_collected||0),0),
+    total: reportData.slice(6,12).reduce((s,r)=>s+Number(r.total_value||0),0),
+    inv:   reportData.slice(6,12).reduce((s,r)=>s+(r.invoice_count||0),0),
+    b2b:   reportData.slice(6,12).reduce((s,r)=>s+(r.b2b_count||0),0),
+    b2c:   reportData.slice(6,12).reduce((s,r)=>s+(r.b2c_count||0),0),
+    paid:  reportData.slice(6,12).filter(r=>r.gst_paid).length,
+  }),[reportData]);
+
+  const curMonth = new Date().getMonth();
+
+  // ── Export CSV ────────────────────────────────────────────────
+  const exportCSV = (type="all") => {
+    let header, rows, filename;
+    if(type==="itc") {
+      header = ["Item","Category","Qty","Unit","Purchase Value","ITC Rate %","ITC Amount","Status","Proof"];
+      rows = itcStock.map(r=>[r.item,r.category,r.qty,r.unit,r.purchase_value,r.itc_rate,r.itc_amount,r.status,r.proof||"—"]);
+      filename = `ITC_Stock_${selectedYear}.csv`;
+    } else {
+      header = ["Month","Total Invoices","B2B","B2C","Taxable (₹)","GST (₹)","Total (₹)","ITC Eligible (₹)","ITC Claimed (₹)","GST Paid","Paid Date"];
+      rows = reportData.map((r,i)=>[
+        MONTH_FULL[i], r.invoice_count||0, r.b2b_count||0, r.b2c_count||0,
+        Number(r.taxable_value||0).toFixed(2), Number(r.gst_collected||0).toFixed(2),
+        Number(r.total_value||0).toFixed(2), Number(r.itc_eligible||0).toFixed(2),
+        Number(r.itc_claimed||0).toFixed(2), r.gst_paid?"Yes":"No", r.gst_paid_date||"—",
+      ]);
+      filename = `GST_${type}_${selectedYear}.csv`;
+    }
+    const csv  = [header,...rows].map(r=>r.join(",")).join("\n");
+    const blob = new Blob([csv],{type:"text/csv"});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href=url; a.download=filename; a.click();
+    URL.revokeObjectURL(url);
+    showToast("CSV exported ✓");
+  };
+
+  // ── Net GST Payable (after ITC) ───────────────────────────────
+  const itcClaimedFromStock = itcStock
+  .filter(r => r.status === "claimed" || r.status === "eligible")
+  .reduce((s, r) => s + r.itc_amount, 0);
+
+const netGstPayable = Math.max(0, totals.gst - itcClaimedFromStock);
+
+  // ── Monthly table (B2B / B2C) ─────────────────────────────────
+  const renderInvoiceTable = (type) => {
+    const isB2B = type==="b2b";
+    const color = isB2B ? "#8b5cf6" : "#f59e0b";
+    const countKey = isB2B ? "b2b_count" : "b2c_count";
+    const countTotal = isB2B ? totals.b2b : totals.b2c;
+    const note = isB2B
+      ? "B2B invoices go in GSTR-1 Table 4 (taxable outward supplies to registered persons). Keep buyer GSTIN on record."
+      : "B2C invoices go in GSTR-1 Table 7/8. No buyer GSTIN required — keep invoice copies as proof.";
+    return (
+      <div className="sec fade-up">
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"10px",marginBottom:"14px"}}>
+          <div className="sec-title" style={{marginBottom:0}}>
+            <span className="dot" style={{background:color}}/>
+            {isB2B?"B2B":"B2C"} Invoices — {selectedYear}
+            <span className="badge" style={{background:isB2B?"#f5f3ff":"#fffbeb",color:isB2B?"#8b5cf6":"#d97706",border:`1px solid ${isB2B?"#e9d5ff":"#fde68a"}`,marginLeft:"4px"}}>
+              {isB2B?"🏢 Business to Business":"🛒 Business to Consumer"}
+            </span>
           </div>
+          <button className="exp-btn" onClick={()=>exportCSV(type)}>↓ Export CSV</button>
         </div>
-      </div>
-
-      {/* Summary cards */}
-      <div className="gst-summary-row" role="region" aria-label="GST summary">
-        <div className="gst-card blue">
-          <span>GST Invoices</span>
-          <strong>{grandInvoices}</strong>
+        <div className="chips">
+          <div className="chip">{isB2B?"B2B":"B2C"} Count: <b style={{color}}>{countTotal.toLocaleString("en-IN")}</b></div>
+          <div className="chip">GST: <b>₹{fmt(totals.gst)}</b></div>
+          <div className="chip">ITC Claimed: <b style={{color:"#3b82f6"}}>₹{fmt(itcClaimedFromStock)}</b></div>
+          <div className="chip">Net Payable: <b style={{color:"#ef4444"}}>₹{fmt(netGstPayable)}</b></div>
         </div>
-        <div className="gst-card blue">
-          <span>Taxable Value</span>
-          <strong>₹ {grandTaxable.toLocaleString("en-IN")}</strong>
-        </div>
-        <div className="gst-card green">
-          <span>GST Collected (5%)</span>
-          <strong>₹ {grandGst.toLocaleString("en-IN")}</strong>
-        </div>
-        <div className="gst-card purple">
-          <span>Total Invoice Value</span>
-          <strong>₹ {grandTotal.toLocaleString("en-IN")}</strong>
-        </div>
-      </div>
-
-      {/* Empty state */}
-      {!loading && grandInvoices === 0 ? (
-        <div className="gst-empty">
-          <p>📊 No GST invoices found for {selectedYear}.</p>
-          <small>Enable GST while creating an invoice to see reports here.</small>
-        </div>
-      ) : (
-        <div className="gst-table-wrap">
-          <table className="gst-table">
+        <div className="tbl-wrap">
+          <table className="tbl">
             <thead>
               <tr>
-                <th>{view === "monthly" ? "Month" : "Quarter"}</th>
-                <th>Invoices</th>
-                <th>Taxable Value (₹)</th>
-                <th>GST Collected (₹)</th>
-                <th>Total (₹)</th>
+                <th>Month</th>
+                <th>{isB2B?"B2B":"B2C"} Count</th>
+                <th>Taxable Value</th>
+                <th>GST Collected</th>
+                <th>ITC Eligible</th>
+                <th>Net GST</th>
+                <th>GSTR-1 Due</th>
+                <th>Payment</th>
               </tr>
             </thead>
             <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: "center", color: "#94a3b8", padding: "24px" }}>
-                    Loading…
-                  </td>
-                </tr>
-              ) : (
-                reportData.map((row) => (
-                  <tr
-                    key={row.month}
-                    className={row.invoice_count === 0 ? "gst-empty-row" : ""}
-                  >
-                    <td>{row.month}</td>
-                    <td>{row.invoice_count || "—"}</td>
+              {reportData.length===0 ? (
+                <tr><td colSpan={8} style={{textAlign:"center",padding:"40px",color:"#a0a8b8"}}>No data for {selectedYear}</td></tr>
+              ) : reportData.map((r,i)=>{
+                const count = r[countKey]||0;
+                const gst   = Number(r.gst_collected||0);
+                const tax   = Number(r.taxable_value||0);
+                const itcE  = Number(r.itc_eligible||0);
+                const net   = Math.max(0, gst - itcE);
+                const empty = count===0;
+                return (
+                  <tr key={i} className={empty?"empty":""}>
                     <td>
-                      {Number(row.taxable_value) > 0
-                        ? Number(row.taxable_value).toLocaleString("en-IN")
-                        : "—"}
+                      <span style={{display:"inline-flex",alignItems:"center",gap:"7px"}}>
+                        {MONTH_FULL[i]}
+                        {i===curMonth && <span className="badge" style={{background:"#eff6ff",color:"#3b82f6",border:"1px solid #bfdbfe"}}>Current</span>}
+                      </span>
                     </td>
-                    <td className="gst-collected">
-                      {Number(row.gst_collected) > 0
-                        ? Number(row.gst_collected).toLocaleString("en-IN")
-                        : "—"}
-                    </td>
-                    <td className="gst-total">
-                      {Number(row.total_value) > 0
-                        ? Number(row.total_value).toLocaleString("en-IN")
-                        : "—"}
+                    <td style={{color:empty?"#a0a8b8":color,fontWeight:700}}>{empty?"—":count}</td>
+                    <td>{empty?"—":`₹${fmt(tax)}`}</td>
+                    <td style={{color:"#10b981",fontWeight:600}}>{empty?"—":`₹${fmt(gst)}`}</td>
+                    <td style={{color:"#3b82f6",fontWeight:600}}>{empty?"—":`₹${fmt(itcE)}`}</td>
+                    <td style={{color:net>0?"#ef4444":"#10b981",fontWeight:700}}>{empty?"—":`₹${fmt(net)}`}</td>
+                    <td style={{color:"#7b8494",fontSize:"0.74rem"}}>{GST_FILING_DATES[i+1]}</td>
+                    <td>
+                      {empty ? "—" : r.gst_paid ? (
+                        <span className="pay-btn paid">✓ Paid {r.gst_paid_date ? `· ${fmtDate(r.gst_paid_date)}` : ""}</span>
+                      ) : (
+                        <button className="pay-btn unpaid" onClick={()=>setPayingMonth(i)}>Mark Paid</button>
+                      )}
                     </td>
                   </tr>
-                ))
-              )}
+                );
+              })}
             </tbody>
             <tfoot>
-              <tr className="gst-foot">
-                <td>Total ({selectedYear})</td>
-                <td>{grandInvoices}</td>
-                <td>{grandTaxable.toLocaleString("en-IN")}</td>
-                <td>{grandGst.toLocaleString("en-IN")}</td>
-                <td>{grandTotal.toLocaleString("en-IN")}</td>
+              <tr>
+                <td>Total {selectedYear}</td>
+                <td style={{color}}>{countTotal}</td>
+                <td>₹{fmt(totals.taxable)}</td>
+                <td style={{color:"#10b981"}}>₹{fmt(totals.gst)}</td>
+                <td style={{color:"#3b82f6"}}>₹{fmt(totals.itcEligible)}</td>
+                <td style={{color:"#ef4444"}}>₹{fmt(netGstPayable)}</td>
+                <td>—</td>
+                <td style={{color:"#10b981"}}>{totals.paidMonths}/12 paid</td>
               </tr>
             </tfoot>
           </table>
         </div>
+        <p style={{fontSize:"0.68rem",color:"#a0a8b8",marginTop:"12px",lineHeight:1.7}}>
+          ℹ️ {note}
+        </p>
+      </div>
+    );
+  };
+
+  // ── ITC TAB ───────────────────────────────────────────────────
+  const renderITC = () => {
+    const filtered = itcFilter==="all" ? itcStock : itcStock.filter(r=>r.status===itcFilter);
+    const claimPct = itcTotals.total>0 ? Math.round((itcTotals.claimed/itcTotals.total)*100) : 0;
+    return (
+      <div className="fade-up">
+        {/* ITC Summary cards */}
+        <div style={{display:"flex",gap:"12px",flexWrap:"wrap",marginBottom:"14px"}}>
+          <StatCard icon="💚" label="Eligible ITC"    value={fmtK(itcTotals.eligible)} sub="Unclaimed eligible" color="#10b981" bg="#ecfdf5"/>
+          <StatCard icon="✅" label="Claimed ITC"     value={fmtK(itcTotals.claimed)}  sub="Already set off"   color="#3b82f6" bg="#eff6ff"/>
+          <StatCard icon="⏳" label="Pending ITC"     value={fmtK(itcTotals.pending)}  sub="Awaiting GSTR-2B"  color="#f59e0b" bg="#fffbeb"/>
+          <StatCard icon="🚫" label="Blocked ITC"     value={fmtK(itcTotals.blocked)}  sub="Non-eligible items" color="#ef4444" bg="#fef2f2"/>
+          <StatCard icon="💡" label="Net GST Payable" value={fmtK(netGstPayable)}       sub={`After ₹${fmtK(totals.itcClaimed)} set-off`} color="#6366f1" bg="#eef2ff"/>
+        </div>
+
+        {/* Claim progress */}
+        <div className="sec">
+          <div className="sec-title"><span className="dot" style={{background:"#3b82f6"}}/>ITC Utilisation Progress</div>
+          <div style={{display:"flex",alignItems:"center",gap:"24px",flexWrap:"wrap"}}>
+            <DonutRing pct={claimPct} color="#3b82f6" size={80}/>
+            <div style={{flex:1,minWidth:200}}>
+              {[
+                {label:"Claimed",  val:itcTotals.claimed,  color:"#3b82f6", pct:itcTotals.total?Math.round(itcTotals.claimed/itcTotals.total*100):0},
+                {label:"Eligible", val:itcTotals.eligible, color:"#10b981", pct:itcTotals.total?Math.round(itcTotals.eligible/itcTotals.total*100):0},
+                {label:"Pending",  val:itcTotals.pending,  color:"#f59e0b", pct:itcTotals.total?Math.round(itcTotals.pending/itcTotals.total*100):0},
+                {label:"Blocked",  val:itcTotals.blocked,  color:"#ef4444", pct:itcTotals.total?Math.round(itcTotals.blocked/itcTotals.total*100):0},
+              ].map(({label,val,color,pct})=>(
+                <div key={label} style={{marginBottom:"8px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:"0.72rem",fontWeight:600,color:"#4a5568",marginBottom:"3px"}}>
+                    <span>{label}</span>
+                    <span style={{color}}>₹{fmt(val)}</span>
+                  </div>
+                  <div className="itc-bar-wrap">
+                    <div className="itc-bar-fill" style={{width:`${pct}%`,background:color}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Reconciliation box */}
+        <div className="sec">
+          <div className="sec-title"><span className="dot" style={{background:"#6366f1"}}/>GST Reconciliation — {selectedYear}</div>
+          <div style={{border:"1px solid #e8eaf0",borderRadius:"10px",overflow:"hidden"}}>
+            {[
+              {label:"Output GST (Collected)",       val:totals.gst,          color:"#1a1d23"},
+              {label:"Less: ITC Claimed", val:-itcClaimedFromStock, color:"#10b981"},
+              {label:"Net GST Payable",               val:netGstPayable,       color:netGstPayable>0?"#ef4444":"#10b981", bold:true},
+              {label:"ITC Eligible (not yet claimed)",val:totals.itcEligible,  color:"#f59e0b"},
+              {label:"Potential further set-off",     val:Math.max(0,netGstPayable-totals.itcEligible), color:"#6366f1"},
+            ].map(({label,val,color,bold})=>(
+              <div className="rec-row" key={label}>
+                <span className="rec-label" style={{fontWeight:bold?800:600}}>{label}</span>
+                <span className="rec-val" style={{color,fontSize:bold?"0.9rem":"0.8rem"}}>
+                  {val<0?"-":""} ₹{fmt(Math.abs(val))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ITC from Stock table */}
+        <div className="sec">
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"10px",marginBottom:"14px"}}>
+            <div className="sec-title" style={{marginBottom:0}}>
+              <span className="dot" style={{background:"#10b981"}}/>
+              ITC from Stock / Purchases
+            </div>
+            <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
+              {/* Filter */}
+              <div className="period-wrap">
+                {["all","eligible","claimed","pending","blocked"].map(f=>(
+                  <button key={f} className={`period-btn ${itcFilter===f?"active":""}`} onClick={()=>setItcFilter(f)}>
+                    {f.charAt(0).toUpperCase()+f.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <button className="exp-btn" onClick={()=>exportCSV("itc")}>↓ CSV</button>
+              <button className="itc-add-btn" onClick={()=>setShowITCForm(v=>!v)}>+ Add Entry</button>
+            </div>
+          </div>
+
+          {/* Add ITC form */}
+          {showITCForm && (
+            <div className="slide-in" style={{marginBottom:"14px"}}>
+              <div className="itc-form">
+                <input className="itc-input" placeholder="Item name *" value={newITC.item} onChange={e=>setNewITC(v=>({...v,item:e.target.value}))}/>
+                <input className="itc-input" placeholder="Category"    value={newITC.category} onChange={e=>setNewITC(v=>({...v,category:e.target.value}))}/>
+                <input className="itc-input" type="number" placeholder="Qty" value={newITC.qty} onChange={e=>setNewITC(v=>({...v,qty:e.target.value}))}/>
+                <input className="itc-input" placeholder="Unit (pcs/kg/nos)" value={newITC.unit} onChange={e=>setNewITC(v=>({...v,unit:e.target.value}))}/>
+                <input className="itc-input" type="number" placeholder="Purchase Value (₹) *" value={newITC.purchase_value} onChange={e=>setNewITC(v=>({...v,purchase_value:e.target.value}))}/>
+                <select className="itc-input" value={newITC.itc_rate} onChange={e=>setNewITC(v=>({...v,itc_rate:e.target.value}))}>
+                  <option value="0">0% (Exempt)</option>
+                  <option value="5">5%</option>
+                  <option value="12">12%</option>
+                  <option value="18">18%</option>
+                  <option value="28">28%</option>
+                </select>
+              </div>
+              <div style={{display:"flex",gap:"8px",padding:"0 0 14px"}}>
+                <button className="itc-add-btn" onClick={addITCEntry}>Save Entry</button>
+                <button className="exp-btn" onClick={()=>setShowITCForm(false)}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Category</th>
+                  <th style={{textAlign:"left"}}>Qty</th>
+                  <th>Purchase Value</th>
+                  <th>GST Rate</th>
+                  <th>ITC Amount</th>
+                  <th style={{textAlign:"center"}}>Status</th>
+                  <th style={{textAlign:"center"}}>Proof</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length===0 ? (
+                  <tr><td colSpan={8} style={{textAlign:"center",padding:"30px",color:"#a0a8b8"}}>No entries</td></tr>
+                ) : filtered.map((r,i)=>{
+                  const cfg = ITC_STATUS_CONFIG[r.status]||ITC_STATUS_CONFIG.eligible;
+                  const originalIdx = itcStock.indexOf(r);
+                  return (
+                    <tr key={i}>
+                      <td>{r.item}</td>
+                      <td style={{textAlign:"left",color:"#7b8494",fontSize:"0.75rem"}}>{r.category}</td>
+                      <td style={{textAlign:"left",color:"#4a5568"}}>{r.qty} {r.unit}</td>
+                      <td>₹{fmt(r.purchase_value)}</td>
+                      <td style={{color:r.itc_rate>0?"#10b981":"#ef4444"}}>{r.itc_rate}%</td>
+                      <td style={{color:r.itc_amount>0?"#3b82f6":"#a0a8b8",fontWeight:700}}>
+                        {r.itc_amount>0?`₹${fmt(r.itc_amount)}`:"—"}
+                      </td>
+                      <td style={{textAlign:"center"}}>
+                        <span className="badge" style={{background:cfg.bg,color:cfg.color,border:`1px solid ${cfg.border}`}}>
+                          {cfg.label}
+                        </span>
+                      </td>
+                      <td style={{textAlign:"center"}}>
+                        {r.proof ? (
+                          <div className="proof-chip" style={{justifyContent:"center"}}>
+                            <span>📎</span>
+                            <span style={{maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",fontSize:"0.65rem"}}>{r.proof}</span>
+                            <button onClick={()=>handleProofUpload(originalIdx,null)}
+                              style={{background:"none",border:"none",cursor:"pointer",color:"#ef4444",fontWeight:700,fontSize:"0.8rem"}}>×</button>
+                          </div>
+                        ) : (
+                          <button className="exp-btn" style={{fontSize:"0.68rem",padding:"4px 10px"}}
+                            onClick={()=>setProofModal(originalIdx)}>
+                            📎 Upload
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Total ({filtered.length} items)</td>
+                  <td/>
+                  <td/>
+                  <td>₹{fmt(filtered.reduce((s,r)=>s+r.purchase_value,0))}</td>
+                  <td>—</td>
+                  <td style={{color:"#3b82f6"}}>₹{fmt(filtered.reduce((s,r)=>s+r.itc_amount,0))}</td>
+                  <td/>
+                  <td style={{color:"#10b981"}}>{filtered.filter(r=>r.proof).length}/{filtered.length} proof</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div className="note-box">
+          <div className="note-title" style={{color:"#d97706"}}>⚠️ ITC Rules — Important</div>
+          <div className="note-text">
+            • ITC can only be claimed if supplier has filed GSTR-1 and it appears in your GSTR-2B.<br/>
+            • Blocked credits under Section 17(5) include: motor vehicles (personal use), food/beverages, club membership, personal insurance.<br/>
+            • ITC on capital goods must be reversed proportionally if used for exempt supplies.<br/>
+            • Reconcile your purchase register with GSTR-2B every month before claiming.
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ── PAYMENTS TAB ──────────────────────────────────────────────
+  const renderPayments = () => (
+    <div className="fade-up">
+      <div style={{display:"flex",gap:"12px",flexWrap:"wrap",marginBottom:"14px"}}>
+        <StatCard icon="✅" label="Months Paid"   value={`${totals.paidMonths}/12`} sub="GST paid months" color="#10b981" bg="#ecfdf5"/>
+        <StatCard icon="⏳" label="Pending Months" value={`${12-totals.paidMonths}`}  sub="Still unpaid"   color="#f59e0b" bg="#fffbeb"/>
+        <StatCard icon="💸" label="Total Due"      value={fmtK(totals.dueAmount)}     sub="Across pending months" color="#ef4444" bg="#fef2f2"/>
+        <StatCard icon="🏛️" label="Total GST"      value={fmtK(totals.gst)}           sub="Output collected" color="#3b82f6" bg="#eff6ff"/>
+      </div>
+
+      {totals.dueAmount > 0 && (
+        <div className="note-box red" style={{marginBottom:"14px"}}>
+          <div className="note-title" style={{color:"#ef4444"}}>🔴 Pending Payment Alert</div>
+          <div className="note-text">
+            You have <b>₹{fmt(totals.dueAmount)}</b> in pending GST payments across {12-totals.paidMonths} month(s).
+            Late payment attracts interest @ 18% p.a. under Section 50 of CGST Act. File GSTR-3B on time to avoid penalties.
+          </div>
+        </div>
       )}
 
-      <p className="gst-note">
-        * Only invoices created with GST enabled are included in this report.
-        GST rate applied: <strong>5%</strong> on taxable value.
-      </p>
+      <div className="sec">
+        <div className="sec-title"><span className="dot" style={{background:"#3b82f6"}}/>Monthly Payment Status — {selectedYear}</div>
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>GST Collected</th>
+                <th>ITC Claimed</th>
+                <th>Net Payable</th>
+                <th>Due Date</th>
+                <th style={{textAlign:"center"}}>Status</th>
+                <th style={{textAlign:"center"}}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportData.map((r,i)=>{
+                const gst  = Number(r.gst_collected||0);
+                const itcC = Number(r.itc_claimed||0);
+                const net  = Math.max(0,gst-itcC);
+                const empty= (r.invoice_count||0)===0;
+                return (
+                  <tr key={i} className={empty?"empty":""}>
+                    <td>
+                      <span style={{display:"inline-flex",alignItems:"center",gap:"7px"}}>
+                        {MONTH_FULL[i]}
+                        {i===curMonth && <span className="badge" style={{background:"#eff6ff",color:"#3b82f6",border:"1px solid #bfdbfe"}}>Current</span>}
+                      </span>
+                    </td>
+                    <td style={{color:"#10b981"}}>{empty?"—":`₹${fmt(gst)}`}</td>
+                    <td style={{color:"#3b82f6"}}>{empty?"—":`₹${fmt(itcC)}`}</td>
+                    <td style={{color:net>0?"#ef4444":"#10b981",fontWeight:700}}>{empty?"—":`₹${fmt(net)}`}</td>
+                    <td style={{color:"#7b8494",fontSize:"0.74rem"}}>
+                      {empty ? "—" : `20th ${MONTH_LABELS[i===11?0:i+1]}`}
+                    </td>
+                    <td style={{textAlign:"center"}}>
+                      {empty ? "—" : r.gst_paid ? (
+                        <span className="badge" style={{background:"#ecfdf5",color:"#10b981",border:"1px solid #a7f3d0"}}>
+                          ✓ Paid · {fmtDate(r.gst_paid_date)}
+                        </span>
+                      ) : (
+                        <span className="badge" style={{background:"#fef2f2",color:"#ef4444",border:"1px solid #fecaca"}}>
+                          Unpaid
+                        </span>
+                      )}
+                    </td>
+                    <td style={{textAlign:"center"}}>
+                      {!empty && !r.gst_paid && (
+                        <button className="pay-btn unpaid" onClick={()=>setPayingMonth(i)}>Mark as Paid</button>
+                      )}
+                      {!empty && r.gst_paid && <span style={{color:"#a0a8b8",fontSize:"0.72rem"}}>—</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Summary</td>
+                <td style={{color:"#10b981"}}>₹{fmt(totals.gst)}</td>
+                <td style={{color:"#3b82f6"}}>₹{fmt(totals.itcClaimed)}</td>
+                <td style={{color:"#ef4444"}}>₹{fmt(netGstPayable)}</td>
+                <td>—</td>
+                <td style={{textAlign:"center",color:"#10b981"}}>{totals.paidMonths} paid</td>
+                <td/>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <p style={{fontSize:"0.68rem",color:"#a0a8b8",marginTop:"12px",lineHeight:1.7}}>
+          ℹ️ GSTR-3B (payment) is due by 20th of following month. Late filing penalty: ₹50/day (₹20/day for nil return). Interest @ 18% p.a. on delayed tax payment.
+        </p>
+      </div>
     </div>
+  );
+
+  // ── SUMMARY TAB ───────────────────────────────────────────────
+  const renderSummary = () => (
+    <>
+      {/* Alert if pending */}
+      {totals.dueAmount > 0 && (
+        <div className="note-box red" style={{marginBottom:"14px"}}>
+          <div className="note-title" style={{color:"#ef4444"}}>⚠️ GST Payment Pending</div>
+          <div className="note-text">
+            <b>₹{fmt(totals.dueAmount)}</b> is pending across <b>{12-totals.paidMonths}</b> month(s).
+            Go to the <b>Payments</b> tab to mark them as paid.
+          </div>
+        </div>
+      )}
+
+      {/* Stat cards */}
+      <div style={{display:"flex",gap:"12px",flexWrap:"wrap",marginBottom:"14px"}}>
+        <StatCard icon="🧾" label="Total Invoices"  value={totals.invoices.toLocaleString("en-IN")} sub={`All · ${selectedYear}`}  color="#3b82f6" bg="#eff6ff"/>
+        <StatCard icon="🏢" label="B2B Invoices"    value={totals.b2b.toLocaleString("en-IN")} sub={`${totals.invoices>0?((totals.b2b/totals.invoices)*100).toFixed(0):0}% of total`} color="#8b5cf6" bg="#f5f3ff"/>
+        <StatCard icon="🛒" label="B2C Invoices"    value={totals.b2c.toLocaleString("en-IN")} sub={`${totals.invoices>0?((totals.b2c/totals.invoices)*100).toFixed(0):0}% of total`} color="#f59e0b" bg="#fffbeb"/>
+        <StatCard icon="🏛️" label="GST Collected"   value={fmtK(totals.gst)} sub={`₹${fmt(totals.gst)}`} color="#10b981" bg="#ecfdf5"/>
+        <StatCard icon="💚" label="ITC Claimed" value={fmtK(itcClaimedFromStock)} sub={`Eligible: ${fmtK(itcTotals.eligible)}`}/>
+        <StatCard icon="💰" label="Net GST Payable" value={fmtK(netGstPayable)} sub={`After ITC set-off`} color="#ef4444" bg="#fef2f2"/>
+        <StatCard icon="✅" label="Paid Months"     value={`${totals.paidMonths}/12`} sub={`${12-totals.paidMonths} pending`} color="#10b981" bg="#ecfdf5"/>
+      </div>
+
+      {/* Half yearly */}
+      <div className="sec fade-up">
+        <div className="sec-title"><span className="dot" style={{background:"#3b82f6"}}/>Half-Yearly Summary — {selectedYear}</div>
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"12px"}}>
+          {[
+            {label:"H1 · Jan – Jun",d:h1,color:"#3b82f6",bg:"#eff6ff"},
+            {label:"H2 · Jul – Dec",d:h2,color:"#10b981",bg:"#ecfdf5"},
+          ].map(({label,d,color,bg})=>(
+            <div key={label} className="half-card" style={{background:bg,borderColor:color}}>
+              <div style={{fontSize:"0.68rem",fontWeight:700,color:"#7b8494",textTransform:"uppercase",letterSpacing:".06em",marginBottom:"14px"}}>{label}</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"0"}}>
+                {[
+                  {l:"Invoice Total",v:fmtK(d.total)},
+                  {l:"GST",          v:fmtK(d.gst),   c:color},
+                  {l:"Invoices",     v:d.inv},
+                  {l:"B2B",          v:d.b2b,          c:"#8b5cf6"},
+                  {l:"B2C",          v:d.b2c,          c:"#f59e0b"},
+                  {l:"Paid Months",  v:`${d.paid}/6`,   c:"#10b981"},
+                ].map(({l,v,c})=>(
+                  <div key={l} style={{flex:"1 1 80px",padding:"0 16px 0 0",marginBottom:"8px"}}>
+                    <div style={{fontSize:"1.05rem",fontWeight:800,color:c||"#1a1d23"}}>{v}</div>
+                    <div style={{fontSize:"0.68rem",color:"#7b8494",marginTop:"2px"}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Monthly GST grid */}
+      <div className="sec fade-up">
+        <div className="sec-title"><span className="dot" style={{background:"#10b981"}}/>Monthly Overview — {selectedYear}</div>
+        <div className="month-grid">
+          {MONTH_LABELS.map((m,i)=>{
+            const r      = reportData[i]||{};
+            const gst    = Number(r.gst_collected||0);
+            const itcE   = Number(r.itc_eligible||0);
+            const net    = Math.max(0,gst-itcE);
+            const inv    = r.invoice_count||0;
+            const isNow  = i===curMonth;
+            const hasData= inv>0;
+            return (
+              <div key={m} className={`month-cell ${isNow?"now":""}`} style={{opacity:hasData?1:0.45}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"7px"}}>
+                  <span style={{fontSize:"0.72rem",fontWeight:700,color:"#1a1d23"}}>{m}</span>
+                  <div style={{display:"flex",gap:"4px",alignItems:"center"}}>
+                    {isNow && <span style={{fontSize:"0.5rem",background:"#3b82f6",color:"#fff",padding:"1px 5px",borderRadius:"100px",fontWeight:700}}>NOW</span>}
+                    {hasData && r.gst_paid && <span style={{fontSize:"0.5rem",background:"#10b981",color:"#fff",padding:"1px 5px",borderRadius:"100px",fontWeight:700}}>PAID</span>}
+                    {hasData && !r.gst_paid && <span style={{fontSize:"0.5rem",background:"#fef2f2",color:"#ef4444",padding:"1px 5px",borderRadius:"100px",fontWeight:700,border:"1px solid #fecaca"}}>DUE</span>}
+                  </div>
+                </div>
+                <div style={{fontSize:"0.92rem",fontWeight:800,color:hasData?"#10b981":"#c4c9d4",marginBottom:"2px"}}>
+                  {hasData?fmtK(gst):"—"}
+                </div>
+                {hasData && (
+                  <>
+                    <div style={{fontSize:"0.62rem",color:"#3b82f6"}}>ITC: {fmtK(itcE)}</div>
+                    <div style={{fontSize:"0.62rem",color:net>0?"#ef4444":"#10b981",fontWeight:700}}>Net: {fmtK(net)}</div>
+                    <div style={{fontSize:"0.6rem",color:"#a0a8b8",marginTop:"2px"}}>{inv} inv · B2B {r.b2b_count||0} · B2C {r.b2c_count||0}</div>
+                    {!r.gst_paid && (
+                      <button className="pay-btn unpaid" style={{marginTop:"6px",width:"100%",fontSize:"0.64rem",padding:"4px 0"}}
+                        onClick={()=>setPayingMonth(i)}>
+                        Mark Paid
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+
+  // ── RENDER ────────────────────────────────────────────────────
+  return (
+    <>
+      <style>{CSS}</style>
+      <div className="gr">
+        {/* Toast */}
+        {toast && (
+          <div className="toast" style={{background:toast.type==="error"?"#ef4444":"#22c55e"}}>{toast.msg}</div>
+        )}
+
+        {/* Mark as Paid Modal */}
+        {payingMonth !== null && (
+          <div className="modal-bg" onClick={()=>setPayingMonth(null)}>
+            <div className="modal" onClick={e=>e.stopPropagation()}>
+              <button className="modal-close" onClick={()=>setPayingMonth(null)}>×</button>
+              <div className="modal-title">Confirm GST Payment</div>
+              <div className="modal-sub">{MONTH_FULL[payingMonth]} {selectedYear}</div>
+              <div style={{background:"#f9fafc",borderRadius:"10px",padding:"14px",marginBottom:"18px",border:"1px solid #e8eaf0"}}>
+                {[
+                  {l:"GST Collected", v:`₹${fmt(reportData[payingMonth]?.gst_collected||0)}`},
+                  {l:"ITC Claimed", v:`₹${fmt(itcClaimedFromStock)}`},
+                  {l:"Net Payable",   v:`₹${fmt(Math.max(0,(reportData[payingMonth]?.gst_collected||0)-(reportData[payingMonth]?.itc_claimed||0)))}`, bold:true, color:"#ef4444"},
+                ].map(({l,v,bold,color})=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #f0f2f7",fontSize:"0.82rem"}}>
+                    <span style={{color:"#7b8494",fontWeight:600}}>{l}</span>
+                    <span style={{fontWeight:bold?800:700,color:color||"#1a1d23"}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:"10px"}}>
+                <button className="itc-add-btn" style={{flex:1}} onClick={()=>confirmPaid(payingMonth)}>
+                  ✓ Confirm Paid
+                </button>
+                <button className="exp-btn" style={{flex:1}} onClick={()=>setPayingMonth(null)}>Cancel</button>
+              </div>
+              <p style={{fontSize:"0.67rem",color:"#a0a8b8",marginTop:"12px",textAlign:"center"}}>
+                This records {MONTH_FULL[payingMonth]} GST as paid on {new Date().toLocaleDateString("en-IN")}.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Proof Upload Modal */}
+        {proofModal !== null && (
+          <div className="modal-bg" onClick={()=>setProofModal(null)}>
+            <div className="modal" onClick={e=>e.stopPropagation()}>
+              <button className="modal-close" onClick={()=>setProofModal(null)}>×</button>
+              <div className="modal-title">Upload Proof Document</div>
+              <div className="modal-sub">{itcStock[proofModal]?.item} — {itcStock[proofModal]?.category}</div>
+              <ProofUpload existing={itcStock[proofModal]?.proof} onUpload={(f)=>handleProofUpload(proofModal,f)}/>
+              <div className="note-box blue" style={{marginTop:"14px"}}>
+                <div className="note-title" style={{color:"#3b82f6"}}>📋 Accepted Proofs</div>
+                <div className="note-text">
+                  Tax invoice, Bill of supply, Debit note, Import document (Bill of Entry).
+                  Must have supplier GSTIN, HSN/SAC code, and GST breakup.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Header ── */}
+        <div className={`gr-header ${isMobile?"mob":""}`}>
+          <div style={{
+            display:"flex",
+            alignItems:isMobile?"flex-start":"center",
+            justifyContent:"space-between",
+            flexDirection:isMobile?"column":"row",
+            gap:isMobile?"10px":"0",
+            marginBottom:"2px",
+          }}>
+            <div>
+              <h2 style={{fontSize:isMobile?"1.15rem":"1.35rem",fontWeight:800,letterSpacing:"-.02em",color:"#1a1d23"}}>
+                GST Reports
+              </h2>
+              <p style={{fontSize:"0.72rem",color:"#7b8494",marginTop:"2px"}}>
+                B2B · B2C · ITC · Payments · {selectedYear}
+                {totals.paidMonths > 0 && <span style={{marginLeft:"8px",color:"#10b981",fontWeight:700}}>· {totals.paidMonths} months paid</span>}
+                {totals.dueAmount > 0  && <span style={{marginLeft:"8px",color:"#ef4444",fontWeight:700}}>· ₹{fmtK(totals.dueAmount)} due</span>}
+              </p>
+            </div>
+            <div style={{display:"flex",gap:"8px",flexWrap:"wrap",alignItems:"center"}}>
+              <select className="yr-sel" value={selectedYear} onChange={e=>setSelectedYear(Number(e.target.value))}>
+                {years.map(y=><option key={y} value={y}>{y}</option>)}
+              </select>
+              <div className="period-wrap">
+                <button className={`period-btn ${view==="monthly"?"active":""}`}   onClick={()=>setView("monthly")}>Monthly</button>
+                <button className={`period-btn ${view==="quarterly"?"active":""}`} onClick={()=>setView("quarterly")}>Quarterly</button>
+              </div>
+              <button className={`ref-btn ${refreshing?"spin":""}`} onClick={()=>loadData(true)} title="Refresh data">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+              </button>
+              {!isMobile && <button className="exp-btn" onClick={()=>exportCSV("all")}>↓ CSV</button>}
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="tab-bar">
+            {[
+              {key:"summary",  label:"📊 Summary"},
+              {key:"b2b",      label:"🏢 B2B"},
+              {key:"b2c",      label:"🛒 B2C"},
+              {key:"itc",      label:"💚 ITC"},
+              {key:"payments", label:"💳 Payments"},
+            ].map(t=>(
+              <button key={t.key} className={`tab-btn ${activeTab===t.key?"active":""} ${isMobile?"mob":""}`} onClick={()=>setActiveTab(t.key)}>
+                {t.label}
+                {t.key==="payments" && totals.dueAmount>0 && (
+                  <span style={{marginLeft:"5px",background:"#ef4444",color:"#fff",borderRadius:"100px",padding:"1px 5px",fontSize:"0.58rem",fontWeight:700}}>
+                    {12-totals.paidMonths}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Body ── */}
+        <div className={`gr-body ${isMobile?"mob":""}`}>
+          {loading ? (
+            <div style={{padding:"60px",textAlign:"center",color:"#7b8494",fontSize:"0.85rem"}}>
+              <div style={{fontSize:"2rem",marginBottom:"12px"}}>⏳</div>
+              Loading GST data…
+            </div>
+          ) : totals.invoices===0 && activeTab!=="itc" ? (
+            <div className="sec" style={{textAlign:"center",padding:"60px 24px"}}>
+              <div style={{fontSize:"2.5rem",marginBottom:"12px"}}>🧾</div>
+              <div style={{fontWeight:700,fontSize:"1rem",color:"#1a1d23",marginBottom:"6px"}}>
+                No GST Invoices for {selectedYear}
+              </div>
+              <div style={{color:"#7b8494",fontSize:"0.8rem"}}>
+                Enable GST while creating invoices to see reports here.
+              </div>
+            </div>
+          ) : (
+            <>
+              {activeTab==="summary"  && renderSummary()}
+              {activeTab==="b2b"      && renderInvoiceTable("b2b")}
+              {activeTab==="b2c"      && renderInvoiceTable("b2c")}
+              {activeTab==="itc"      && renderITC()}
+              {activeTab==="payments" && renderPayments()}
+            </>
+          )}
+
+          {/* Footer note */}
+          <div style={{fontSize:"0.65rem",color:"#c4c9d4",marginTop:"20px",lineHeight:1.7,borderTop:"1px solid #e8eaf0",paddingTop:"14px"}}>
+            * Only GST-enabled invoices are included. CGST/SGST split assumes intra-state (50/50). For inter-state, full amount is IGST.
+            B2B figures assume buyer has a valid GSTIN. ITC is subject to GSTR-2B reconciliation. Consult your CA before final filing.
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 
