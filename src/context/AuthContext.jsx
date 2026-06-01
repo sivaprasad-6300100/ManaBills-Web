@@ -14,25 +14,21 @@ const getUserKey = (user) => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [accessToken, setAccessToken] = useState(null);
-  const [refreshToken, setRefreshToken] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // ✅ FIX: initialize directly from localStorage instead of null
+  // Previously was useState(null) + useEffect to load — this caused a brief
+  // moment where accessToken was null on refresh, making SubscriptionContext
+  // clear subscriptions and set loading=false before the token was available,
+  // which caused SubscriptionGuard to redirect to the subscription page.
+  const [user, setUser]               = useState(() => JSON.parse(localStorage.getItem("user") || "null"));
+  const [accessToken, setAccessToken] = useState(() => localStorage.getItem("access_token"));
+  const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem("refresh_token"));
+  const [loading, setLoading]         = useState(false); // ✅ no longer needs to be true — data is already loaded
   const [sessionVersion, setSessionVersion] = useState(0);
 
-  useEffect(() => {
-    const savedUser = JSON.parse(localStorage.getItem("user") || "null");
-    const savedAccess = localStorage.getItem("access_token");
-    const savedRefresh = localStorage.getItem("refresh_token");
-
-    setUser(savedUser);
-    setAccessToken(savedAccess);
-    setRefreshToken(savedRefresh);
-    setLoading(false);
-  }, []);
+  // ✅ Remove the old useEffect that loaded from localStorage — no longer needed
+  // because state is initialized directly above. Keeping it would double-set state.
 
   const clearSessionStorage = useCallback(() => {
-    // Clear everything because many screens store user-specific data under generic keys.
     localStorage.clear();
   }, []);
 
@@ -42,7 +38,6 @@ export const AuthProvider = ({ children }) => {
       const prevKey = getUserKey(prevUser);
       const nextKey = getUserKey(userData);
 
-      // If a different account logs in on the same device/session, wipe cached user data.
       if (prevKey && nextKey && prevKey !== nextKey) {
         clearSessionStorage();
       }

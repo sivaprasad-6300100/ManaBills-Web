@@ -185,35 +185,45 @@ export default function CheckoutSubscription() {
 });
 subscribe(moduleKey, selected.label);
 
-  // ── Rich notification ──────────────────────────────────────
-  if (window.manaBillsNotify && window.MANABILLS_NOTIF_TYPES) {
-    const expiry  = getExpiryDate(selected.label);
-    const shortId = response.razorpay_payment_id?.slice(-8).toUpperCase();
-    const savings = ctx
-      ? ` You saved ₹${ctx.saving.toLocaleString("en-IN")} by choosing ${selected.label}.`
-      : "";
-    window.manaBillsNotify(
-      window.MANABILLS_NOTIF_TYPES.SUBSCRIPTION_NEW,
-      `${plan.name} Activated! 🎉`,
-      `Payment of ₹${total.toLocaleString("en-IN")} confirmed (ID: #${shortId}).` +
-      `${savings} Your plan is active until ${expiry}.`,
-    );
-  }
+  // ── Rich notification ─────────────────────────────────────
+  // replace the window.manaBillsNotify block in the handler with this:
+const expiry  = getExpiryDate(selected.label);
+const shortId = response.razorpay_payment_id?.slice(-8).toUpperCase();
+const savings = ctx
+  ? ` You saved ₹${ctx.saving.toLocaleString("en-IN")} by choosing ${selected.label}.`
+  : "";
 
-  setLoading(false);
-  navigate(plan.dashboard, {
-    state: {
-      paymentSuccess: true,
-      paymentId:      response.razorpay_payment_id,
-      planName:       plan.name,
-      duration:       selected.label,
+// ── Queue notification for Topbar to pick up after navigation ──
+const pending = {
+  type:    "subscription_new",
+  title:   `${plan.name} Activated! 🎉`,
+  message: `Payment of ₹${total.toLocaleString("en-IN")} confirmed (ID: #${shortId}).` +
+           `${savings} Your plan is active until ${expiry}.`,
+};
+localStorage.setItem("manabills_pending_notif", JSON.stringify(pending));
+
+setLoading(false);
+// AFTER
+const PLAN_TO_PROFILE = {
+  business_basic:     "/dashboard/business/shop-profile",
+  business_pro:       "/dashboard/business/shop-profile",
+  home_basic:         "/dashboard/home-expense",
+  home_pro:           "/dashboard/home-expense",
+  construction_basic: "/dashboard/construction",
+  construction_pro:   "/dashboard/construction",
+  custom_basic:       "/dashboard/custom",
+  custom_pro:         "/dashboard/custom",
+};
+
+navigate(PLAN_TO_PROFILE[planKey] || plan.dashboard, {
+  state: {
+    paymentSuccess: true,
+    paymentId:      response.razorpay_payment_id,
+    planName:       plan.name,
+    duration:       selected.label,
+  },
+});
     },
-  });
-},
-
-
-
-
 
     // ── MODAL DISMISSED ──────────────────────────────────────
     modal: {

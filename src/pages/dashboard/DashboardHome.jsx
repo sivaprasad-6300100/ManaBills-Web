@@ -464,29 +464,33 @@ const DashboardHome = () => {
   const fmt = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
 
   const getStatsByPeriod = () => {
-    if (period === "today") {
-      return {
-        invoiceCount: businessStats?.today_invoice_count || 0,
-        revenue:      fmt((businessStats?.today_paid_amount || 0) + (businessStats?.today_unpaid_amount || 0)),
-        pending:      fmt(businessStats?.today_unpaid_amount || 0),
-        collected:    fmt(businessStats?.today_paid_amount  || 0),
-      };
-    }
-    if (period === "week") {
-      return {
-        invoiceCount: businessStats?.week_invoice_count || 0,
-        revenue:      fmt((businessStats?.week_paid_amount || 0) + (businessStats?.week_unpaid_amount || 0)),
-        pending:      fmt(businessStats?.week_unpaid_amount || 0),
-        collected:    fmt(businessStats?.week_paid_amount  || 0),
-      };
-    }
+  if (period === "today") {
     return {
-      invoiceCount: businessStats?.month_invoice_count || 0,
-      revenue:      fmt((businessStats?.paid_amount || 0) + (businessStats?.unpaid_amount || 0)),
-      pending:      fmt(businessStats?.unpaid_amount  || 0),
-      collected:    fmt(businessStats?.paid_amount    || 0),
+      invoiceCount: businessStats?.today_invoice_count || 0,
+      // ✅ Use today_sales directly — not paid+unpaid sum
+      revenue:   fmt(businessStats?.today_sales || 0),
+      pending:   fmt(businessStats?.today_unpaid_amount || 0),
+      collected: fmt(businessStats?.today_paid_amount  || 0),
     };
+  }
+  if (period === "week") {
+    // week_billing = paid + unpaid combined
+    const weekTotal = (businessStats?.week_paid_amount || 0) + (businessStats?.week_unpaid_amount || 0);
+    return {
+      invoiceCount: businessStats?.week_invoice_count || 0,
+      revenue:      fmt(businessStats?.week_billing || 0),
+      pending:   fmt(businessStats?.week_unpaid_amount || 0),
+      collected: fmt(businessStats?.week_paid_amount  || 0),
+    };
+  }
+  // Month
+  return {
+    invoiceCount: businessStats?.month_invoice_count || 0,
+    revenue:   fmt(businessStats?.month_billing || 0),  // ✅ use month_billing directly
+    pending:   fmt(businessStats?.unpaid_amount  || 0),
+    collected: fmt(businessStats?.paid_amount    || 0),
   };
+};
 
   const periodStats = getStatsByPeriod();
   const periodLabel = PERIODS.find((p) => p.key === period)?.label || "Today";
@@ -653,15 +657,15 @@ const DashboardHome = () => {
                 {businessStats?.recent_invoices?.length > 0 ? (
                   businessStats.recent_invoices.slice(0, 5).map((inv, i) => (
                     <div key={i} className="db-feed-row" onClick={() => navigate(`/dashboard/business/invoices/${inv.id}`)}>
-                      <div className="db-feed-dot" style={{ "--dot-color": inv.payment_status === "paid" ? "#15803d" : "#c9963a" }} />
+                      <div className="db-feed-dot" style={{ "--dot-color": inv.payment_status === "Paid" ? "#15803d" : "#c9963a" }} />
                       <div className="db-feed-info">
                         <span className="db-feed-name">{inv.customer_name || "Customer"}</span>
                         <span className="db-feed-time">{inv.created_at ? new Date(inv.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—"}</span>
                       </div>
                       <div className="db-feed-right">
                         <span className="db-feed-amount">₹{Number(inv.total_amount || 0).toLocaleString("en-IN")}</span>
-                        <span className="db-feed-status" style={{ color: inv.payment_status === "paid" ? "#15803d" : "#c9963a" }}>
-                          {inv.payment_status === "paid" ? "Paid" : "Pending"}
+                        <span className="db-feed-status" style={{ color: inv.payment_status === "Paid" ? "#15803d" : "#c9963a" }}>
+                          {inv.payment_status === "Paid" ? "Paid" : "Pending"}
                         </span>
                       </div>
                     </div>

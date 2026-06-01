@@ -173,11 +173,13 @@ const otpStyles = {
     borderRadius: "0.875rem",
     fontSize: "1.4rem",
     textAlign: "center",
-    letterSpacing: "10px",
+    letterSpacing: "6px",
     outline: "none",
     background: "#faf8f4",
     color: "#1e4fba",
     fontWeight: "bold",
+    minWidth: 0,              // ← ADD THIS, prevents flex overflow
+    width: "100%", 
   },
   verifyBtn: {
     padding: "0.75rem 1rem",
@@ -485,7 +487,7 @@ export default function HomePage() {
     setLoading(true);
     setMessage({ text: "", type: "" });
     try {
-      await publicAxios.post("auth/forgot-password/", { phone: forgotMobile });
+      await publicAxios.post("auth/forgot-password/", { mobile_number: forgotMobile });
       setMessage({ text: "OTP sent to your registered mobile!", type: "success" });
       setForgotStep(2);
     } catch (err) {
@@ -505,7 +507,7 @@ export default function HomePage() {
     setLoading(true);
     setMessage({ text: "", type: "" });
     try {
-      await publicAxios.post("auth/verify-otp/", { phone: forgotMobile, otp: forgotOtp });
+      await publicAxios.post("auth/verify-otp/", { mobile_number: forgotMobile, otp: forgotOtp });
       setMessage({ text: "OTP verified! Set your new password.", type: "success" });
       setForgotStep(3);
     } catch (err) {
@@ -530,7 +532,7 @@ export default function HomePage() {
     setMessage({ text: "", type: "" });
     try {
       await publicAxios.post("auth/reset-password/", {
-        phone: forgotMobile,
+        mobile_number: forgotMobile,
         otp: forgotOtp,
         new_password: forgotNewPass,
       });
@@ -1142,10 +1144,20 @@ export default function HomePage() {
                       type="text"
                       placeholder="Enter mobile number or username"
                       value={loginData.identifier}
-                      onChange={e => setLoginData({ ...loginData, identifier: e.target.value })}
+                      onChange={e => {
+                        const val = e.target.value;
+                        // if pure digits, cap at 10. if username (has letters), allow freely
+                        if (/^\d+$/.test(val)) {
+                          setLoginData({ ...loginData, identifier: val.slice(0, 10) });
+                        } else {
+                          setLoginData({ ...loginData, identifier: val });
+                        }
+                      }}
                       required
                       autoComplete="username"
                     />
+
+
                     <span style={{ fontSize: "0.68rem", color: "var(--muted)", marginTop: "3px" }}>
                       You can use your 10-digit mobile number or username
                     </span>
@@ -1260,7 +1272,7 @@ export default function HomePage() {
                       <div style={{ textAlign: "center", marginTop: "0.75rem" }}>
                         <button
                           type="button"
-                          onClick={handleSendOtp}
+                          onClick={(e) => { e.preventDefault(); handleSendOtp(e); }}
                           disabled={loading}
                           style={{ background: "none", border: "none", color: "var(--blue)", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, fontFamily: "inherit" }}
                         >

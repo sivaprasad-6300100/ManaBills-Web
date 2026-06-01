@@ -9,7 +9,7 @@ export const BusinessStatsContext = createContext();
 export const BusinessStatsProvider = ({ children }) => {
   const { accessToken, sessionVersion } = useContext(AuthContext);
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const fetchStats = useCallback(async () => {
@@ -27,15 +27,20 @@ export const BusinessStatsProvider = ({ children }) => {
   }, []);
 
   // Fetch on mount
-  useEffect(() => {
+  // Change the useEffect to also refetch on focus:
+useEffect(() => {
     if (!accessToken) {
       setStats(null);
       setError(null);
       setLoading(false);
       return;
     }
-
     fetchStats();
+
+    // Refetch when tab regains focus
+    const onFocus = () => fetchStats();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [accessToken, sessionVersion, fetchStats]);
 
   const value = useMemo(

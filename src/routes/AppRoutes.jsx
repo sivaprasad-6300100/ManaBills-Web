@@ -22,6 +22,7 @@ import ShopProfile from "../pages/business_billing/ShopProfile";
 import Shopqrorder from "../pages/business_billing/Shopqrorder";
 import CustomerView from "../pages/business_billing/CustomerView";
 import JobServices from "../pages/business_billing/JobServices";
+import ShopProfileGuard from "../../src/pages/business_billing/ShopProfileGuard";
 // import CustomerViewWrapper from "../pages/business_billing/CustomerViewWrapper";
 // import Stockservice from "../pages/business_billing/Stockservice";
 
@@ -75,6 +76,9 @@ import "../styles/global/subscription.css";
 import "../styles/global/index.css";
 import "../styles/global/public.css";
 import "../styles/global/account.css";
+import InvoiceView from "../pages/business_billing/InvoiceView";
+
+
 
 const AppRoutes = () => {
   return (
@@ -82,6 +86,7 @@ const AppRoutes = () => {
       {/* Public */}
       <Route path="/" element={<HomePage />} />
           <Route path="/shop/:scannerId" element={<CustomerView />} />
+          <Route path="/invoice/:invoiceId" element={ < InvoiceView/>}  />
 
       {/* this is AppRoute.jsx file */}
 
@@ -105,16 +110,18 @@ const AppRoutes = () => {
             </SubscriptionGuard>
           }
         >
-          <Route index element={<BusinessHome />} />
-          <Route path="products" element={<Products />} />
-          <Route path="create-invoice" element={<CreateInvoice />} />
-          <Route path="invoices" element={<InvoiceHistory />} />
-          <Route path="customers" element={<Customers />} />
+          {/* ✅ shop-profile is FIRST and NOT wrapped — always accessible */}
           <Route path="shop-profile" element={<ShopProfile />} />
-          <Route path="gst" element={<GstReports />} />
-          {/* <Route path="stock" element={<stockServices />} /> */}
-          <Route path="job-services" element={<JobServices />} />
-          <Route path="shopqroder" element={ <Shopqrorder /> } />
+        
+          {/* ✅ Everything else is wrapped — redirects to shop-profile if not set up */}
+          <Route index element={<ShopProfileGuard><BusinessHome /></ShopProfileGuard>} />
+          <Route path="products"      element={<ShopProfileGuard><Products /></ShopProfileGuard>} />
+          <Route path="create-invoice"element={<ShopProfileGuard><CreateInvoice /></ShopProfileGuard>} />
+          <Route path="invoices"      element={<ShopProfileGuard><InvoiceHistory /></ShopProfileGuard>} />
+          <Route path="customers"     element={<ShopProfileGuard><Customers /></ShopProfileGuard>} />
+          <Route path="gst"           element={<ShopProfileGuard><GstReports /></ShopProfileGuard>} />
+          <Route path="job-services"  element={<ShopProfileGuard><JobServices /></ShopProfileGuard>} />
+          <Route path="shopqroder"    element={<ShopProfileGuard><Shopqrorder /></ShopProfileGuard>} />
         </Route>
 
         {/* Home Expense */}

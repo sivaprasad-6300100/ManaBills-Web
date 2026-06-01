@@ -574,6 +574,7 @@ const emptyItem = () => ({ id: Date.now() + Math.random(), name:"", qty:1, price
 /* ═══════════════════════════════════════════════
    PDF DOCUMENT
 ═══════════════════════════════════════════════ */
+
 const PdfDocument = React.forwardRef(({ invoice, shop }, ref) => {
   const items    = invoice?.items  || [];
   const status   = invoice?.status || "Pending";
@@ -583,6 +584,12 @@ const PdfDocument = React.forwardRef(({ invoice, shop }, ref) => {
   const discount = Number(invoice?.discount || 0);
   const gstAmt   = Number(invoice?.gst_amt  || 0);
   const subtotal = Number(invoice?.subtotal || 0);
+
+  // ★ Derive actual GST rate from stored amounts (works for 3%, 5%, 12%, 18%, 28%)
+  // const gstRate = subtotal > 0 && gstAmt > 0
+    // ? Math.round((gstAmt / subtotal) * 100)
+    // : 0;
+  // const hasCustomerGst = !!(invoice?.customer_gst?.trim());
 
   return (
     <div className="pdf-doc" ref={ref}>
@@ -658,7 +665,44 @@ const PdfDocument = React.forwardRef(({ invoice, shop }, ref) => {
 
         <div className="pdf-totals">
           <div className="pdf-total-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
-          {invoice?.is_gst && <div className="pdf-total-row"><span>GST (5%)</span><span>{fmt(gstAmt)}</span></div>}
+          {invoice?.is_gst && (() => {
+            const gstGroups = {};
+            (invoice.items || []).forEach(item => {
+              const rate = Number(item.gst_rate || 0);
+              if (rate === 0) return;
+              if (!gstGroups[rate]) gstGroups[rate] = 0;
+              gstGroups[rate] += Number(item.qty) * Number(item.price);
+            });
+            return Object.entries(gstGroups)
+              .sort(([a], [b]) => Number(a) - Number(b))
+              .map(([rate, taxable]) => {
+                const rateNum  = Number(rate);
+                const gstTotal = Math.round(taxable * rateNum / 100);
+                const half     = Math.round(gstTotal / 2);
+                return (
+                  <React.Fragment key={rate}>
+                    <div className="pdf-total-row" style={{color:"#6b7280",fontSize:"0.75rem"}}>
+                      <span>Taxable ({rateNum}%)</span>
+                      <span>{fmt(taxable)}</span>
+                    </div>
+                    <div className="pdf-total-row">
+                      <span>CGST ({rateNum / 2}%)</span>
+                      <span>{fmt(half)}</span>
+                    </div>
+                    <div className="pdf-total-row">
+                      <span>SGST ({rateNum / 2}%)</span>
+                      <span>{fmt(half)}</span>
+                    </div>
+                  </React.Fragment>
+                );
+              });
+          })()}
+
+
+
+
+
+
           {discount > 0 && <div className="pdf-total-row" style={{color:"#15803d"}}><span>Discount</span><span>- {fmt(discount)}</span></div>}
           <div className="pdf-total-row grand"><span>Grand Total</span><span>{fmt(total)}</span></div>
           {advance > 0  && <div className="pdf-total-row paid-row"><span>Paid (Advance)</span><span>{fmt(advance)}</span></div>}
@@ -905,7 +949,12 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
   const handleAddItem = () => setItems(prev => [...prev, emptyItem()]);
 
   const subtotal = items.filter(i=>i.name.trim()).reduce((s,i) => s + Number(i.qty||0)*Number(i.price||0), 0);
-  const gstAmt   = form.is_gst ? Math.round(subtotal * 0.05) : 0;
+  // GST only applies when is_gst AND customer has a GST number
+  const applyGST = form.is_gst && form.customer_gst.trim().length > 0;
+  const gstAmt = applyGST
+  ? Math.round(items.filter(i => i.name.trim()).reduce((s, i) =>
+      s + Number(i.qty||0) * Number(i.price||0) * Number(i.gst_rate||0) / 100, 0))
+  : 0;
   const total    = subtotal + gstAmt - Number(form.discount||0);
   const balance  = total - Number(form.advance||0);
 
@@ -1082,7 +1131,7 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
             <div className="em-section-title">Invoice Summary</div>
             <div className="em-summary">
               <div className="em-sum-row"><span>Subtotal</span><span style={{fontWeight:700,color:"var(--navy)"}}>{fmt(subtotal)}</span></div>
-              {form.is_gst && <div className="em-sum-row"><span>GST (5%)</span><span>{fmt(gstAmt)}</span></div>}
+              {applyGST && gstAmt > 0 && <div className="em-sum-row"><span>GST</span><span>{fmt(gstAmt)}</span></div>}
               {Number(form.discount||0) > 0 && <div className="em-sum-row"><span>Discount</span><span style={{color:"var(--green)"}}>- {fmt(form.discount)}</span></div>}
               <div className="em-sum-row total"><span>Total</span><span>{fmt(total)}</span></div>
               {Number(form.advance||0) > 0 && <div className="em-sum-row paid-row"><span>Advance Paid</span><span>{fmt(form.advance)}</span></div>}

@@ -408,12 +408,24 @@ const Topbar = () => {
   // ── Build active plans list for dropdown (plain function, no hook) ──────────
   const activePlans = getActivePlans(subscriptions);
 
+  const pushNotif = useCallback((type, title, message, data = {}) => {
+  setNotifications((prev) => [createNotification(type, title, message, data), ...prev]);
+}, []);
+
   // ── Persist notifications to localStorage ─────────────────────────────────
   useEffect(() => { saveNotifications(notifications); }, [notifications]);
 
-  const pushNotif = useCallback((type, title, message, data = {}) => {
-    setNotifications((prev) => [createNotification(type, title, message, data), ...prev]);
-  }, []);
+  // ── Drain any notification queued by CheckoutSubscription ────────────
+useEffect(() => {
+  const raw = localStorage.getItem("manabills_pending_notif");
+  if (!raw) return;
+  try {
+    const { type, title, message } = JSON.parse(raw);
+    pushNotif(type, title, message);
+  } catch {}
+  localStorage.removeItem("manabills_pending_notif");
+}, [location.pathname, pushNotif]); // fires on every route change
+
 
   // ── Welcome notification once per session ─────────────────────────────────
   useEffect(() => {
@@ -540,6 +552,7 @@ const Topbar = () => {
 
       {/* ── RIGHT ── */}
       <div className="topbar-actions">
+
 
         {/* Expiry chip — driven by real backend expires_at */}
         <ExpiryChip expiry={expiry} onClick={() => navigate("/subscription")} />

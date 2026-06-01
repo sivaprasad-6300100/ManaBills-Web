@@ -2,6 +2,12 @@ import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubscriptionContext } from "../../context/SubscriptionContext";
 
+// ⚠️  Do NOT call refreshSubscriptions() on mount here.
+//     The SubscriptionProvider already fetches on mount and on token change.
+//     Calling it again here was triggering a second fetch that raced with
+//     subscribe()'s optimistic update, causing the billing page to always
+//     show stale plans after plan selection.
+
 const BusinessSubscription = () => {
   const navigate = useNavigate();
   const { subscribe } = useContext(SubscriptionContext);
@@ -25,9 +31,10 @@ const BusinessSubscription = () => {
       action: () => {
         subscribe("business", {
           status: "FREE_TRIAL",
-          expiresAt: Date.now() + 3 * 24 * 60 * 60 * 1000,
+          plan: "free",
+          duration: "3_days",
+          is_active: true, 
         });
-        // ✅ Go to shop profile setup, not overview
         navigate("/dashboard/business/shop-profile", {
           state: { isFirstSetup: true },
         });

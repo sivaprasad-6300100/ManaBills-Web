@@ -6,6 +6,10 @@ import {
 } from "../../services/businessService";
 import { S } from "../../styles/business/Products";
 
+
+
+
+
 // ─── CONSTANTS ────────────────────────────────────────────────
 const UNITS_BY_SHOP = {
   "Kirana Store":    ["bag","kg","gram","packet","litre","ml","dozen","piece"],
@@ -347,7 +351,7 @@ const CustomTextInput = ({ label, placeholder, value, onChange, onConfirm, isMob
 // ─── SHARED PRICING FIELDS (used in ALL shop types) ───────────
 // This is the key refactor — instead of copy-pasting these fields 5 times,
 // we render them once from this component
-const PricingFields = ({ form, handleChange, setForm, units, autoPurchaseGst, isMobile }) => {
+const PricingFields = ({ form, handleChange, setForm, units, autoPurchaseGst, isMobile, gstEnabled }) => {
   const W = isMobile ? MField : Field;
   const iStyle = isMobile ? S.mInput : inputStyle;
   const sStyle = isMobile ? S.mSelect : selectStyle;
@@ -364,42 +368,57 @@ const PricingFields = ({ form, handleChange, setForm, units, autoPurchaseGst, is
       <W label="Purchase ₹">
         <input name="purchasePrice" type="number" placeholder="Cost price" value={form.purchasePrice} onChange={handleChange} min="0" style={iStyle} />
       </W>
-      <W label="Purchase GST / ITC ₹">
-        <input name="purchaseGst" type="number" placeholder="ITC amount" value={form.purchaseGst} onChange={handleChange} style={iStyle} />
-        {autoPurchaseGst && !form.purchaseGst && (
-          <span style={{ fontSize: "0.68rem", color: "#16a34a", marginTop: "3px" }}>Auto: ₹{autoPurchaseGst}</span>
-        )}
-      </W>
       <W label="Selling ₹ *">
         <input name="sellingPrice" type="number" placeholder="Sale price" value={form.sellingPrice} onChange={handleChange} min="0" style={iStyle} />
-      </W>
-      <W label="GST Rate" full>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <GstRateSelect value={form.gstRate} onChange={handleChange} style={{ ...sStyle, flex: 1 }} />
-          <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.75rem", color: "#64748b", whiteSpace: "nowrap" }}>
-            <input type="checkbox" checked={form.gstInclusive} onChange={(e) => setForm((prev) => ({ ...prev, gstInclusive: e.target.checked }))} />
-            Incl. GST
-          </label>
-        </div>
       </W>
       <W label="Low Stock At">
         <input name="minQtyAlert" type="number" placeholder="5" value={form.minQtyAlert} onChange={handleChange} min="0" style={iStyle} />
       </W>
-      <W label="HSN Code" full>
-        <input name="hsnCode" placeholder="e.g. 1006" value={form.hsnCode} onChange={handleChange} style={iStyle} />
-      </W>
-      <W label="Supplier GSTIN (for ITC)" full>
-        <input name="supplierGstin" placeholder="15-digit GSTIN" value={form.supplierGstin} onChange={handleChange} maxLength={15} style={iStyle} />
-      </W>
-      <W label="Invoice No.">
-        <input name="purchaseInvoice" placeholder="Bill / Invoice No." value={form.purchaseInvoice} onChange={handleChange} style={iStyle} />
-      </W>
-      <W label="Purchase Date">
-        <input name="purchaseDate" type="date" value={form.purchaseDate} onChange={handleChange} style={iStyle} />
-      </W>
+      {gstEnabled && <>
+        <W label="Purchase GST / ITC ₹">
+          <input name="purchaseGst" type="number" placeholder="ITC amount" value={form.purchaseGst} onChange={handleChange} style={iStyle} />
+          {autoPurchaseGst && !form.purchaseGst && (
+            <span style={{ fontSize: "0.68rem", color: "#16a34a", marginTop: "3px" }}>Auto: ₹{autoPurchaseGst}</span>
+          )}
+        </W>
+        <W label="GST Rate" full>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <GstRateSelect value={form.gstRate} onChange={handleChange} style={{ ...sStyle, flex: 1 }} />
+            <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.75rem", color: "#64748b", whiteSpace: "nowrap" }}>
+              <input type="checkbox" checked={form.gstInclusive} onChange={(e) => setForm((prev) => ({ ...prev, gstInclusive: e.target.checked }))} />
+              Incl. GST
+            </label>
+          </div>
+        </W>
+        <W label="HSN Code" full>
+          <input name="hsnCode" placeholder="e.g. 1006" value={form.hsnCode} onChange={handleChange} style={iStyle} />
+        </W>
+        <W label="Supplier GSTIN (for ITC)" full>
+          <input name="supplierGstin" placeholder="15-digit GSTIN" value={form.supplierGstin} onChange={handleChange} maxLength={15} style={iStyle} />
+        </W>
+        <W label="Invoice No.">
+          <input name="purchaseInvoice" placeholder="Bill / Invoice No." value={form.purchaseInvoice} onChange={handleChange} style={iStyle} />
+        </W>
+        <W label="Purchase Date">
+          <input name="purchaseDate" type="date" value={form.purchaseDate} onChange={handleChange} style={iStyle} />
+        </W>
+      </>}
     </>
   );
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ─── CATEGORY SELECT (shared) ──────────────────────────────────
 const CategorySelect = ({ form, handleChange, categories, userCategories, isMobile }) => {
@@ -658,7 +677,7 @@ const Products = () => {
   };
 
   // ─── SHARED PROPS FOR PricingFields ───────────────────────
-  const pricingProps = { form, handleChange, setForm, units, autoPurchaseGst };
+  const pricingProps = { form, handleChange, setForm, units, autoPurchaseGst, gstEnabled: shopProfile?.gst_enabled || false };
 
   // ─── SHARED CATEGORY PROPS ────────────────────────────────
   const catProps = { form, handleChange, categories, userCategories };
@@ -991,7 +1010,7 @@ const Products = () => {
           <div style={S.formCard}>
             {renderFormFields()}
             {shopType !== "Gold and Silver" && <MarginPreview form={form} t={t} isMobile={true} />}
-            {shopType !== "Gold and Silver" && <GstPreview gstCalc={gstCalc} form={form} setForm={setForm} isMobile={true} />}
+            {shopType !== "Gold and Silver" && shopProfile?.gst_enabled && <GstPreview gstCalc={gstCalc} form={form} setForm={setForm} isMobile={true} />}
             <div style={S.actionRow}>
               <button onClick={handleAddStock} disabled={saving} style={S.saveBtn(t.color)}>
                 {saving ? "Saving…" : editingId ? "✅ Update Stock" : "✅ Add Stock"}
@@ -1088,7 +1107,7 @@ const Products = () => {
           <p style={{ fontSize: "0.83rem", color: "#64748b", marginBottom: "20px" }}>{editingId ? "Update the details below and click Update Stock." : "Same item name will auto-merge quantity."}</p>
           {renderFormFields()}
           {shopType !== "Gold and Silver" && <MarginPreview form={form} t={t} isMobile={false} />}
-          {shopType !== "Gold and Silver" && <GstPreview gstCalc={gstCalc} form={form} setForm={setForm} isMobile={false} />}
+          {shopType !== "Gold and Silver" && shopProfile?.gst_enabled && <GstPreview gstCalc={gstCalc} form={form} setForm={setForm} isMobile={false} />}
           <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
             <button onClick={handleAddStock} disabled={saving} style={{ padding: "12px 28px", borderRadius: "10px", border: "none", background: t.color, color: "#fff", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
               {saving ? "Saving…" : editingId ? "✅ Update Stock" : "✅ Add Stock"}

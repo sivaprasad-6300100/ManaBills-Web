@@ -1,5 +1,3 @@
-// src/context/SubscriptionContext.jsx
-
 import React, {
   createContext,
   useCallback,
@@ -19,15 +17,15 @@ export const SubscriptionProvider = ({ children }) => {
 
   const [subscriptions, setSubscriptions] = useState({});
   const [loading, setLoading]             = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // ── Track whether a local subscribe() has been called recently.
-  // If true, we skip the next API re-fetch so it doesn't overwrite
-  // the optimistic update from subscribe().
-  const skipNextFetch = useRef(false);
+  // skipNextFetch guards against the *automatic* re-fetch caused by
+  // navigation (accessToken/sessionVersion change) overwriting the
+  // optimistic update from subscribe(). It must NOT block an explicit
+  // refreshSubscriptions() call — so we use a separate ref for that.
+  const skipNextFetch   = useRef(false);
+  const isExplicitRefresh = useRef(false); // true when refreshSubscriptions() triggered the run
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // FETCH subscriptions from API on mount / token change
-  // ─────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!accessToken) {
       setSubscriptions({});
@@ -35,13 +33,16 @@ export const SubscriptionProvider = ({ children }) => {
       return;
     }
 
-    // If subscribe() just ran (e.g. post-payment navigation), skip this
-    // fetch so the optimistic state is not overwritten.
-    if (skipNextFetch.current) {
+    // Only skip if this is NOT an explicit refresh and subscribe() just ran.
+    if (skipNextFetch.current && !isExplicitRefresh.current) {
       skipNextFetch.current = false;
       setLoading(false);
       return;
     }
+
+    // Reset both flags for this run
+    skipNextFetch.current    = false;
+    isExplicitRefresh.current = false;
 
     let cancelled = false;
     setLoading(true);
@@ -49,8 +50,6 @@ export const SubscriptionProvider = ({ children }) => {
     authAxios
       .get("subscriptions/my/")
       .then((res) => {
-        // API returns array → convert to map keyed by module name
-        // e.g. [{ module: "business", ... }] → { business: { ... } }
         const subMap = {};
         (res.data || []).forEach((sub) => {
           subMap[sub.module] = sub;
@@ -58,12 +57,10 @@ export const SubscriptionProvider = ({ children }) => {
 
         if (!cancelled) {
           setSubscriptions(subMap);
-          // Keep localStorage in sync with latest server state
           localStorage.setItem("subscriptions", JSON.stringify(subMap));
         }
       })
       .catch(() => {
-        // API failed — fall back to localStorage so the app still works
         if (!cancelled) {
           try {
             const saved = localStorage.getItem("subscriptions");
@@ -80,15 +77,8 @@ export const SubscriptionProvider = ({ children }) => {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, sessionVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [accessToken, sessionVersion, refreshTrigger]);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // subscribe(moduleKey, data)
-  //   • Updates local state immediately (optimistic)
-  //   • Persists to localStorage as backup
-  //   • POSTs to backend to persist properly
-  //   • Sets skipNextFetch so the next useEffect re-run doesn't overwrite us
-  // ─────────────────────────────────────────────────────────────────────────
   const subscribe = useCallback((moduleKey, data) => {
     // Optimistic update — instant UI
     setSubscriptions((prev) => {
@@ -97,46 +87,43 @@ export const SubscriptionProvider = ({ children }) => {
       return updated;
     });
 
-    // Tell the effect to skip the next fetch triggered by navigation
+    // Block the *next automatic* re-fetch (navigation side-effect),
+    // but NOT an explicit refreshSubscriptions() call.
     skipNextFetch.current = true;
 
-    // Persist to backend (fire-and-forget — don't block UI)
+    // Persist to backend (fire-and-forget)
     authAxios
       .post("subscriptions/activate/", {
         module:   moduleKey,
-        duration: typeof data === "string" ? data : data?.duration || "",
-        data,
+        plan:     data.plan,
+        duration: data.duration,
       })
-      .catch((err) => {
-        // Non-fatal: localStorage already has it as fallback
-        console.warn("SubscriptionContext: backend activate failed:", err?.response?.data || err.message);
+      .catch(() => {
+        // Optimistic update still holds if POST fails
       });
   }, []);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // unsubscribe(moduleKey)
-  // ─────────────────────────────────────────────────────────────────────────
-  const unsubscribe = useCallback((moduleKey) => {
-    setSubscriptions((prev) => {
-      const updated = { ...prev };
-      delete updated[moduleKey];
-      localStorage.setItem("subscriptions", JSON.stringify(updated));
-      return updated;
-    });
+  // Explicitly fetches fresh data from the server.
+  // Always bypasses the skipNextFetch guard.
+  const refreshSubscriptions = useCallback(() => {
+    isExplicitRefresh.current = true; // mark as intentional — skip the guard
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // isSubscribed(moduleKey) — convenience helper
-  // ─────────────────────────────────────────────────────────────────────────
-  // CORRECT — only truly active
-const isSubscribed = useCallback(
-  (moduleKey) => subscriptions[moduleKey]?.is_active === true,
-  [subscriptions]
-);
+  const isSubscribed = useCallback((moduleKey) => {
+    const sub = subscriptions[moduleKey];
+    return sub && sub.is_active === true;
+  }, [subscriptions]);
 
   const value = useMemo(
-    () => ({ subscriptions, subscribe, unsubscribe, isSubscribed, loading }),
-    [subscriptions, subscribe, unsubscribe, isSubscribed, loading]
+    () => ({
+      subscriptions,
+      loading,
+      subscribe,
+      refreshSubscriptions,
+      isSubscribed,
+    }),
+    [subscriptions, loading, subscribe, refreshSubscriptions, isSubscribed]
   );
 
   return (

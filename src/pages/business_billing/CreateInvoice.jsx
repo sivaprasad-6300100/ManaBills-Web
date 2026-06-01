@@ -1,24 +1,29 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   createInvoice,
   searchProducts,
   getProductStats,
   getShopProfile,        // ← ADD THIS to your businessService
 } from "../../services/businessService";
+import { useContext } from "react";
+import { BusinessStatsContext } from "../../context/BusinessStatsContext";
+import { authAxios } from "../../services/api";
 
 // ─── Invoice ID generator ─────────────────────────────────────
-const genInvoiceId = () => {
-  const now = new Date();
-  const yy  = String(now.getFullYear()).slice(-2);
-  const mm  = String(now.getMonth() + 1).padStart(2, "0");
-  const dd  = String(now.getDate()).padStart(2, "0");
-  const seq = Math.floor(Math.random() * 9000) + 1000;
-  return `INV-${yy}${mm}${dd}-${seq}`;
-};
+// const genInvoiceId = () => {
+  // const now = new Date();
+  // const yy  = String(now.getFullYear()).slice(-2);
+  // const mm  = String(now.getMonth() + 1).padStart(2, "0");
+  // const dd  = String(now.getDate()).padStart(2, "0");
+  // const seq = Math.floor(Math.random() * 9000) + 1000;
+  // return `INV-${yy}${mm}${dd}-${seq}`;
+// };
 
 const emptyItem = () => ({
   productId: null, name: "", qty: 1, price: 0,
   unit: "piece", maxQty: Infinity, isStockItem: false,
+  gst_rate: 0,
 });
 
 const todayStr = () => {
@@ -135,6 +140,8 @@ const S = {
 
 const CreateInvoice = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { refetch } = useContext(BusinessStatsContext);  
 
   const [isGST,        setIsGST]        = useState(false);
   const [customer,     setCustomer]     = useState({ name: "", mobile: "", gst: "" });
@@ -147,7 +154,7 @@ const CreateInvoice = () => {
   const [toast,        setToast]        = useState(null);
   const [stockStats,   setStockStats]   = useState({});
   const [saving,       setSaving]       = useState(false);
-  const [invoiceId]                     = useState(genInvoiceId);
+  const [invoiceId, setInvoiceId] = useState("Loading…");
   const [shopProfile,  setShopProfile]  = useState({ name: "ManaBills Shop", mobile: "" });
 
   // ★ WhatsApp toggle — owner can turn off per invoice
@@ -159,10 +166,17 @@ const CreateInvoice = () => {
   useEffect(() => {
     getProductStats().then(setStockStats).catch(() => {});
 
+    authAxios.get("business/invoices/next-id/")
+    .then(r => setInvoiceId(r.data.invoice_id))
+    .catch(() => setInvoiceId("INV-ERR"));
+
     // getShopProfile returns { name, mobile, address, ... }
     // If you don't have this service yet, you can hardcode shopProfile above.
     if (typeof getShopProfile === "function") {
-      getShopProfile().then(setShopProfile).catch(() => {});
+      getShopProfile().then((data) => {
+        setShopProfile(data);
+        if (data?.gst_enabled) setIsGST(true);
+      }).catch(() => {});
     }
   }, []);
 
@@ -174,7 +188,12 @@ const CreateInvoice = () => {
 
   // ── Calculations ──────────────────────────────────────────
   const subtotal = items.reduce((s, i) => s + Number(i.qty) * Number(i.price), 0);
-  const gstAmt   = isGST ? Math.round(subtotal * 0.05) : 0;
+  // GST only applies when shop has GST AND customer has entered their GST number
+  const applyGST = isGST && customer.gst.trim().length > 0;
+  const gstAmt = applyGST
+  ? Math.round(items.reduce((s, i) =>
+      s + Number(i.qty) * Number(i.price) * Number(i.gst_rate || 0) / 100, 0))
+  : 0;
   const total    = subtotal + gstAmt - Number(discount);
   const balance  = total - Number(advance);
 
@@ -216,7 +235,7 @@ const CreateInvoice = () => {
   const pickSuggestion = (i, product) => {
     setItems((prev) => {
       const copy = [...prev];
-      copy[i] = { ...copy[i], productId: product.id, name: product.name, price: Number(product.selling_price), unit: product.unit, maxQty: Number(product.qty), isStockItem: true, qty: 1 };
+      copy[i] = { ...copy[i], productId: product.id, name: product.name, price: Number(product.selling_price), unit: product.unit, maxQty: Number(product.qty), isStockItem: true, qty: 1, gst_rate: Number(product.gst_rate || 0), };
       return copy;
     });
     setSuggestions([]);
@@ -225,68 +244,130 @@ const CreateInvoice = () => {
 
   // ─────────────────────────────────────────────────────────
   // ★  GENERATE INVOICE  (with WhatsApp auto-send)
-  // ─────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────
   const handleGenerate = async () => {
-    if (!customer.name.trim())              { showToast("Enter customer name", "error"); return; }
-    if (items.every((i) => !i.name.trim())) { showToast("Add at least one item", "error"); return; }
-    if (saving) return;
+  if (!customer.name.trim())              { showToast("Enter customer name", "error"); return; }
+  if (items.every((i) => !i.name.trim())) { showToast("Add at least one item", "error"); return; }
+  if (saving) return;
 
-    setSaving(true);
-    try {
-      const payload = {
-        invoice_id:      invoiceId,
-        customer_name:   customer.name,
-        customer_mobile: customer.mobile,
-        customer_gst:    customer.gst,
-        shop_name:       shopProfile?.name  || "",
-        shop_address:    shopProfile?.address || "",
-        shop_gst:        shopProfile?.gst    || "",
-        subtotal, gst_amt: gstAmt,
-        discount: Number(discount), advance: Number(advance),
-        total, is_gst: isGST, payment, date: todayStr(),
-        items: items
-          .filter((i) => i.name.trim())
-          .map((i) => ({ product: i.isStockItem ? i.productId : null, name: i.name, qty: Number(i.qty), price: Number(i.price), unit: i.unit, is_stock_item: i.isStockItem })),
-      };
+  setSaving(true);
 
-      const result = await createInvoice(payload);
-
-      // ★ 1 — Show success toast
-      showToast(`✅ Invoice ${invoiceId} saved!`);
-
-      // ★ 2 — Auto-send WhatsApp if mobile is given and toggle is ON
-      if (sendWA && customer.mobile?.trim()) {
-        // Invoice view URL — adjust path to match your routing
-        const invoiceUrl = `${window.location.origin}/dashboard/business/invoices/${invoiceId}`;
-
-        sendWhatsAppInvoice({
-          mobile:      customer.mobile,
-          customerName: customer.name,
-          shopName:    shopProfile?.name || "our shop",
-          invoiceId,
-          total,
-          invoiceUrl,
-        });
-
-        // Show WhatsApp toast after short delay
-        setTimeout(() => showToast("💬 WhatsApp opening…", "whatsapp"), 700);
-      }
-
-      // ★ 3 — Reset form
-      getProductStats().then(setStockStats).catch(() => {});
-      setItems([emptyItem()]);
-      setCustomer({ name: "", mobile: "", gst: "" });
-      setDiscount(0); setAdvance(0); setPayment("Cash");
-
-    } catch (err) {
-      const errData = err?.response?.data;
-      if (errData?.stock)       showToast(errData.stock.join(" | "), "error");
-      else if (errData?.items)  showToast(errData.items, "error");
-      else                      showToast("Failed to save invoice. Try again.", "error");
-    } finally {
-      setSaving(false);
+  // ★ Open window synchronously — MUST be before any await
+  // Do NOT use noopener — it kills the window reference
+  let waWindow = null;
+  if (sendWA && customer.mobile?.trim()) {
+    waWindow = window.open("", "_blank");   // ← no noopener
+    if (waWindow) {
+      waWindow.document.write(`
+        <!DOCTYPE html><html><head><title>Opening WhatsApp…</title></head>
+        <body style="margin:0;height:100vh;display:flex;flex-direction:column;
+                     align-items:center;justify-content:center;gap:14px;
+                     background:#f0fdf4;font-family:sans-serif;">
+          <div style="font-size:52px">💬</div>
+          <div style="font-size:1.1rem;font-weight:700;color:#15803d">Saving invoice…</div>
+          <div style="font-size:0.82rem;color:#64748b">WhatsApp will open automatically</div>
+        </body></html>
+      `);
+      waWindow.document.close();
     }
-  };
+  }
+
+  try {
+    const payload = {
+      invoice_id:      invoiceId,
+      customer_name:   customer.name,
+      customer_mobile: customer.mobile,
+      customer_gst:    customer.gst,
+      shop_name:       shopProfile?.name    || "",
+      shop_address:    shopProfile?.address || "",
+      shop_gst:        shopProfile?.gst_number || "",
+      subtotal,
+      gst_amt:         gstAmt,
+      discount:        Number(discount),
+      advance:         Number(advance),
+      total,
+      is_gst:          applyGST,
+      payment,
+      date:            todayStr(),
+      items: items
+        .filter((i) => i.name.trim())
+        .map((i) => ({
+          product:       i.isStockItem ? i.productId : null,
+          name:          i.name,
+          qty:           Number(i.qty),
+          price:         Number(i.price),
+          unit:          i.unit,
+          is_stock_item: i.isStockItem,
+          gst_rate:      Number(i.gst_rate || 0),
+        })),
+    };
+
+    await createInvoice(payload);
+    
+    refetch();
+
+    showToast(`✅ Invoice ${invoiceId} saved!`);
+
+    authAxios.get("business/invoices/next-id/")
+      .then(r => setInvoiceId(r.data.invoice_id))
+      .catch(() => {});
+
+    // ★ Now redirect the already-open window to WhatsApp
+    if (waWindow && !waWindow.closed) {
+      const invoiceUrl = `${process.env.REACT_APP_BASE_URL}/invoice/${invoiceId}`;
+      const cleaned    = customer.mobile.replace(/\D/g, "").replace(/^91/, "").slice(-10);
+      const waNumber   = `91${cleaned}`;
+
+      const msg = [
+        `Hello ${customer.name}! 👋`,
+        ``,
+        `Welcome to *${shopProfile?.name || "ManaBills Shop"}*`,
+        ``,
+        `Your invoice has been generated:`,
+        `🧾 Invoice No: *${invoiceId}*`,
+        `💰 Total Amount: *₹${Number(total).toLocaleString("en-IN")}*`,
+        `📅 Date: ${todayStr()}`,
+        ``,
+        `👇 View & Download your invoice:`,
+        `${invoiceUrl}`,
+        ``,
+        `Thank you for shopping with us! 🙏`,
+      ].join("\n");
+
+      const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
+      waWindow.location.href = waUrl;
+
+
+
+
+
+
+
+
+      setTimeout(() => showToast("💬 WhatsApp opened!", "whatsapp"), 500);
+    }
+
+    // Reset form
+    getProductStats().then(setStockStats).catch(() => {});
+    setItems([emptyItem()]);
+    setCustomer({ name: "", mobile: "", gst: "" });
+    setDiscount(0);
+    setAdvance(0);
+    setPayment("Cash");
+
+  } catch (err) {
+    if (waWindow && !waWindow.closed) waWindow.close();
+
+    const errData = err?.response?.data;
+    if (errData?.stock)      showToast(errData.stock.join(" | "), "error");
+    else if (errData?.items) showToast(errData.items, "error");
+    else                     showToast("Failed to save invoice. Try again.", "error");
+  } finally {
+    setSaving(false);
+  }
+};
+
+
 
   // ── Keyboard shortcuts ────────────────────────────────────
   useEffect(() => {
@@ -362,14 +443,23 @@ const CreateInvoice = () => {
             {/* ★ WhatsApp preview banner */}
             <WaBanner />
 
-            <label style={S.gstRow}>
-              <input type="checkbox" style={S.gstCheckbox} checked={isGST} onChange={() => setIsGST(!isGST)} />
-              <span style={S.gstLabel}>GST Invoice</span>
-              <span style={S.gstTag}>5%</span>
-            </label>
-            {isGST && (
-              <input style={{ ...S.input, marginBottom: 0 }} placeholder="Customer GST Number" value={customer.gst} onChange={(e) => setCustomer({ ...customer, gst: e.target.value })} />
-            )}
+            {shopProfile?.gst_enabled && (
+              <>
+                <div style={{ ...S.gstRow, cursor: "default", background: "#f0fdf4", borderColor: "#86efac" }}>
+                  <span style={{ fontSize: "1rem" }}>✅</span>
+                  <span style={S.gstLabel}>GST Invoice</span>
+                  <span style={{ ...S.gstTag, background: "#dcfce7", color: "#15803d" }}>
+                    {shopProfile.gst_number || "GST On"}
+                  </span>
+                </div>
+                <input
+                  style={{ ...S.input, marginBottom: 0 }}
+                  placeholder="Customer GST Number (optional)"
+                  value={customer.gst}
+                  onChange={(e) => setCustomer({ ...customer, gst: e.target.value })}
+                />
+              </>
+            )}            
           </div>
 
           {/* Items card */}
@@ -404,12 +494,28 @@ const CreateInvoice = () => {
                 </div>
                 <div style={S.itemRowFooter}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <input type="number" style={S.itemNumInput} value={item.qty} min="1" max={item.maxQty !== Infinity ? item.maxQty : undefined} placeholder="Qty" onChange={(e) => updateItem(i, "qty", e.target.value)} />
+                    <input type="number" style={S.itemNumInput} value={item.qty}
+                     min="1" max={item.maxQty !== Infinity ? item.maxQty : undefined} placeholder="Qty" onChange={(e) => updateItem(i, "qty", e.target.value)} />
                     {item.isStockItem && <div style={S.itemMaxHint}>max {item.maxQty}</div>}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <input type="number" style={S.itemNumInput} value={item.price} placeholder="Price ₹" onChange={(e) => updateItem(i, "price", e.target.value)} />
                   </div>
+                   {/* ← ADD HERE */}
+
+                   {applyGST && (
+                      <select
+                        style={{ ...S.itemNumInput, width: "70px" }}
+                        value={item.gst_rate}
+                        onChange={(e) => updateItem(i, "gst_rate", e.target.value)}
+                      >
+                        {[0, 3, 5, 12, 18, 28].map(r => (
+                          <option key={r} value={r}>{r}%</option>
+                        ))}
+                      </select>
+                    )}
+
+
                   <div style={S.itemAmtBox}>₹{(Number(item.qty) * Number(item.price)).toLocaleString("en-IN")}</div>
                 </div>
               </div>
@@ -421,7 +527,7 @@ const CreateInvoice = () => {
           <div style={S.card}>
             <p style={S.sectionLabel}>Summary</p>
             <div style={S.summaryRow}><span style={S.summaryLabel}>Subtotal</span><span style={S.summaryVal}>₹{subtotal.toLocaleString("en-IN")}</span></div>
-            {isGST && <div style={S.summaryRow}><span style={S.summaryLabel}>GST (5%)</span><span style={S.summaryVal}>₹{gstAmt.toLocaleString("en-IN")}</span></div>}
+            {applyGST && gstAmt > 0 && <div style={S.summaryRow}><span style={S.summaryLabel}>GST</span><span style={S.summaryVal}>₹{gstAmt.toLocaleString("en-IN")}</span></div>}
             <div style={S.summaryRow}>
               <span style={S.summaryLabel}>Discount ₹</span>
               <input type="number" style={S.discountInput} value={discount} min="0" onChange={(e) => setDiscount(e.target.value)} />
@@ -490,11 +596,23 @@ const CreateInvoice = () => {
       <div className="top-grid">
         <input placeholder="Customer Name *" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
         <input placeholder="Mobile Number (for WhatsApp)" value={customer.mobile} onChange={(e) => setCustomer({ ...customer, mobile: e.target.value })} />
-        <label className="gst-toggle">
-          <input type="checkbox" checked={isGST} onChange={() => setIsGST(!isGST)} />
-          GST Invoice (5%)
-        </label>
-        {isGST && <input placeholder="Customer GST Number" value={customer.gst} onChange={(e) => setCustomer({ ...customer, gst: e.target.value })} />}
+        {shopProfile?.gst_enabled && (
+          <>
+            <div style={{ padding: "10px 14px", background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: "8px", fontSize: "0.85rem", color: "#15803d", fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}>
+              ✅ GST Invoice &nbsp;
+              <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 400 }}>
+                Shop GST: {shopProfile.gst_number || "Registered"}
+              </span>
+            </div>
+            <input
+              placeholder="Customer GST Number (optional)"
+              value={customer.gst}
+              onChange={(e) => setCustomer({ ...customer, gst: e.target.value })}
+            />
+          </>
+        )}
+
+
       </div>
 
       {/* ★ WhatsApp banner — desktop */}
@@ -562,7 +680,7 @@ const CreateInvoice = () => {
         {/* RIGHT — Summary */}
         <div className="summary-panel">
           <div className="summary-row"><span>Subtotal</span><span>₹{subtotal.toLocaleString("en-IN")}</span></div>
-          {isGST && <div className="summary-row"><span>GST (5%)</span><span>₹{gstAmt.toLocaleString("en-IN")}</span></div>}
+          {applyGST && gstAmt > 0 && <div className="summary-row"><span>GST</span><span>₹{gstAmt.toLocaleString("en-IN")}</span></div>}
           <div className="summary-row">
             <span>Discount ₹</span>
             <input type="number" value={discount} min="0" onChange={(e) => setDiscount(e.target.value)} style={{ width:"90px", textAlign:"right" }} />

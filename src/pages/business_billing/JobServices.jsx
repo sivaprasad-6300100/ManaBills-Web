@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getProducts,
   updateProduct,
   getShopProfile,
 } from "../../services/businessService";
+
+
 
 // ─── You may need to add these two functions to businessService.js ────────────
 // getJobs()        → GET  /api/jobs/
@@ -116,6 +119,7 @@ const JobServices = () => {
   const isMobile = useIsMobile();
   const shopType = shopProfile?.shop_type || "default";
   const t        = theme(shopType);
+  const navigate = useNavigate();
 
   useEffect(() => { loadAll(); }, []);
 
@@ -298,13 +302,33 @@ const JobServices = () => {
         {toast && <div style={S.toast(toast.type)}>{toast.msg}</div>}
 
         {/* Header */}
-        <div style={S.headerBar}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            <h2 style={S.headerTitle}>🔨 Job / Services</h2>
-            <span style={S.headerHint}>Create jobs — materials auto-debited from stock</span>
-          </div>
-          {shopProfile && <span style={S.shopBadge(t.color)}>{t.icon} {shopType}</span>}
-        </div>
+        {/* Header */}
+<div style={S.headerBar}>
+  <button
+    onClick={() => navigate(-1)}
+    style={{
+      background: "rgba(255,255,255,0.10)",
+      border: "1px solid rgba(255,255,255,0.20)",
+      borderRadius: "10px",
+      color: "#fff",
+      padding: "8px 14px",
+      fontSize: "0.78rem",
+      fontWeight: 700,
+      cursor: "pointer",
+      flexShrink: 0,
+      marginRight: "10px",
+    }}
+  >
+    ← Back
+  </button>
+  <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
+    <h2 style={S.headerTitle}>🔨 Job / Services</h2>
+    <span style={S.headerHint}>Create jobs — materials auto-debited from stock</span>
+  </div>
+  {shopProfile && <span style={S.shopBadge(t.color)}>{t.icon} {shopType}</span>}
+</div>
+
+
 
         {/* Tabs */}
         <div style={S.tabBar}>

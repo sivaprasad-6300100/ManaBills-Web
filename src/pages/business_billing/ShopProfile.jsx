@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
-// import { getShopProfile, saveShopProfile, deleteShopProfile } from "../../services/businessService";
-import { getShopProfile, saveShopProfile, deleteShopProfile, getProducts } from "../../services/businessService";
+import {
+  getShopProfile,
+  saveShopProfile,
+  deleteShopProfile,
+  getProducts,
+} from "../../services/businessService";
+import { useShop } from "../../context/ShopContext";
 
 const defaultShop = {
   shop_name:    "",
@@ -29,44 +34,16 @@ const toDisplay = (d) => ({
 });
 
 const shopTypeIcons = {
-  "Kirana Store": "🛒",
-  "HardWare": "🔧",
-  "Clothing": "👗",
-  "Resturants": "🍽️",
+  "Kirana Store":    "🛒",
+  "HardWare":        "🔧",
+  "Clothing":        "👗",
+  "Resturants":      "🍽️",
   "Aluminium Shop":  "🪟",
-  "Medical": "💊",
-  "Genral Store": "🏪",
+  "Medical":         "💊",
+  "Genral Store":    "🏪",
   "Gold and Silver": "💍",
-  "Others": "🏢",
+  "Others":          "🏢",
 };
-
-const ShopProfile = () => {
-  const [hasStock, setHasStock] = useState(false);
-  const [shop,      setShop]      = useState(defaultShop);
-  const [savedShop, setSavedShop] = useState(null);
-  const [isEditing, setIsEditing] = useState(true);
-  const [saving,    setSaving]    = useState(false);
-  const [toast,     setToast]     = useState(null);
-  const [activeSection, setActiveSection] = useState("basic");
-  const [customShopType,     setCustomShopType]     = useState("");
-  const [showCustomShopType, setShowCustomShopType] = useState(false);
-  const [customShopCategories, setCustomShopCategories] = useState([]);
-  const [customShopUnits,      setCustomShopUnits]      = useState([]);
-  const [showCustomPicker,     setShowCustomPicker]     = useState(false);
-
-  const ALL_CATEGORIES = [
-  "General","Electronics","Grocery","Clothing","Hardware","Medical",
-  "Stationery","Food & Beverages","Atta & Rice","Dal & Pulses","Oil & Ghee",
-  "Sugar & Salt","Spices","Dry Fruits","Biscuits & Snacks","Beverages",
-  "Soap & Detergent","Dairy","Tablets","Syrups","Injections","Surgical",
-  "OTC Medicines","Vitamins & Supplements","Ayurvedic","Cosmetics","Baby Care",
-  "Gold Jewellery","Silver Jewellery","Coins & Bars","Diamonds","Gemstones",
-  "Fasteners","Hardware Fittings","Furniture Fittings","Wood & Boards","Doors",
-  "Adhesives & Chemicals","Electrical & Lighting","Paint & Finishing","Plumbing",
-  "Kitchen & Bathroom","Tools & Safety","Glass","Men","Women","Boy","Girl","Unisex",
-  "Aluminium Section","Aluminium Rods","Handles","Locks","Sliding Channel",
-  "Rubber Beading","Breakfast","Lunch","Dinner","Snacks","Sweets","Bakery","Other",
-];
 
 const ALL_UNITS = [
   "piece","kg","gram","litre","ml","bag","box","dozen","metre","set",
@@ -74,54 +51,70 @@ const ALL_UNITS = [
   "pair","sqft","foot","inch","sqm","sheet","plate","can","jar","carton",
 ];
 
+const ShopProfile = () => {
+  const { setProfileReady } = useShop();
+  const [hasStock,           setHasStock]           = useState(false);
+  const [shop,               setShop]               = useState(defaultShop);
+  const [savedShop,          setSavedShop]          = useState(null);
+  const [isEditing,          setIsEditing]          = useState(true);
+  const [saving,             setSaving]             = useState(false);
+  const [toast,              setToast]              = useState(null);
+  const [customShopType,     setCustomShopType]     = useState("");
+  const [showCustomShopType, setShowCustomShopType] = useState(false);
+  const [customShopUnits,    setCustomShopUnits]    = useState([]);
+  const [showCustomPicker,   setShowCustomPicker]   = useState(false);
+
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
   useEffect(() => {
-  getShopProfile()
-    .then((data) => {
-      setSavedShop(data);
-      setShop({
-        shop_name:    data.shop_name    || "",
-        owner_name:   data.owner_name   || "",
-        mobile:       data.mobile       || "",
-        extra_mobile: data.extra_mobile || "",
-        address:      data.address      || "",
-        shop_type:    data.shop_type    || "",
-        timings:      data.timings      || "",
-        gst_enabled:  data.gst_enabled  || false,
-        gst_number:   data.gst_number   || "",
-        logo_url:     data.logo_url     || "",
+    getShopProfile()
+      .then((data) => {
+        const complete = !!(data?.shop_name && data?.owner_name && data?.mobile && data?.address);
+        setProfileReady(complete);
+        setSavedShop(data);
+        setShop({
+          shop_name:    data.shop_name    || "",
+          owner_name:   data.owner_name   || "",
+          mobile:       data.mobile       || "",
+          extra_mobile: data.extra_mobile || "",
+          address:      data.address      || "",
+          shop_type:    data.shop_type    || "",
+          timings:      data.timings      || "",
+          gst_enabled:  data.gst_enabled  || false,
+          gst_number:   data.gst_number   || "",
+          logo_url:     data.logo_url     || "",
+        });
+        setIsEditing(false);
+      })
+      .catch(() => {
+        setProfileReady(false);
+        setIsEditing(true);
       });
-      setIsEditing(false);
-    })
-    .catch(() => setIsEditing(true));
 
-  // Check if stock exists to lock shop_type
-  getProducts()
-    .then((products) => setHasStock(products.length > 0))
-    .catch(() => setHasStock(false));
-}, []);
-
+    getProducts()
+      .then((products) => setHasStock(products.length > 0))
+      .catch(() => setHasStock(false));
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setShop((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setShop((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
   const saveShopDetails = async () => {
-    if (!shop.shop_name || !shop.owner_name || !shop.mobile || !shop.address) {
-      showToast("Please fill in Shop Name, Owner Name, Mobile, and Address.", "error");
+    if (!shop.shop_name || !shop.owner_name || !shop.mobile || !shop.address || !shop.shop_type) {
+      showToast("Please fill all required fields (marked with *)", "error");
+      return;
+    }
+    if (shop.gst_enabled && !shop.gst_number.trim()) {
+      showToast("GST Number is required when GST is enabled", "error");
       return;
     }
     setSaving(true);
     try {
-      // Build a clean payload without File objects
       const payload = {
         shop_name:    shop.shop_name,
         owner_name:   shop.owner_name,
@@ -134,19 +127,17 @@ const ALL_UNITS = [
         gst_number:   shop.gst_number,
         logo_url:     shop.logo_url || "",
       };
-
-      const data = await saveShopProfile(payload);  // ✅ payload not shop
+      const data = await saveShopProfile(payload);
       setSavedShop(data);
+      setProfileReady(true);
       setIsEditing(false);
       showToast("Shop details saved successfully ✅");
-    } catch (err) {
+    } catch {
       showToast("Failed to save. Please try again.", "error");
     } finally {
       setSaving(false);
     }
   };
-
-  const startEdit = () => setIsEditing(true);
 
   const clearProfile = async () => {
     if (!window.confirm("Reset shop profile? This cannot be undone.")) return;
@@ -154,6 +145,7 @@ const ALL_UNITS = [
       await deleteShopProfile();
       setSavedShop(null);
       setShop(defaultShop);
+      setProfileReady(false);
       setIsEditing(true);
       showToast("Shop profile cleared.");
     } catch {
@@ -170,20 +162,19 @@ const ALL_UNITS = [
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-        .sp-root * { box-sizing: border-box; margin: 0; padding: 0; }
+        .sp-root *, .sp-root *::before, .sp-root *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         .sp-root {
           font-family: 'Sora', sans-serif;
           min-height: 100vh;
           background: #f0f2f7;
-          padding: 24px 16px 48px;
+          padding: 24px 16px 60px;
         }
 
         /* ── Toast ── */
         .sp-toast {
           position: fixed;
-          top: 20px;
-          left: 50%;
+          top: 20px; left: 50%;
           transform: translateX(-50%) translateY(-8px);
           z-index: 9999;
           padding: 12px 28px;
@@ -194,28 +185,28 @@ const ALL_UNITS = [
           color: #fff;
           box-shadow: 0 8px 32px rgba(0,0,0,0.18);
           animation: toastIn 0.3s ease forwards;
-          letter-spacing: 0.01em;
+          pointer-events: none;
         }
         .sp-toast.success { background: linear-gradient(135deg, #1a73e8, #0d47a1); }
         .sp-toast.error   { background: linear-gradient(135deg, #e53935, #b71c1c); }
         @keyframes toastIn {
-          to { transform: translateX(-50%) translateY(0); opacity: 1; }
-          from { opacity: 0; }
+          from { opacity: 0; transform: translateX(-50%) translateY(-14px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
 
-        /* ── Page Header ── */
+        /* ── Page header ── */
         .sp-page-header {
-          max-width: 860px;
-          margin: 0 auto 28px;
+          max-width: 700px;
+          margin: 0 auto 24px;
         }
         .sp-page-header h1 {
-          font-size: 1.6rem;
+          font-size: 1.55rem;
           font-weight: 700;
           color: #0d1b2a;
           letter-spacing: -0.03em;
         }
         .sp-page-header p {
-          font-size: 0.88rem;
+          font-size: 0.86rem;
           color: #6b7a99;
           margin-top: 4px;
           font-weight: 400;
@@ -223,20 +214,18 @@ const ALL_UNITS = [
 
         /* ── Card ── */
         .sp-card {
-          max-width: 860px;
+          max-width: 700px;
           margin: 0 auto;
           background: #fff;
-          border-radius: 20px;
+          border-radius: 22px;
           box-shadow: 0 2px 24px rgba(13,27,42,0.08), 0 1px 4px rgba(13,27,42,0.04);
           overflow: hidden;
         }
 
-        /* ════════════════════════════════
-           DISPLAY MODE
-        ════════════════════════════════ */
+        /* ══════════ DISPLAY MODE ══════════ */
         .sp-display-hero {
           background: linear-gradient(135deg, #0d47a1 0%, #1565c0 50%, #1976d2 100%);
-          padding: 32px 32px 28px;
+          padding: 32px 28px 26px;
           color: #fff;
           position: relative;
           overflow: hidden;
@@ -248,14 +237,7 @@ const ALL_UNITS = [
           width: 200px; height: 200px;
           background: rgba(255,255,255,0.05);
           border-radius: 50%;
-        }
-        .sp-display-hero::after {
-          content: '';
-          position: absolute;
-          bottom: -60px; left: -20px;
-          width: 160px; height: 160px;
-          background: rgba(255,255,255,0.04);
-          border-radius: 50%;
+          pointer-events: none;
         }
         .sp-hero-top {
           display: flex;
@@ -266,170 +248,109 @@ const ALL_UNITS = [
           position: relative;
           z-index: 1;
         }
+        .sp-hero-left { display: flex; gap: 14px; align-items: flex-start; flex: 1; }
         .sp-hero-icon {
-          width: 56px; height: 56px;
+          width: 52px; height: 52px;
           background: rgba(255,255,255,0.15);
-          border-radius: 16px;
+          border-radius: 14px;
           display: flex; align-items: center; justify-content: center;
-          font-size: 1.8rem;
-          backdrop-filter: blur(8px);
+          font-size: 1.7rem;
           flex-shrink: 0;
         }
-        .sp-hero-info { flex: 1; }
         .sp-hero-label {
-          font-size: 0.72rem;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          opacity: 0.7;
-          margin-bottom: 4px;
+          font-size: 0.68rem; font-weight: 600;
+          letter-spacing: 0.12em; text-transform: uppercase;
+          opacity: 0.65; margin-bottom: 4px;
         }
-        .sp-hero-name {
-          font-size: 1.5rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          line-height: 1.2;
-        }
-        .sp-hero-meta {
-          font-size: 0.82rem;
-          opacity: 0.75;
-          margin-top: 6px;
-          font-weight: 400;
-        }
-        .sp-hero-actions {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          flex-wrap: wrap;
-        }
+        .sp-hero-name { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+        .sp-hero-meta { font-size: 0.80rem; opacity: 0.70; margin-top: 5px; }
+        .sp-hero-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .sp-gst-chip {
-          padding: 6px 14px;
-          border-radius: 50px;
-          font-size: 0.74rem;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
+          padding: 5px 13px; border-radius: 50px;
+          font-size: 0.72rem; font-weight: 700;
+          letter-spacing: 0.05em; text-transform: uppercase;
         }
         .sp-gst-chip.on  { background: rgba(76,175,80,0.25); color: #a5d6a7; border: 1px solid rgba(76,175,80,0.3); }
-        .sp-gst-chip.off { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.15); }
+        .sp-gst-chip.off { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.15); }
         .sp-btn-edit {
-          padding: 8px 20px;
-          background: rgba(255,255,255,0.15);
-          color: #fff;
-          border: 1px solid rgba(255,255,255,0.3);
-          border-radius: 10px;
-          font-size: 0.82rem;
-          font-weight: 600;
-          cursor: pointer;
-          font-family: inherit;
-          transition: background 0.2s;
-          backdrop-filter: blur(8px);
+          padding: 8px 18px;
+          background: rgba(255,255,255,0.15); color: #fff;
+          border: 1px solid rgba(255,255,255,0.28); border-radius: 10px;
+          font-size: 0.80rem; font-weight: 600;
+          cursor: pointer; font-family: inherit;
+          transition: background 0.18s;
         }
         .sp-btn-edit:hover { background: rgba(255,255,255,0.25); }
         .sp-btn-reset {
-          padding: 8px 16px;
-          background: transparent;
-          color: rgba(255,255,255,0.55);
-          border: none;
-          border-radius: 10px;
-          font-size: 0.82rem;
-          font-weight: 500;
-          cursor: pointer;
-          font-family: inherit;
-          transition: color 0.2s;
+          padding: 8px 14px;
+          background: transparent; color: rgba(255,255,255,0.50);
+          border: none; border-radius: 10px;
+          font-size: 0.80rem; font-weight: 500;
+          cursor: pointer; font-family: inherit;
+          transition: color 0.18s;
         }
         .sp-btn-reset:hover { color: #ffcdd2; }
 
-        /* Detail Grid */
+        /* Detail grid */
         .sp-detail-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
           gap: 1px;
           background: #eef0f5;
           border-top: 1px solid #eef0f5;
         }
-        .sp-detail-cell {
-          background: #fff;
-          padding: 20px 24px;
-          transition: background 0.15s;
-        }
+        .sp-detail-cell { background: #fff; padding: 18px 22px; transition: background 0.15s; }
         .sp-detail-cell:hover { background: #f8f9ff; }
         .sp-detail-cell.full { grid-column: 1 / -1; }
-        .sp-detail-lbl {
-          font-size: 0.72rem;
-          font-weight: 600;
-          color: #94a3b8;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          margin-bottom: 6px;
-        }
-        .sp-detail-val {
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: #1e293b;
-          font-family: 'JetBrains Mono', monospace;
-        }
-        .sp-detail-val.normal {
-          font-family: 'Sora', sans-serif;
-          font-size: 0.92rem;
-        }
-        .sp-detail-val.empty { color: #cbd5e1; font-weight: 400; }
+        .sp-detail-lbl { font-size: 0.68rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+        .sp-detail-val { font-size: 0.92rem; font-weight: 600; color: #1e293b; font-family: 'JetBrains Mono', monospace; }
+        .sp-detail-val.normal { font-family: 'Sora', sans-serif; font-size: 0.90rem; }
+        .sp-detail-val.empty  { color: #cbd5e1; font-weight: 400; }
 
-        /* ════════════════════════════════
-           EDIT MODE
-        ════════════════════════════════ */
+        /* ══════════ EDIT MODE ══════════ */
         .sp-form-header {
-          padding: 28px 32px 0;
+          padding: 26px 28px 20px;
           border-bottom: 1px solid #eef0f5;
         }
         .sp-form-title {
-          font-size: 1.05rem;
-          font-weight: 700;
-          color: #0d1b2a;
-          margin-bottom: 20px;
+          font-size: 1rem; font-weight: 700;
+          color: #0d1b2a; letter-spacing: -0.01em;
         }
-        .sp-tabs {
-          display: flex;
-          gap: 0;
+        .sp-form-subtitle {
+          font-size: 0.78rem; color: #94a3b8;
+          margin-top: 3px; font-weight: 400;
         }
-        .sp-tab {
-          padding: 10px 20px;
-          font-size: 0.83rem;
-          font-weight: 600;
-          color: #94a3b8;
-          border: none;
-          background: none;
-          cursor: pointer;
-          font-family: inherit;
-          border-bottom: 2px solid transparent;
-          transition: all 0.2s;
-          white-space: nowrap;
-        }
-        .sp-tab.active {
-          color: #1a73e8;
-          border-bottom-color: #1a73e8;
-        }
-        .sp-tab:hover:not(.active) { color: #64748b; }
 
-        .sp-form-body { padding: 28px 32px; }
+        .sp-form-body { padding: 26px 28px; display: flex; flex-direction: column; gap: 0; }
 
-        .sp-section { display: none; }
-        .sp-section.visible { display: block; }
-
-        .sp-form-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 18px;
+        /* Section divider */
+        .sp-section-label {
+          font-size: 0.65rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          padding: 5px 10px;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 16px;
         }
-        .sp-field { display: flex; flex-direction: column; gap: 7px; }
+        .sp-section-label.required { background: #eff6ff; color: #1a73e8; }
+        .sp-section-label.optional { background: #f8fafc; color: #94a3b8; }
+
+        .sp-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        .sp-field { display: flex; flex-direction: column; gap: 6px; }
         .sp-field.full { grid-column: 1 / -1; }
+
         .sp-field label {
-          font-size: 0.78rem;
-          font-weight: 600;
-          color: #475569;
-          letter-spacing: 0.03em;
+          font-size: 0.75rem; font-weight: 600;
+          color: #475569; letter-spacing: 0.02em;
+          display: flex; align-items: center; gap: 4px;
         }
-        .sp-field label span.req { color: #ef4444; margin-left: 2px; }
+        .sp-req { color: #ef4444; font-size: 0.78rem; }
+        .sp-opt { color: #94a3b8; font-size: 0.68rem; font-weight: 500; }
 
         .sp-field input,
         .sp-field select,
@@ -438,11 +359,11 @@ const ALL_UNITS = [
           padding: 11px 14px;
           border: 1.5px solid #e2e8f0;
           border-radius: 10px;
-          font-size: 0.9rem;
+          font-size: 0.88rem;
           font-family: 'Sora', sans-serif;
           color: #1e293b;
           background: #f8fafc;
-          transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+          transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
           outline: none;
         }
         .sp-field input:focus,
@@ -450,147 +371,173 @@ const ALL_UNITS = [
         .sp-field textarea:focus {
           border-color: #1a73e8;
           background: #fff;
-          box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+          box-shadow: 0 0 0 3px rgba(26,115,232,0.10);
         }
-        .sp-field textarea {
-          resize: vertical;
-          min-height: 90px;
-          line-height: 1.5;
+        .sp-field input.has-value,
+        .sp-field select.has-value,
+        .sp-field textarea.has-value {
+          border-color: #22c55e;
+          background: #f0fdf4;
         }
-        .sp-field select { cursor: pointer; }
+        .sp-field textarea { resize: vertical; min-height: 80px; line-height: 1.55; }
+        .sp-field select   { cursor: pointer; }
 
-        /* GST Toggle */
+        /* Section separator */
+        .sp-sep {
+          height: 1px;
+          background: #eef0f5;
+          margin: 22px 0;
+          border: none;
+        }
+
+        /* GST box */
         .sp-gst-box {
           background: #f8fafc;
           border: 1.5px solid #e2e8f0;
           border-radius: 14px;
-          padding: 20px;
-          margin-top: 4px;
+          padding: 18px;
         }
-        .sp-gst-row {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-        .sp-toggle {
-          position: relative;
-          width: 44px;
-          height: 24px;
-          flex-shrink: 0;
-        }
+        .sp-gst-row { display: flex; align-items: center; gap: 14px; }
+        .sp-toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
         .sp-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
         .sp-toggle-track {
-          position: absolute;
-          inset: 0;
-          background: #cbd5e1;
-          border-radius: 50px;
-          cursor: pointer;
-          transition: background 0.2s;
+          position: absolute; inset: 0;
+          background: #cbd5e1; border-radius: 50px;
+          cursor: pointer; transition: background 0.2s;
         }
         .sp-toggle input:checked + .sp-toggle-track { background: #1a73e8; }
         .sp-toggle-track::after {
           content: '';
-          position: absolute;
-          top: 3px; left: 3px;
+          position: absolute; top: 3px; left: 3px;
           width: 18px; height: 18px;
-          background: #fff;
-          border-radius: 50%;
+          background: #fff; border-radius: 50%;
           transition: transform 0.2s;
           box-shadow: 0 1px 4px rgba(0,0,0,0.15);
         }
         .sp-toggle input:checked + .sp-toggle-track::after { transform: translateX(20px); }
-        .sp-gst-text h4 {
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: #1e293b;
-        }
-        .sp-gst-text p {
-          font-size: 0.78rem;
-          color: #94a3b8;
-          margin-top: 2px;
-          font-weight: 400;
-        }
-        .sp-gst-number {
-          margin-top: 16px;
-          padding-top: 16px;
-          border-top: 1px solid #e2e8f0;
-          animation: fadeDown 0.25s ease;
-        }
+        .sp-gst-text h4 { font-size: 0.88rem; font-weight: 600; color: #1e293b; }
+        .sp-gst-text p  { font-size: 0.76rem; color: #94a3b8; margin-top: 2px; font-weight: 400; }
+        .sp-gst-number  { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e2e8f0; animation: fadeDown 0.22s ease; }
         @keyframes fadeDown {
           from { opacity: 0; transform: translateY(-6px); }
           to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Form Actions */
+        /* Custom shop input */
+        .sp-custom-box {
+          margin-top: 10px;
+          background: #f0f9ff;
+          border: 1.5px solid rgba(26,115,232,0.30);
+          border-radius: 10px;
+          padding: 12px;
+          display: flex; flex-direction: column; gap: 8px;
+          animation: fadeDown 0.2s ease;
+        }
+        .sp-custom-box-title { font-size: 0.68rem; font-weight: 800; color: #1a73e8; text-transform: uppercase; letter-spacing: 0.06em; }
+        .sp-custom-row { display: flex; gap: 8px; }
+        .sp-custom-row input {
+          flex: 1; padding: 9px 12px; border-radius: 8px;
+          border: 1.5px solid #e2e8f0; font-size: 0.86rem; outline: none;
+          font-family: 'Sora', sans-serif; background: #fff; color: #1e293b;
+        }
+        .sp-custom-row input:focus { border-color: #1a73e8; }
+        .sp-custom-confirm {
+          padding: 9px 16px; border-radius: 8px; border: none;
+          font-weight: 700; font-size: 0.82rem; cursor: pointer; white-space: nowrap;
+          transition: background 0.15s;
+        }
+        .sp-custom-hint { font-size: 0.68rem; color: #0369a1; }
+
+        /* Unit picker */
+        .sp-picker-box {
+          margin-top: 14px;
+          background: #f8fafc;
+          border: 1.5px solid rgba(26,115,232,0.25);
+          border-radius: 12px;
+          padding: 16px;
+          display: flex; flex-direction: column; gap: 14px;
+          animation: fadeDown 0.2s ease;
+        }
+        .sp-picker-title { font-size: 0.76rem; font-weight: 700; color: #1a73e8; }
+        .sp-picker-sub   { font-size: 0.68rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+        .sp-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+        .sp-chip {
+          padding: 5px 12px; border-radius: 100px;
+          font-size: 0.76rem; font-weight: 600;
+          cursor: pointer; transition: all 0.15s;
+          border: 1.5px solid #e2e8f0;
+          background: #fff; color: #64748b;
+        }
+        .sp-chip.selected { background: #ea580c; color: #fff; border-color: #ea580c; }
+        .sp-picker-confirm {
+          padding: 10px 20px; border-radius: 10px; border: none;
+          font-weight: 700; font-size: 0.86rem; cursor: pointer;
+          align-self: flex-start; transition: all 0.15s;
+          font-family: 'Sora', sans-serif;
+        }
+
+        /* Form actions */
         .sp-form-actions {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-          padding: 20px 32px 28px;
+          display: flex; gap: 12px; align-items: center;
+          padding: 18px 28px 26px;
           border-top: 1px solid #eef0f5;
           flex-wrap: wrap;
         }
         .sp-btn-primary {
           padding: 12px 28px;
           background: linear-gradient(135deg, #1a73e8, #0d47a1);
-          color: #fff;
-          border: none;
-          border-radius: 10px;
-          font-size: 0.88rem;
-          font-weight: 700;
-          cursor: pointer;
-          font-family: inherit;
-          transition: opacity 0.2s, transform 0.1s;
-          letter-spacing: 0.01em;
-          box-shadow: 0 4px 16px rgba(26,115,232,0.3);
+          color: #fff; border: none; border-radius: 10px;
+          font-size: 0.86rem; font-weight: 700;
+          cursor: pointer; font-family: 'Sora', sans-serif;
+          transition: opacity 0.18s, transform 0.12s;
+          box-shadow: 0 4px 16px rgba(26,115,232,0.28);
         }
-        .sp-btn-primary:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-        .sp-btn-primary:active { transform: translateY(0); }
-        .sp-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .sp-btn-primary:hover:not(:disabled) { opacity: 0.90; transform: translateY(-1px); }
+        .sp-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
         .sp-btn-secondary {
-          padding: 12px 20px;
-          background: #f1f5f9;
-          color: #64748b;
-          border: none;
-          border-radius: 10px;
-          font-size: 0.88rem;
-          font-weight: 600;
-          cursor: pointer;
-          font-family: inherit;
-          transition: background 0.2s;
+          padding: 12px 18px;
+          background: #f1f5f9; color: #64748b;
+          border: none; border-radius: 10px;
+          font-size: 0.86rem; font-weight: 600;
+          cursor: pointer; font-family: 'Sora', sans-serif;
+          transition: background 0.18s;
         }
         .sp-btn-secondary:hover { background: #e2e8f0; }
 
+        /* Warning / hint pills */
+        .sp-hint {
+          font-size: 0.73rem; margin-top: 5px;
+          display: flex; align-items: flex-start; gap: 4px; line-height: 1.4;
+        }
+        .sp-hint.warn  { color: #f59e0b; }
+        .sp-hint.error { color: #dc2626; }
+
         /* ── Responsive ── */
         @media (max-width: 640px) {
-          .sp-root { padding: 16px 12px 40px; }
-          .sp-page-header h1 { font-size: 1.3rem; }
-          .sp-display-hero { padding: 24px 20px; }
-          .sp-hero-name { font-size: 1.2rem; }
-          .sp-hero-top { flex-direction: column; gap: 16px; }
-          .sp-hero-actions { width: 100%; justify-content: flex-start; }
-          .sp-form-header { padding: 20px 20px 0; }
-          .sp-form-body { padding: 20px; }
+          .sp-root { padding: 14px 12px 48px; }
+          .sp-page-header h1 { font-size: 1.25rem; }
+          .sp-display-hero { padding: 20px 18px; }
+          .sp-hero-name { font-size: 1.15rem; }
+          .sp-hero-top { flex-direction: column; gap: 14px; }
+          .sp-hero-actions { width: 100%; }
+          .sp-form-header { padding: 20px 18px 16px; }
+          .sp-form-body { padding: 18px; }
           .sp-form-grid { grid-template-columns: 1fr; }
           .sp-field.full { grid-column: 1; }
-          .sp-form-actions { padding: 16px 20px 24px; }
-          .sp-detail-cell { padding: 16px 20px; }
-          .sp-tabs { overflow-x: auto; padding-bottom: 0; }
-          .sp-tab { padding: 10px 14px; font-size: 0.78rem; }
+          .sp-form-actions { padding: 14px 18px 22px; }
+          .sp-detail-cell { padding: 14px 18px; }
         }
       `}</style>
 
       <div className="sp-root">
 
         {/* Toast */}
-        {toast && (
-          <div className={`sp-toast ${toast.type}`}>{toast.msg}</div>
-        )}
+        {toast && <div className={`sp-toast ${toast.type}`}>{toast.msg}</div>}
 
         {/* Page Header */}
         <div className="sp-page-header">
-          <h1>Shop / Business Details</h1>
-          <p>Manage your shop profile, contact info, and GST settings in one place.</p>
+          <h1>Shop / Business Profile</h1>
+          <p>Set up your shop details, contact info and GST settings.</p>
         </div>
 
         <div className="sp-card">
@@ -600,9 +547,9 @@ const ALL_UNITS = [
             <>
               <div className="sp-display-hero">
                 <div className="sp-hero-top">
-                  <div style={{ display: "flex", gap: "16px", alignItems: "flex-start", flex: 1 }}>
+                  <div className="sp-hero-left">
                     <div className="sp-hero-icon">{shopIcon}</div>
-                    <div className="sp-hero-info">
+                    <div>
                       <div className="sp-hero-label">Saved Shop Profile</div>
                       <div className="sp-hero-name">{display.shopName}</div>
                       <div className="sp-hero-meta">
@@ -614,7 +561,7 @@ const ALL_UNITS = [
                     <span className={`sp-gst-chip ${display.gstEnabled ? "on" : "off"}`}>
                       {display.gstEnabled ? "GST On" : "GST Off"}
                     </span>
-                    <button className="sp-btn-edit" onClick={startEdit}>Edit Profile</button>
+                    <button className="sp-btn-edit" onClick={() => setIsEditing(true)}>Edit Profile</button>
                     <button className="sp-btn-reset" onClick={clearProfile}>Reset</button>
                   </div>
                 </div>
@@ -655,60 +602,66 @@ const ALL_UNITS = [
                 <div className="sp-form-title">
                   {savedShop ? "Edit Shop Profile" : "Set Up Your Shop"}
                 </div>
-                <div className="sp-tabs">
-                  <button
-                    className={`sp-tab ${activeSection === "basic" ? "active" : ""}`}
-                    onClick={() => setActiveSection("basic")}
-                  >
-                    Basic Info
-                  </button>
-                  <button
-                    className={`sp-tab ${activeSection === "contact" ? "active" : ""}`}
-                    onClick={() => setActiveSection("contact")}
-                  >
-                    Contact
-                  </button>
-                  <button
-                    className={`sp-tab ${activeSection === "gst" ? "active" : ""}`}
-                    onClick={() => setActiveSection("gst")}
-                  >
-                    GST & Tax
-                  </button>
+                <div className="sp-form-subtitle">
+                  Fill in required fields to get started. Optional fields can be added anytime.
                 </div>
               </div>
 
               <div className="sp-form-body">
 
-                {/* ── Tab: Basic Info ── */}
-                <div className={`sp-section ${activeSection === "basic" ? "visible" : ""}`}>
-                  <div className="sp-form-grid">
-                    <div className="sp-field">
-                      <label>Shop Name <span className="req">*</span></label>
-                      <input
-                        type="text"
-                        name="shop_name"
-                        placeholder="e.g. Ravi General Store"
-                        value={shop.shop_name}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="sp-field">
-                      <label>Owner Name <span className="req">*</span></label>
-                      <input
-                        type="text"
-                        name="owner_name"
-                        placeholder="e.g. Ravi Kumar"
-                        value={shop.owner_name}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="sp-field">
-                    <label>Shop Type</label>
+                {/* ─── REQUIRED SECTION ─── */}
+                <span className="sp-section-label required">✳ Required Information</span>
+
+                <div className="sp-form-grid">
+
+                  {/* Shop Name */}
+                  <div className="sp-field">
+                    <label>Shop Name <span className="sp-req">*</span></label>
+                    <input
+                      type="text"
+                      name="shop_name"
+                      placeholder="e.g. Ravi General Store"
+                      value={shop.shop_name}
+                      onChange={handleChange}
+                      className={shop.shop_name ? "has-value" : ""}
+                    />
+                  </div>
+
+                  {/* Owner Name */}
+                  <div className="sp-field">
+                    <label>Owner Name <span className="sp-req">*</span></label>
+                    <input
+                      type="text"
+                      name="owner_name"
+                      placeholder="e.g. Ravi Kumar"
+                      value={shop.owner_name}
+                      onChange={handleChange}
+                      className={shop.owner_name ? "has-value" : ""}
+                    />
+                  </div>
+
+                  {/* Primary Mobile */}
+                  <div className="sp-field">
+                    <label>Primary Mobile <span className="sp-req">*</span></label>
+                    <input
+                      type="tel"
+                      name="mobile"
+                      placeholder="e.g. 9876543210"
+                      value={shop.mobile}
+                      onChange={handleChange}
+                      className={shop.mobile ? "has-value" : ""}
+                    />
+                  </div>
+
+                  {/* Shop Type */}
+                  <div className="sp-field">
+                    <label>Shop Type <span className="sp-req">*</span></label>
                     <select
                       name="shop_type"
                       value={shop.shop_type}
                       disabled={hasStock}
                       style={{ opacity: hasStock ? 0.6 : 1, cursor: hasStock ? "not-allowed" : "pointer" }}
+                      className={shop.shop_type && shop.shop_type !== "__custom__" ? "has-value" : ""}
                       onChange={(e) => {
                         if (e.target.value === "__custom__") {
                           setShowCustomShopType(true);
@@ -720,309 +673,235 @@ const ALL_UNITS = [
                         }
                       }}
                     >
+                      <option value="">Select shop type</option>
+                      <option value="Kirana Store">🛒 Kirana Store</option>
+                      <option value="HardWare">🔧 Hardware</option>
+                      <option value="Aluminium Shop">🪟 Aluminium Shop</option>
+                      <option value="Clothing">👗 Clothing</option>
+                      <option value="Medical">💊 Medical</option>
+                      <option value="Gold and Silver">💍 Gold and Silver</option>
+                      {JSON.parse(localStorage.getItem("customShopTypes") || "[]").map((t) => (
+                        <option key={t} value={t}>🏷️ {t} ✓</option>
+                      ))}
+                      <option value="__custom__">✏️ Add Custom…</option>
+                    </select>
 
+                    {hasStock && (
+                      <span className="sp-hint error">🔒 Clear all stock items first to change shop type</span>
+                    )}
+                    {!hasStock && shop.shop_type && shop.shop_type !== "__custom__" && (
+                      <span className="sp-hint warn">⚠️ Changing shop type resets your categories and units</span>
+                    )}
 
-                        <option value="">Select shop type</option>
-                        <option value="Kirana Store">🛒 Kirana Store</option>
-                        <option value="HardWare">🔧 Hardware</option>
-                        <option value="Aluminium Shop">🪟 Aluminium Shop</option>
-                        <option value="Clothing">👗 Clothing</option>
-                        {/* <option value="Resturants">🍽️ Restaurants</option> */}
-                        <option value="Medical">💊 Medical</option>
-                        {/* <option value="Genral Store">🏪 General Store</option> */}
-                        <option value="Gold and Silver">💍 Gold and Silver</option>
-                        {JSON.parse(localStorage.getItem("customShopTypes") || "[]").map((t) => (
-                          <option key={t} value={t}>🏷️ {t} ✓</option>
-                        ))}
-                       <option value="__custom__">✏️ Add Custom…</option>  
-                      </select>
-                      {hasStock && (
-  <span style={{ fontSize: "0.75rem", color: "#dc2626", marginTop: "4px", display: "block" }}>
-    🔒 Clear all stock items first to change shop type
-  </span>
-)}
-{!hasStock && shop.shop_type && (
-  <span style={{ fontSize: "0.75rem", color: "#f59e0b", marginTop: "4px", display: "block" }}>
-    ⚠️ Changing shop type will reset your categories and units
-  </span>
-)}
-
-                      {/* Custom shop type input box */}
-{showCustomShopType && (
-  <div style={{
-    marginTop: "10px",
-    background: "#f0f9ff",
-    border: "1.5px solid #1a73e855",
-    borderRadius: "10px",
-    padding: "12px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  }}>
-    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1a73e8", textTransform: "uppercase" }}>
-      ✏️ Custom Shop Type
-    </span>
-    <div style={{ display: "flex", gap: "8px" }}>
-      <input
-        placeholder="e.g. Bakery, Salon, Pharmacy…"
-        value={customShopType}
-        onChange={(e) => setCustomShopType(e.target.value)}
-        onKeyDown={(e) => {
-  if (e.key === "Enter" && customShopType.trim()) {
-    const name = customShopType.trim();
-    setShop((prev) => ({ ...prev, shop_type: name }));
-    setShowCustomShopType(false);
-    setShowCustomPicker(true);
-  }
-}}
-        style={{
-          flex: 1,
-          padding: "9px 12px",
-          borderRadius: "8px",
-          border: "1.5px solid #e2e8f0",
-          fontSize: "14px",
-          outline: "none",
-        }}
-      />
-      <button
-      onClick={() => {
-  if (!customShopType.trim()) return;
-  const name = customShopType.trim();
-  setShop((prev) => ({ ...prev, shop_type: name }));
-  setShowCustomShopType(false);
-  setShowCustomPicker(true);
-}}
-        style={{
-          padding: "9px 16px",
-          borderRadius: "8px",
-          border: "none",
-          background: customShopType.trim() ? "#1a73e8" : "#e2e8f0",
-          color: customShopType.trim() ? "#fff" : "#94a3b8",
-          fontWeight: 700,
-          cursor: customShopType.trim() ? "pointer" : "not-allowed",
-        }}
-      >
-        ✓ Set
-      </button>
-    </div>
-    <span style={{ fontSize: "0.7rem", color: "#0369a1" }}>
-      Press Set or Enter. Then select your categories and units.
-    </span>
-  </div>
-)}
-
-{/* Category + Unit Picker — appears after custom shop type is set */}
-{showCustomPicker && (
-  <div style={{
-    marginTop: "16px",
-    background: "#f8fafc",
-    border: "1.5px solid #1a73e855",
-    borderRadius: "12px",
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  }}>
-    <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#1a73e8" }}>
-      🏷️ Select Units for "{shop.shop_type}"
-    </span>
-
-
-    {/* Units picker */}
-    <div>
-      <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#475569", marginBottom: "8px" }}>
-        SELECT UNITS (choose all that apply)
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-        {ALL_UNITS.map((unit) => {
-          const selected = customShopUnits.includes(unit);
-          return (
-            <button
-              key={unit}
-              onClick={() => {
-                setCustomShopUnits((prev) =>
-                  selected ? prev.filter((u) => u !== unit) : [...prev, unit]
-                );
-              }}
-              style={{
-                padding: "5px 12px",
-                borderRadius: "100px",
-                border: `1.5px solid ${selected ? "#ea580c" : "#e2e8f0"}`,
-                background: selected ? "#ea580c" : "#fff",
-                color: selected ? "#fff" : "#64748b",
-                fontSize: "0.78rem",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              {selected ? "✓ " : ""}{unit}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-
-    {/* Confirm button */}
-    <button
-      onClick={() => {
-        if (customShopUnits.length === 0) {
-          alert("Please select at least one unit.");
-          return;
-        }
-        const name = shop.shop_type;
-        const existing = JSON.parse(localStorage.getItem("customShopTypes") || "[]");
-        if (!existing.includes(name)) {
-          localStorage.setItem("customShopTypes", JSON.stringify([...existing, name]));
-        }
-        localStorage.setItem(`customCats_shoptype_${name}`,  JSON.stringify(customShopCategories));
-        localStorage.setItem(`customUnits_shoptype_${name}`, JSON.stringify(customShopUnits));
-        setShowCustomPicker(false);
-        showToast(`"${name}" saved with ${customShopUnits.length} units ✅`);
-      }}
-      disabled={customShopUnits.length === 0}
-      style={{
-        padding: "10px 20px",
-        borderRadius: "10px",
-        border: "none",
-        background: customShopUnits.length > 0 ? "#1a73e8" : "#e2e8f0",
-        color: customShopUnits.length > 0 ? "#fff" : "#94a3b8",
-        fontWeight: 700,
-        fontSize: "0.88rem",
-        cursor: customShopUnits.length > 0 ? "pointer" : "not-allowed",
-        alignSelf: "flex-start",
-      }}
-    >
-      ✅ Confirm — Save Categories & Units
-    </button>
-  </div>
-)}
-
-                      <div className="sp-field full">
-                        <label>Shop Logo</label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (!file) return;
-                          
-                            // preview
-                            const previewUrl = URL.createObjectURL(file);
-                          
-                            setShop((prev) => ({
-                              ...prev,
-                              logo_file: file,       // actual file
-                              logo_preview: previewUrl, // preview
-                            }));
-                          }}
-                        />
-                      
-                        {/* Preview */}
-                        {(shop.logo_preview || shop.logo_url) && (
-                          <img
-                            src={shop.logo_preview || shop.logo_url}
-                            alt="Logo Preview"
-                            style={{
-                              width: "80px",
-                              height: "80px",
-                              marginTop: "10px",
-                              borderRadius: "10px",
-                              objectFit: "cover",
-                              border: "1px solid #ccc",
+                    {/* Custom shop type input */}
+                    {showCustomShopType && (
+                      <div className="sp-custom-box">
+                        <span className="sp-custom-box-title">✏️ Custom Shop Type</span>
+                        <div className="sp-custom-row">
+                          <input
+                            placeholder="e.g. Bakery, Salon, Pharmacy…"
+                            value={customShopType}
+                            onChange={(e) => setCustomShopType(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && customShopType.trim()) {
+                                const name = customShopType.trim();
+                                setShop((prev) => ({ ...prev, shop_type: name }));
+                                setShowCustomShopType(false);
+                                setShowCustomPicker(true);
+                              }
                             }}
                           />
-                        )}
-                      </div>
-
-                    </div>
-                    <div className="sp-field">
-                      <label>Shop Timings</label>
-                      <input
-                        type="text"
-                        name="timings"
-                        placeholder="e.g. 9AM – 9PM"
-                        value={shop.timings}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="sp-field full">
-                      <label>Shop Address <span className="req">*</span></label>
-                      <textarea
-                        name="address"
-                        placeholder="Enter complete shop address"
-                        value={shop.address}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Tab: Contact ── */}
-                <div className={`sp-section ${activeSection === "contact" ? "visible" : ""}`}>
-                  <div className="sp-form-grid">
-                    <div className="sp-field">
-                      <label>Primary Mobile <span className="req">*</span></label>
-                      <input
-                        type="tel"
-                        name="mobile"
-                        placeholder="e.g. 9876543210"
-                        value={shop.mobile}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="sp-field">
-                      <label>Extra Mobile</label>
-                      <input
-                        type="tel"
-                        name="extra_mobile"
-                        placeholder="e.g. 9123456789 (optional)"
-                        value={shop.extra_mobile}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Tab: GST ── */}
-                <div className={`sp-section ${activeSection === "gst" ? "visible" : ""}`}>
-                  <div className="sp-gst-box">
-                    <div className="sp-gst-row">
-                      <label className="sp-toggle">
-                        <input
-                          type="checkbox"
-                          name="gst_enabled"
-                          checked={shop.gst_enabled}
-                          onChange={handleChange}
-                        />
-                        <span className="sp-toggle-track"></span>
-                      </label>
-                      <div className="sp-gst-text">
-                        <h4>Enable GST Billing</h4>
-                        <p>Turn on to add GST to your invoices and bills</p>
-                      </div>
-                    </div>
-                    {shop.gst_enabled && (
-                      <div className="sp-gst-number">
-                        <div className="sp-field">
-                          <label>GST Number</label>
-                          <input
-                            type="text"
-                            name="gst_number"
-                            placeholder="e.g. 29ABCDE1234F1Z5"
-                            value={shop.gst_number}
-                            onChange={handleChange}
-                          />
+                          <button
+                            className="sp-custom-confirm"
+                            onClick={() => {
+                              if (!customShopType.trim()) return;
+                              const name = customShopType.trim();
+                              setShop((prev) => ({ ...prev, shop_type: name }));
+                              setShowCustomShopType(false);
+                              setShowCustomPicker(true);
+                            }}
+                            style={{
+                              background: customShopType.trim() ? "#1a73e8" : "#e2e8f0",
+                              color: customShopType.trim() ? "#fff" : "#94a3b8",
+                              cursor: customShopType.trim() ? "pointer" : "not-allowed",
+                            }}
+                          >
+                            ✓ Set
+                          </button>
                         </div>
+                        <span className="sp-custom-hint">Press Set or Enter to confirm.</span>
+                      </div>
+                    )}
+
+                    {/* Unit picker for custom shop type */}
+                    {showCustomPicker && (
+                      <div className="sp-picker-box">
+                        <span className="sp-picker-title">🏷️ Select Units for "{shop.shop_type}"</span>
+                        <div>
+                          <div className="sp-picker-sub">Select Units (choose all that apply)</div>
+                          <div className="sp-chips">
+                            {ALL_UNITS.map((unit) => {
+                              const selected = customShopUnits.includes(unit);
+                              return (
+                                <button
+                                  key={unit}
+                                  className={`sp-chip ${selected ? "selected" : ""}`}
+                                  onClick={() =>
+                                    setCustomShopUnits((prev) =>
+                                      selected ? prev.filter((u) => u !== unit) : [...prev, unit]
+                                    )
+                                  }
+                                >
+                                  {selected ? "✓ " : ""}{unit}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <button
+                          className="sp-picker-confirm"
+                          onClick={() => {
+                            if (customShopUnits.length === 0) { alert("Please select at least one unit."); return; }
+                            const name = shop.shop_type;
+                            const existing = JSON.parse(localStorage.getItem("customShopTypes") || "[]");
+                            if (!existing.includes(name)) {
+                              localStorage.setItem("customShopTypes", JSON.stringify([...existing, name]));
+                            }
+                            localStorage.setItem(`customUnits_shoptype_${name}`, JSON.stringify(customShopUnits));
+                            setShowCustomPicker(false);
+                            showToast(`"${name}" saved with ${customShopUnits.length} units ✅`);
+                          }}
+                          disabled={customShopUnits.length === 0}
+                          style={{
+                            background: customShopUnits.length > 0 ? "#1a73e8" : "#e2e8f0",
+                            color: customShopUnits.length > 0 ? "#fff" : "#94a3b8",
+                            cursor: customShopUnits.length > 0 ? "pointer" : "not-allowed",
+                          }}
+                        >
+                          ✅ Confirm — Save Units
+                        </button>
                       </div>
                     )}
                   </div>
+
+                  {/* Shop Address — full width */}
+                  <div className="sp-field full">
+                    <label>Shop Address <span className="sp-req">*</span></label>
+                    <textarea
+                      name="address"
+                      placeholder="Enter complete shop address"
+                      value={shop.address}
+                      onChange={handleChange}
+                      className={shop.address ? "has-value" : ""}
+                    />
+                  </div>
+
+                </div>
+
+                {/* ─── SEPARATOR ─── */}
+                <hr className="sp-sep" />
+
+                {/* ─── OPTIONAL SECTION ─── */}
+                <span className="sp-section-label optional">○ Optional Information</span>
+
+                <div className="sp-form-grid">
+
+                  {/* Shop Timings */}
+                  <div className="sp-field">
+                    <label>Shop Timings <span className="sp-opt">(optional)</span></label>
+                    <input
+                      type="text"
+                      name="timings"
+                      placeholder="e.g. 9AM – 9PM"
+                      value={shop.timings}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  {/* Extra Mobile */}
+                  <div className="sp-field">
+                    <label>Extra Mobile <span className="sp-opt">(optional)</span></label>
+                    <input
+                      type="tel"
+                      name="extra_mobile"
+                      placeholder="e.g. 9123456789"
+                      value={shop.extra_mobile}
+                      onChange={handleChange}
+                    />
+                  </div>
+
+                  {/* Shop Logo */}
+                  <div className="sp-field full">
+                    <label>Shop Logo <span className="sp-opt">(optional)</span></label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        setShop((prev) => ({
+                          ...prev,
+                          logo_file:    file,
+                          logo_preview: URL.createObjectURL(file),
+                        }));
+                      }}
+                    />
+                    {(shop.logo_preview || shop.logo_url) && (
+                      <img
+                        src={shop.logo_preview || shop.logo_url}
+                        alt="Logo Preview"
+                        style={{ width: 76, height: 76, marginTop: 10, borderRadius: 10, objectFit: "cover", border: "1.5px solid #e2e8f0" }}
+                      />
+                    )}
+                  </div>
+
+                </div>
+
+                {/* ─── SEPARATOR ─── */}
+                <hr className="sp-sep" />
+
+                {/* ─── GST SECTION ─── */}
+                <span className="sp-section-label optional">○ GST &amp; Tax — Optional</span>
+
+                <div className="sp-gst-box">
+                  <div className="sp-gst-row">
+                    <label className="sp-toggle">
+                      <input
+                        type="checkbox"
+                        name="gst_enabled"
+                        checked={shop.gst_enabled}
+                        onChange={handleChange}
+                      />
+                      <span className="sp-toggle-track"></span>
+                    </label>
+                    <div className="sp-gst-text">
+                      <h4>Enable GST Billing</h4>
+                      <p>Turn on to include GST on your invoices and bills</p>
+                    </div>
+                  </div>
+                  {shop.gst_enabled && (
+                    <div className="sp-gst-number">
+                      <div className="sp-field">
+                        <label>GST Number</label>
+                        <input
+                          type="text"
+                          name="gst_number"
+                          placeholder="e.g. 29ABCDE1234F1Z5"
+                          value={shop.gst_number}
+                          onChange={handleChange}
+                          className={shop.gst_number ? "has-value" : ""}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
               </div>
 
+              {/* Form Actions */}
               <div className="sp-form-actions">
                 <button className="sp-btn-primary" onClick={saveShopDetails} disabled={saving}>
-                  {saving ? "Saving…" : "Save Shop Details"}
+                  {saving ? "Saving…" : savedShop ? "Update Shop Details" : "Save Shop Details"}
                 </button>
                 <button className="sp-btn-secondary" onClick={() => setShop(defaultShop)}>
                   Clear Form

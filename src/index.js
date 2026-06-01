@@ -4,19 +4,19 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { SubscriptionProvider } from "./context/SubscriptionContext";
-import { BranchProvider } from "./context//BranchContext";
 import { BusinessStatsProvider } from "./context/BusinessStatsContext";
+import { ShopProvider } from "./context/ShopContext";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <SubscriptionProvider>
-          <BranchProvider>
-            <BusinessStatsProvider>
-              <App />
-            </BusinessStatsProvider>
-          </BranchProvider>
+          <ShopProvider> 
+              <BusinessStatsProvider>
+                <App />
+              </BusinessStatsProvider>
+          </ShopProvider>
         </SubscriptionProvider>
       </AuthProvider>
     </BrowserRouter>
