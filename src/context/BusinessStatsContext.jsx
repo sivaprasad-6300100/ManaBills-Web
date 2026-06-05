@@ -28,7 +28,7 @@ export const BusinessStatsProvider = ({ children }) => {
 
   // Fetch on mount
   // Change the useEffect to also refetch on focus:
-useEffect(() => {
+  useEffect(() => {
     if (!accessToken) {
       setStats(null);
       setError(null);
@@ -37,11 +37,31 @@ useEffect(() => {
     }
     fetchStats();
 
-    // Refetch when tab regains focus
     const onFocus = () => fetchStats();
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+
+    const scheduleMidnightRefetch = () => {
+      const now = new Date();
+      const nextMidnight = new Date();
+      nextMidnight.setHours(24, 0, 0, 0);
+      const msUntilMidnight = nextMidnight - now;
+
+      return setTimeout(() => {
+        fetchStats();
+        midnightTimer = scheduleMidnightRefetch();
+      }, msUntilMidnight);
+    };
+
+    let midnightTimer = scheduleMidnightRefetch();
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearTimeout(midnightTimer);
+    };
   }, [accessToken, sessionVersion, fetchStats]);
+
+
+
 
   const value = useMemo(
     () => ({

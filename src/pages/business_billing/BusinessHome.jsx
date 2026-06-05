@@ -1,18 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import SummaryCard from "../../components/cards/SummaryCard";
-import { getDashboardStats, getLowStockProducts } from "../../services/businessService";
+import { getDashboardStats } from "../../services/businessService";
 
 const fmt = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
 
-// Skeleton loader component for better UX
 const SkeletonCard = () => (
   <div style={{
     background: "#fff",
     borderRadius: "12px",
     padding: "20px",
     animation: "pulse 1.5s ease-in-out infinite",
-    height: "130px"
+    height: "110px"
   }} />
 );
 
@@ -25,7 +24,6 @@ const BusinessHome = () => {
   const [error,        setError]        = useState(null);
   const [retryCount,   setRetryCount]   = useState(0);
 
-  // Add pulse animation CSS dynamically
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
@@ -38,20 +36,18 @@ const BusinessHome = () => {
     return () => document.head.removeChild(style);
   }, []);
 
-  // Optimized load function with timeout and retry
   const loadStats = useCallback(async (attempt = 0) => {
     try {
       setError(null);
       setLoading(true);
 
-      // Set a timeout of 10 seconds for the request
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const data = await Promise.race([
         getDashboardStats(),
-        new Promise((_, reject) => 
-          controller.signal.addEventListener("abort", () => 
+        new Promise((_, reject) =>
+          controller.signal.addEventListener("abort", () =>
             reject(new Error("Dashboard stats request timeout"))
           )
         ),
@@ -63,14 +59,13 @@ const BusinessHome = () => {
       setRetryCount(0);
     } catch (err) {
       const isTimeout = err.message.includes("timeout");
-      const message = isTimeout 
-        ? "Stats loading took too long. Retrying..." 
+      const message = isTimeout
+        ? "Stats loading took too long. Retrying..."
         : "Failed to load stats";
-      
+
       console.error("BusinessHome: failed to load dashboard stats", err);
       setError(message);
 
-      // Auto-retry up to 2 times if network error
       if (attempt < 2 && (isTimeout || err.code === "ERR_NETWORK")) {
         setRetryCount(attempt + 1);
         setTimeout(() => loadStats(attempt + 1), 2000 * (attempt + 1));
@@ -84,11 +79,19 @@ const BusinessHome = () => {
     loadStats();
   }, [loadStats]);
 
-  // Field name mapping: backend uses snake_case, frontend used camelCase
-  // Backend fields: today_sales, today_invoice_count, unpaid_amount,
-  //   paid_amount, month_billing, month_invoice_count,
-  //   total_billing, invoice_count, customer_count,
-  //   stock_items, stock_value, low_stock_count
+  // Backend field reference:
+  // today_sales, today_invoice_count, today_unpaid_amount, today_paid_amount
+  // week_billing, week_invoice_count, week_unpaid_amount, week_paid_amount
+  // month_billing, month_invoice_count, unpaid_amount, paid_amount
+  // total_billing, invoice_count, total_unpaid_amount, total_paid_amount  ← add last two to backend
+
+  const plural = (n) => `${n || 0} invoice${(n || 0) !== 1 ? "s" : ""}`;
+
+  const SkeletonSection = () => (
+    <div className="summary-grid">
+      <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+    </div>
+  );
 
   return (
     <div className="business-home">
@@ -129,14 +132,11 @@ const BusinessHome = () => {
 
       {/* ERROR STATE */}
       {error && (
-        <div
-          style={{
-            background: "#fee2e2", border: "1px solid #fecaca",
-            borderRadius: "12px", padding: "12px 18px", marginBottom: "20px",
-            display: "flex",
-            justifyContent: "space-between", alignItems: "center",
-          }}
-        >
+        <div style={{
+          background: "#fee2e2", border: "1px solid #fecaca",
+          borderRadius: "12px", padding: "12px 18px", marginBottom: "20px",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+        }}>
           <span style={{ fontSize: "0.85rem", color: "#991b1b", fontWeight: 600 }}>
             ❌ {error}
           </span>
@@ -146,17 +146,12 @@ const BusinessHome = () => {
             </span>
           )}
           {retryCount === 2 && (
-            <button 
+            <button
               onClick={() => loadStats()}
               style={{
-                padding: "4px 12px",
-                background: "#dc2626",
-                color: "#fff",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "0.8rem",
-                fontWeight: 600
+                padding: "4px 12px", background: "#dc2626", color: "#fff",
+                border: "none", borderRadius: "6px", cursor: "pointer",
+                fontSize: "0.8rem", fontWeight: 600,
               }}
             >
               Retry Now
@@ -188,90 +183,114 @@ const BusinessHome = () => {
           <div style={{ padding: "0.5rem 0", textAlign: "center", color: "#94a3b8", fontSize: "0.9rem" }}>
             Loading stats…
           </div>
-          
-          {/* KPI: TODAY */}
           <h3 className="section-title">Today</h3>
-          <div className="summary-grid">
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </div>
-
-          {/* KPI: THIS MONTH */}
+          <SkeletonSection />
+          <h3 className="section-title">This Week</h3>
+          <SkeletonSection />
           <h3 className="section-title">This Month</h3>
-          <div className="summary-grid">
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </div>
-
-          {/* KPI: STOCK */}
-          <h3 className="section-title">Business Overview</h3>
-          <div className="summary-grid">
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </div>
+          <SkeletonSection />
+          <h3 className="section-title">Overall</h3>
+          <SkeletonSection />
         </>
       ) : (
         <>
-          {/* KPI: TODAY */}
+          {/* ── TODAY ── */}
           <h3 className="section-title">Today</h3>
           <div className="summary-grid">
             <SummaryCard
-              title="Today's Sales"
+              title="Invoices"
+              value={stats.today_invoice_count || 0}
+              subtitle="bills raised today"
+            />
+            <SummaryCard
+              title="Total Sales"
               value={fmt(stats.today_sales)}
-              subtitle={`${stats.today_invoice_count || 0} invoice${(stats.today_invoice_count || 0) !== 1 ? "s" : ""}`}
+              subtitle="gross billed today"
             />
             <SummaryCard
-              title="Unpaid / Pending"
-              value={fmt(stats.unpaid_amount)}
-              subtitle="Outstanding balance"
+              title="Pending"
+              value={fmt(stats.today_unpaid_amount)}
+              subtitle="outstanding today"
             />
             <SummaryCard
-              title="Total Collected"
-              value={fmt(stats.paid_amount)}
-              subtitle="Fully paid invoices"
+              title="Collected"
+              value={fmt(stats.today_paid_amount)}
+              subtitle="received today"
             />
           </div>
 
-          {/* KPI: THIS MONTH */}
+          {/* ── THIS WEEK ── */}
+          <h3 className="section-title">This Week</h3>
+          <div className="summary-grid">
+            <SummaryCard
+              title="Invoices"
+              value={stats.week_invoice_count || 0}
+              subtitle="last 7 days"
+            />
+            <SummaryCard
+              title="Total Sales"
+              value={fmt(stats.week_billing)}
+              subtitle="gross billed"
+            />
+            <SummaryCard
+              title="Pending"
+              value={fmt(stats.week_unpaid_amount)}
+              subtitle="outstanding"
+            />
+            <SummaryCard
+              title="Collected"
+              value={fmt(stats.week_paid_amount)}
+              subtitle="received"
+            />
+          </div>
+
+          {/* ── THIS MONTH ── */}
           <h3 className="section-title">This Month</h3>
           <div className="summary-grid">
             <SummaryCard
-              title="Month Billing"
+              title="Invoices"
+              value={stats.month_invoice_count || 0}
+              subtitle={plural(stats.month_invoice_count)}
+            />
+            <SummaryCard
+              title="Total Sales"
               value={fmt(stats.month_billing)}
-              subtitle={`${stats.month_invoice_count || 0} invoice${(stats.month_invoice_count || 0) !== 1 ? "s" : ""}`}
+              subtitle="gross billed"
             />
             <SummaryCard
-              title="Invoices Created"
-              value={stats.invoice_count || 0}
-              subtitle="All time total"
+              title="Pending"
+              value={fmt(stats.unpaid_amount)}
+              subtitle="outstanding"
             />
             <SummaryCard
-              title="Customers"
-              value={stats.customer_count || 0}
-              subtitle="Saved contacts"
+              title="Collected"
+              value={fmt(stats.paid_amount)}
+              subtitle="received"
             />
           </div>
 
-          {/* KPI: STOCK */}
-          <h3 className="section-title">Business Overview</h3>
+          {/* ── OVERALL ── */}
+          <h3 className="section-title">Overall</h3>
           <div className="summary-grid">
             <SummaryCard
-              title="Total Billing"
+              title="Invoices"
+              value={stats.invoice_count || 0}
+              subtitle="all time"
+            />
+            <SummaryCard
+              title="Total Sales"
               value={fmt(stats.total_billing)}
-              subtitle="All time revenue"
+              subtitle="all time revenue"
             />
             <SummaryCard
-              title="Stock Products"
-              value={stats.stock_items || 0}
-              subtitle="Items in inventory"
+              title="Pending"
+              value={fmt(stats.total_unpaid_amount)}
+              subtitle="still outstanding"
             />
             <SummaryCard
-              title="Stock Value"
-              value={fmt(stats.stock_value)}
-              subtitle="Inventory worth (selling)"
+              title="Collected"
+              value={fmt(stats.total_paid_amount)}
+              subtitle="total received"
             />
           </div>
         </>

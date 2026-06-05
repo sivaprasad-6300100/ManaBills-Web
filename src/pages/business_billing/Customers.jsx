@@ -472,6 +472,12 @@ const Customers = () => {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
+  const now = new Date();
+  const [filterMonth, setFilterMonth] = useState(now.getMonth()); // 0-indexed
+  const [filterYear, setFilterYear]   = useState(now.getFullYear());
+  const [monthStats, setMonthStats]   = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
   useEffect(() => {
   authAxios.get("business/dashboard/")
     .then(r => setBizStats(r.data))
@@ -510,6 +516,39 @@ const Customers = () => {
     const t = setTimeout(() => loadCustomers(search), 300);
     return () => clearTimeout(t);
   }, [search, loadCustomers]);
+
+
+
+  useEffect(() => {
+  const fetchMonthStats = async () => {
+    setStatsLoading(true);
+    try {
+      const res = await authAxios.get("business/invoices/", {
+        params: {
+          // No date filter on backend? Filter on frontend:
+        }
+      });
+      const all = res.data || [];
+      // Filter by selected month + year on frontend
+      const filtered = all.filter((inv) => {
+        const d = new Date(inv.created_at || inv.date);
+        return d.getMonth() === filterMonth && d.getFullYear() === filterYear;
+      });
+      const revenue  = filtered.reduce((s, i) => s + Number(i.total   || 0), 0);
+      const paid     = filtered.reduce((s, i) => s + Number(i.advance || 0), 0);
+      const balance  = filtered.reduce((s, i) => s + Number(i.balance || 0), 0);
+      setMonthStats({ count: filtered.length, revenue, paid, balance });
+    } catch {
+      setMonthStats(null);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+  fetchMonthStats();
+}, [filterMonth, filterYear]);
+
+
+
 
   /* ── Sort ── */
   const sorted = [...customers].sort((a, b) => {
@@ -605,6 +644,41 @@ const Customers = () => {
           )}
         </div>
 
+      
+        {/* Month/Year filter row */}
+        <div className="cp-month-filter">
+          <span className="cp-filter-label">📅 Monthly stats</span>
+          <select
+            className="cp-month-sel"
+            value={filterMonth}
+            onChange={(e) => setFilterMonth(Number(e.target.value))}
+          >
+            {['January','February','March','April','May','June','July',
+              'August','September','October','November','December']
+              .map((m, i) => <option key={i} value={i}>{m}</option>)}
+          </select>
+          <select
+            className="cp-month-sel"
+            value={filterYear}
+            onChange={(e) => setFilterYear(Number(e.target.value))}
+          >
+            {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          {(filterMonth !== now.getMonth() || filterYear !== now.getFullYear()) && (
+            <button
+              className="cp-reset-btn"
+              onClick={() => { setFilterMonth(now.getMonth()); setFilterYear(now.getFullYear()); }}
+            >
+              ↩ Current month
+            </button>
+          )}
+          <span className="cp-month-badge">
+            {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][filterMonth]} {filterYear}
+          </span>
+        </div>
+        
         {/* Stats strip */}
         <div className="cp-stats">
           <StatCard
@@ -618,24 +692,27 @@ const Customers = () => {
             cls="s2"
             icon="📋"
             label="Pending Balance"
-            value={`₹${Number(bizStats?.unpaid_amount || 0).toLocaleString("en-IN")}`}
-            sub="view outstanding dues"
+            value={statsLoading ? '…' : fmt(monthStats?.balance ?? 0)}
+            sub={`${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][filterMonth]} dues`}
           />
           <StatCard
             cls="s3"
             icon="✅"
             label="Collected"
-            value={`₹${Number(bizStats?.paid_amount || 0).toLocaleString("en-IN")}`}
-            sub="received this month"
+            value={statsLoading ? '…' : fmt(monthStats?.paid ?? 0)}
+            sub={`${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][filterMonth]} received`}
           />
           <StatCard
             cls="s4"
-            icon="🏷"
-            label="GST Registered"
-            value={customers.filter((c) => c.gst_number).length}
-            sub="B2B customers"
+            icon="🧾"
+            label="Invoices"
+            value={statsLoading ? '…' : (monthStats?.count ?? '—')}
+            sub={`₹${Number(monthStats?.revenue ?? 0).toLocaleString('en-IN')} billed`}
           />
-        </div>
+        </div>   
+        
+        
+        
 
         {/* Add / Edit Form */}
         {showForm && (

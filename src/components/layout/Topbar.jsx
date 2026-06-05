@@ -5,6 +5,12 @@ import { getShopProfile } from "../../services/businessService";
 import { SubscriptionContext } from "../../context/SubscriptionContext";
 import { authAxios } from "../../services/api";
 
+
+
+
+
+
+
 // ─────────────────────────────────────────────
 // NOTIFICATION SYSTEM
 // ─────────────────────────────────────────────
@@ -405,6 +411,35 @@ const Topbar = () => {
   // ── Expiry countdown from real backend expires_at ─────────────────────────
   const expiry = usePlanExpiry(subscriptions);
 
+
+
+  const DateTimeChip = () => {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const date = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const time = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "3px 10px", borderRadius: "8px",
+      background: "rgba(12, 103, 239, 0.05)", border: "1px solid rgba(155, 186, 234, 0.1)",
+      lineHeight: 1.3, flexShrink: 0,
+    }}>
+      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0e1b2e", fontFamily: "monospace", letterSpacing: "0.04em" }}>
+        {time}
+      </span>
+      <span style={{ fontSize: "10px", fontWeight: 500, color: "#6b7280", letterSpacing: "0.02em" }}>
+        {date}
+      </span>
+    </div>
+  );
+};
+
   // ── Build active plans list for dropdown (plain function, no hook) ──────────
   const activePlans = getActivePlans(subscriptions);
 
@@ -552,6 +587,10 @@ useEffect(() => {
 
       {/* ── RIGHT ── */}
       <div className="topbar-actions">
+
+         {/* Date & Time */}
+        <DateTimeChip />
+
 
 
         {/* Expiry chip — driven by real backend expires_at */}

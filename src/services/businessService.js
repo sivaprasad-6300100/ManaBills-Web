@@ -19,6 +19,7 @@ export const getShopProfile = async () => {
   return res.data;
 };
 
+
 export const saveShopProfile = async (data) => {
   const res = await authAxios.post(`${BASE}shop-profile/`, data);
   return res.data;

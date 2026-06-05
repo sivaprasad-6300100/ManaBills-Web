@@ -2,42 +2,81 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
+    <!-- Favicon -->
+    <link rel="icon" href="%PUBLIC_URL%/ManaBillsLogo.jpeg" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/ManaBillsLogo.jpeg" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1e4fba" />
+
+    <!-- PRIMARY SEO -->
+    <title>ManaBills – GST Billing & Expense Management App | Andhra Pradesh & Telangana</title>
+    <meta name="description" content="ManaBills is Andhra Pradesh & Telangana's #1 billing app. Create GST invoices in 30 seconds, track expenses, manage stock, and send WhatsApp reminders. Trusted by 12,000+ shop owners. Start free today." />
+    <meta name="keywords" content="GST billing app, invoice software Andhra Pradesh, billing app Telugu, ManaBills, GST invoice maker, shop billing software, kirana store billing, expense tracker India, construction billing app, Telangana billing software" />
+    <meta name="author" content="ManaBills" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://www.manabills.in/" />
+
+    <!-- OPEN GRAPH (WhatsApp, Facebook, LinkedIn previews) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.manabills.in/" />
+    <meta property="og:title" content="ManaBills – GST Billing App for AP & Telangana Businesses" />
+    <meta property="og:description" content="Create GST invoices in 30 seconds. Track expenses. Send WhatsApp reminders. Trusted by 12,000+ shop owners across Andhra Pradesh & Telangana. Start free." />
+    <meta property="og:image" content="https://www.manabills.in/ManaBillsLogo.jpeg" />
+    <meta property="og:image:width" content="1254" />
+    <meta property="og:image:height" content="1254" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:site_name" content="ManaBills" />
+
+    <!-- TWITTER CARD -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ManaBills – GST Billing App for AP & Telangana" />
+    <meta name="twitter:description" content="GST invoices in 30 seconds. Expense tracking. Stock management. WhatsApp reminders. India's trusted billing app for shop owners." />
+    <meta name="twitter:image" content="https://www.manabills.in/ManaBillsLogo.jpeg" />
+
+    <!-- GEO / LOCAL SEO -->
+    <meta name="geo.region" content="IN-AP" />
+    <meta name="geo.placename" content="Andhra Pradesh, India" />
+
+    <!-- STRUCTURED DATA (Google Rich Results) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "ManaBills",
+      "url": "https://www.manabills.com",
+      "logo": "https://www.manabills.com/ManaBillsLogo.jpeg",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web, Android, iOS",
+      "offers": {
+        "@type": "Offer",
+        "price": "99",
+        "priceCurrency": "INR"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "12000"
+      },
+      "description": "ManaBills is a GST billing and expense management web for shop owners, kirana stores, contractors, and freelancers across Andhra Pradesh and Telangana.",
+      "areaServed": {
+        "@type": "State",
+        "name": "Andhra Pradesh, Telangana, India"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Customer Support",
+        "telephone": "+91-6300100420",
+        "availableLanguage": ["English", "Telugu"]
+      }
+    }
+    </script>
+
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
   </body>
 </html>
