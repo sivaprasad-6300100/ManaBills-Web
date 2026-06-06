@@ -69,7 +69,12 @@ const ShopProfile = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const { accessToken } = useAuth();
+
+
   useEffect(() => {
+     if (!accessToken) return;  // ← 
+
     getShopProfile()
       .then((data) => {
         const complete = !!(data?.shop_name && data?.owner_name && data?.mobile && data?.address);
@@ -97,7 +102,7 @@ const ShopProfile = () => {
     getProducts()
       .then((products) => setHasStock(products.length > 0))
       .catch(() => setHasStock(false));
-  }, []);
+  }, [accessToken]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
