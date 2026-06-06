@@ -6,6 +6,7 @@ import {
   getProducts,
 } from "../../services/businessService";
 import { useShop } from "../../context/ShopContext";
+import useAuth from "../../hooks/useAuth";
 
 const defaultShop = {
   shop_name:    "",
