@@ -839,7 +839,7 @@ export default function ShopQROrder() {
   const shopPdfRef     = useRef(null);
   const customerPdfRef = useRef(null);
 
-  const qrUrl = scannerId ? `http://192.168.0.102:3000/shop/${scannerId}` : "";
+  const qrUrl = scannerId ? `https://www.manabills.com/shop/${scannerId}` : "";
 
   // ── Toast helper ──────────────────────────────────────────
   const toast$ = useCallback((msg, type = "success") => {
