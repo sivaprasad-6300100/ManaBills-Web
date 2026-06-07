@@ -504,7 +504,7 @@ const MobileTabBar = ({ activeTab, setActiveTab }) => {
 const AccountPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, login, logout } = useContext(AuthContext);
+  const { user, login, logout, accessToken } = useContext(AuthContext);
   const { subscriptions }       = useContext(SubscriptionContext);
 
   const [activeTab, setActiveTab] = useState(location.state?.tab || "profile");
@@ -549,6 +549,11 @@ const AccountPage = () => {
   };
 
   useEffect(() => {
+    if (!accessToken) {
+    setShopLoading(false);
+    return;
+  }
+
     getShopProfile()
       .then(data => {
         setShop({ shop_name:data.shop_name||"", owner_name:data.owner_name||"", mobile:data.mobile||"", extra_mobile:data.extra_mobile||"", address:data.address||"", shop_type:data.shop_type||"", timings:data.timings||"", gst_enabled:data.gst_enabled||false, gst_number:data.gst_number||"" });
@@ -556,7 +561,7 @@ const AccountPage = () => {
       })
       .catch(() => { setShopExists(false); setShopEditing(true); })
       .finally(() => setShopLoading(false));
-  }, []);
+  }, [accessToken]);
 
   const handleLoginSave = async () => {
     if (!name.trim()) return showToast("Name cannot be empty","error");
