@@ -272,8 +272,8 @@ const LEGAL_CONTENT = {
       { h: "Data Storage & Security", t: "Your data is stored on secure, encrypted servers in India. We use SSL/TLS encryption for data transmission and AES-256 encryption at rest. Regular security audits and strict access controls keep your business data private." },
       { h: "Data Sharing", t: "We do not sell, trade, or rent your personal information to third parties. We may share anonymized, aggregated data for analytics. We only disclose information when required by law or with your explicit consent." },
       { h: "Data Retention", t: "We retain your data as long as your account is active. Upon deletion, data is permanently removed within 30 days, except GST billing records which must be retained for 7 years as per Indian tax law." },
-      { h: "Your Rights", t: "You may access, correct, or delete your personal data anytime by contacting support@manabills.in. We respond to all requests within 15 business days." },
-      { h: "Contact Us", t: "📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441" },
+      { h: "Your Rights", t: "You may access, correct, or delete your personal data anytime by contacting support@manabills.com. We respond to all requests within 15 business days." },
+      { h: "Contact Us", t: "📧 support@manabills.com\n💬 WhatsApp: +91 6300100 420" },
     ],
   },
   terms: {
@@ -286,7 +286,7 @@ const LEGAL_CONTENT = {
       { h: "Limitation of Liability", t: "ManaBills is provided \"as is\" without warranty. We shall not be liable for indirect, incidental, or consequential damages. Our total liability shall not exceed the amount you paid in the last 3 months." },
       { h: "Account Termination", t: "We may suspend or terminate accounts that violate these terms or engage in fraudulent activity. You may delete your account anytime by contacting support." },
       { h: "Governing Law", t: "These Terms are governed by the laws of India. Disputes shall be subject to the exclusive jurisdiction of courts in Andhra Pradesh, India." },
-      { h: "Contact", t: "📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441" },
+      { h: "Contact", t: "📧 support@manabills.com\n💬 WhatsApp: +91 6300100 420" },
     ],
   },
   refund: {
@@ -294,10 +294,10 @@ const LEGAL_CONTENT = {
     sections: [
       { h: "Free Trial", t: "ManaBills offers a free trial for all new users so you can evaluate the service before committing to a paid plan. We encourage full exploration during the trial period." },
       { h: "Eligibility for Refund", t: "Refunds are offered:\n• Within 7 days of initial payment if the service was not extensively used\n• For technical issues caused by our platform unresolved within 72 hours\n• For duplicate charges or billing errors\n\nRefunds are NOT provided for:\n• Partial months of service\n• Accounts suspended for Terms violations\n• Change of mind after 7 days" },
-      { h: "Refund Process", t: "To request a refund:\n1. Contact us via WhatsApp +91 95505 44441 or email support@manabills.in\n2. Provide your registered mobile and reason\n3. Our team reviews within 2 business days\n4. Approved refunds processed within 5–7 business days" },
+      { h: "Refund Process", t: "To request a refund:\n1. Contact us via WhatsApp +91 6300100 420 or email support@manabills.com\n2. Provide your registered mobile and reason\n3. Our team reviews within 2 business days\n4. Approved refunds processed within 5–7 business days" },
       { h: "Annual Plans", t: "Annual subscriptions are prorated if cancelled within 30 days. After 30 days, refunds are evaluated case-by-case. Contact support to discuss your situation." },
       { h: "Cancellation", t: "You may cancel anytime. Cancellation takes effect at the end of the current billing period. You retain access to paid features until then." },
-      { h: "Contact for Refunds", t: "📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441\n🕐 Mon–Sat, 9AM–8PM IST" },
+      { h: "Contact for Refunds", t: "📧 support@manabills.com\n💬 WhatsApp: +91 6300100 420\n🕐 Mon–Sat, 9AM–8PM IST" },
     ],
   },
 };
@@ -347,7 +347,7 @@ const LegalModal = ({ pageKey, onClose }) => {
           background: "rgba(200,146,58,0.08)", borderBottom: "1px solid rgba(200,146,58,0.2)",
           padding: "0.85rem 1.5rem", fontSize: "0.8rem", color: "#92400E", lineHeight: 1.6,
         }}>
-          💡 By using ManaBills, you agree to the terms below. Questions? Contact <strong>support@manabills.in</strong>
+          💡 By using ManaBills, you agree to the terms below. Questions? Contact <strong>support@manabills.com</strong>
         </div>
 
         {/* Sections */}
@@ -995,21 +995,21 @@ export default function HomePage() {
             <div className="hp-footer-col">
               <h4>Support</h4>
               <a href="https://wa.me/916300100420" target="_blank" rel="noreferrer">WhatsApp Help</a>
-              <a href="mailto:support@manabills.in">Email Us</a>
+              <a href="mailto:support@manabills.com">Email Us</a>
             </div>
             <div className="hp-footer-col">
               <h4>Legal</h4>
-              <button onClick={() => setLegalPage("privacy")} style={{ background:"none", border:"none", color:"inherit", cursor:"pointer", padding:0, fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}>Privacy Policy</button>
-              <button onClick={() => setLegalPage("terms")}   style={{ background:"none", border:"none", color:"inherit", cursor:"pointer", padding:0, fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}>Terms of Use</button>
-              <button onClick={() => setLegalPage("refund")}  style={{ background:"none", border:"none", color:"inherit", cursor:"pointer", padding:0, fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}>Refund Policy</button>
+              <button onClick={() => setLegalPage("privacy")} style={{ background:"none", border:"none", color:"rgba(255,255,255,0.7)", cursor:"pointer", padding:0, fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}>Privacy Policy</button>
+              <button onClick={() => setLegalPage("terms")}   style={{ background:"none", border:"none", color:"rgba(255,255,255,0.7)", cursor:"pointer", padding:0, fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}>Terms of Use</button>
+              <button onClick={() => setLegalPage("refund")}  style={{ background:"none", border:"none", color:"rgba(255,255,255,0.7)", cursor:"pointer", padding:0, fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}>Refund Policy</button>
             </div>
           </div>
         </div>
         {/* replace with: */}
         <div className="hp-footer-bottom">
-          <span>© 2026 ManaBills. All rights reserved. · Made with ❤️ in Andhra Pradesh</span>
+          <span>© 2026 ManaBills.com  All rights reserved. · Made with ❤️ in Andhra Pradesh</span>
           <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.35)" }}>
-            Built by <strong style={{ color: "rgba(255,255,255,0.6)" }}>Bogilingam Sambasiva Prasad</strong> · Backed by <strong style={{ color: "rgba(255,255,255,0.6)" }}>Money Choda Saranya</strong>
+            Built by <strong style={{ color: "rgba(255,255,255,0.6)" }}>Bogilingam Sambasiva Prasad</strong> · Backed by <strong style={{ color: "rgba(255,255,255,0.6)" }}>Choda Saranya</strong>
           </span>
         </div>
       </footer>
