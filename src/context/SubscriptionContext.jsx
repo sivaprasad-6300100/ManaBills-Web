@@ -102,7 +102,7 @@ useEffect(() => {
     setLoading(true)
 
     // ✅ NEW — Register device on every login/session start
-    authAxios.post("auth/register-device/", {
+    authAxios.post("business/register-device/", {
         device_id:   getDeviceId(),
         device_name: getDeviceName(),
     }).catch((err) => {
