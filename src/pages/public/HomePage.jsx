@@ -260,135 +260,6 @@ const PasswordInput = ({ placeholder, value, onChange, id }) => {
   );
 };
 
-
-// ==========================legal documents=============
-
-const LEGAL_CONTENT = {
-  privacy: {
-    title: "Privacy Policy", icon: "🔒", updated: "January 1, 2025",
-    sections: [
-      { h: "Information We Collect", t: "We collect information you provide when creating an account: your name, mobile number, and shop details. We also collect business data including invoices, expenses, and billing history you create within ManaBills." },
-      { h: "How We Use Your Information", t: "We use your data to:\n• Provide billing and expense management services\n• Generate invoices and financial reports\n• Send transactional notifications\n• Respond to support queries\n• Ensure platform security" },
-      { h: "Data Storage & Security", t: "Your data is stored on secure, encrypted servers in India. We use SSL/TLS encryption for data transmission and AES-256 encryption at rest. Regular security audits and strict access controls keep your business data private." },
-      { h: "Data Sharing", t: "We do not sell, trade, or rent your personal information to third parties. We may share anonymized, aggregated data for analytics. We only disclose information when required by law or with your explicit consent." },
-      { h: "Data Retention", t: "We retain your data as long as your account is active. Upon deletion, data is permanently removed within 30 days, except GST billing records which must be retained for 7 years as per Indian tax law." },
-      { h: "Your Rights", t: "You may access, correct, or delete your personal data anytime by contacting support@manabills.in. We respond to all requests within 15 business days." },
-      { h: "Contact Us", t: "📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441" },
-    ],
-  },
-  terms: {
-    title: "Terms of Service", icon: "📋", updated: "January 1, 2025",
-    sections: [
-      { h: "Acceptance of Terms", t: "By accessing or using ManaBills, you agree to be bound by these Terms of Service. If you do not agree, please do not use our application." },
-      { h: "Use of Service", t: "ManaBills is intended for lawful business use in India. You agree to:\n• Use the app only for legitimate business purposes\n• Provide accurate and truthful information\n• Comply with all applicable Indian laws including GST\n• Not attempt to reverse engineer or hack the platform" },
-      { h: "Subscription & Payments", t: "ManaBills offers free and paid plans billed monthly or annually. Payments are processed securely through our payment partners. Subscriptions auto-renew unless cancelled 24 hours before renewal. Prices may change with 30 days notice." },
-      { h: "Intellectual Property", t: "All content, features, and functionality of ManaBills are owned by ManaBills and protected by Indian and international copyright laws. You retain ownership of all data you enter into the application." },
-      { h: "Limitation of Liability", t: "ManaBills is provided \"as is\" without warranty. We shall not be liable for indirect, incidental, or consequential damages. Our total liability shall not exceed the amount you paid in the last 3 months." },
-      { h: "Account Termination", t: "We may suspend or terminate accounts that violate these terms or engage in fraudulent activity. You may delete your account anytime by contacting support." },
-      { h: "Governing Law", t: "These Terms are governed by the laws of India. Disputes shall be subject to the exclusive jurisdiction of courts in Andhra Pradesh, India." },
-      { h: "Contact", t: "📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441" },
-    ],
-  },
-  refund: {
-    title: "Refund Policy", icon: "💰", updated: "January 1, 2025",
-    sections: [
-      { h: "Free Trial", t: "ManaBills offers a free trial for all new users so you can evaluate the service before committing to a paid plan. We encourage full exploration during the trial period." },
-      { h: "Eligibility for Refund", t: "Refunds are offered:\n• Within 7 days of initial payment if the service was not extensively used\n• For technical issues caused by our platform unresolved within 72 hours\n• For duplicate charges or billing errors\n\nRefunds are NOT provided for:\n• Partial months of service\n• Accounts suspended for Terms violations\n• Change of mind after 7 days" },
-      { h: "Refund Process", t: "To request a refund:\n1. Contact us via WhatsApp +91 95505 44441 or email support@manabills.in\n2. Provide your registered mobile and reason\n3. Our team reviews within 2 business days\n4. Approved refunds processed within 5–7 business days" },
-      { h: "Annual Plans", t: "Annual subscriptions are prorated if cancelled within 30 days. After 30 days, refunds are evaluated case-by-case. Contact support to discuss your situation." },
-      { h: "Cancellation", t: "You may cancel anytime. Cancellation takes effect at the end of the current billing period. You retain access to paid features until then." },
-      { h: "Contact for Refunds", t: "📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441\n🕐 Mon–Sat, 9AM–8PM IST" },
-    ],
-  },
-};
-
-const LegalModal = ({ pageKey, onClose }) => {
-  const page = LEGAL_CONTENT[pageKey];
-  if (!page) return null;
-  return (
-    <div onClick={e => e.target === e.currentTarget && onClose()} style={{
-      position: "fixed", inset: 0, zIndex: 9000,
-      background: "rgba(11,24,41,0.7)", backdropFilter: "blur(4px)",
-      display: "flex", alignItems: "flex-start", justifyContent: "center",
-      padding: "20px 16px", overflowY: "auto",
-    }}>
-      <div style={{
-        background: "#fff", borderRadius: 20, width: "100%", maxWidth: 680,
-        boxShadow: "0 24px 80px rgba(0,0,0,0.3)", overflow: "hidden",
-        fontFamily: "'Inter','Segoe UI',sans-serif",
-      }}>
-        {/* Header */}
-        <div style={{
-          background: "linear-gradient(130deg,#0B1829 0%,#162438 100%)",
-          padding: "1.25rem 1.5rem", position: "relative",
-        }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3,
-            background: "linear-gradient(90deg,#C8923A,#E4A94A,#C8923A)" }} />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ fontSize: "1.05rem", fontWeight: 800, color: "#fff" }}>
-                {page.icon} {page.title}
-              </div>
-              <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-                Last updated: {page.updated}
-              </div>
-            </div>
-            <button onClick={onClose} style={{
-              background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)",
-              color: "#fff", borderRadius: 8, width: 32, height: 32,
-              cursor: "pointer", fontSize: "1rem", display: "flex",
-              alignItems: "center", justifyContent: "center",
-            }}>✕</button>
-          </div>
-        </div>
-
-        {/* Intro */}
-        <div style={{
-          background: "rgba(200,146,58,0.08)", borderBottom: "1px solid rgba(200,146,58,0.2)",
-          padding: "0.85rem 1.5rem", fontSize: "0.8rem", color: "#92400E", lineHeight: 1.6,
-        }}>
-          💡 By using ManaBills, you agree to the terms below. Questions? Contact <strong>support@manabills.in</strong>
-        </div>
-
-        {/* Sections */}
-        <div style={{ padding: "1.25rem 1.5rem", maxHeight: "60vh", overflowY: "auto" }}>
-          {page.sections.map((s, i) => (
-            <div key={i} style={{
-              marginBottom: i < page.sections.length - 1 ? "1.25rem" : 0,
-              paddingBottom: i < page.sections.length - 1 ? "1.25rem" : 0,
-              borderBottom: i < page.sections.length - 1 ? "1px solid #f1f5f9" : "none",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <div style={{
-                  width: 22, height: 22, borderRadius: "50%",
-                  background: "rgba(200,146,58,0.12)", border: "1px solid rgba(200,146,58,0.3)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "0.62rem", fontWeight: 800, color: "#C8923A", flexShrink: 0,
-                }}>{i + 1}</div>
-                <div style={{ fontSize: "0.88rem", fontWeight: 800, color: "#0B1829" }}>{s.h}</div>
-              </div>
-              <div style={{
-                fontSize: "0.8rem", color: "#4B5563", lineHeight: 1.75,
-                paddingLeft: "1.85rem", whiteSpace: "pre-line",
-              }}>{s.t}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer */}
-        <div style={{
-          padding: "0.85rem 1.5rem", background: "#F7F8FA",
-          borderTop: "1px solid #e5e7eb",
-          display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8,
-        }}>
-          <span style={{ fontSize: "0.72rem", color: "#94A3B8" }}>© 2026 ManaBills. All rights reserved.</span>
-          <span style={{ fontSize: "0.72rem", color: "#94A3B8" }}>Made with ❤️ in Andhra Pradesh 🇮🇳</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 /* ═══════════════════════════════════════ */
 export default function HomePage() {
   const navigate = useNavigate();
@@ -400,7 +271,6 @@ export default function HomePage() {
   const [message,       setMessage]        = useState({ text: "", type: "" });
   const [loading,       setLoading]        = useState(false);
   const [activeTesti,   setActiveTesti]    = useState(0);
-  const [legalPage, setLegalPage] = useState(null); // "privacy" | "terms" | "refund"
 
   // Forgot password states
   const [forgotMode,        setForgotMode]        = useState(false);
@@ -987,14 +857,14 @@ export default function HomePage() {
           </div>
           <div className="hp-footer-cols">
             <div className="hp-footer-col">
-              <h4>Legal</h4>
-              <button onClick={() => setLegalPage("privacy")} style={{ background:"none", border:"none", color:"inherit", cursor:"pointer", padding:0, fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}>Privacy Policy</button>
-              <button onClick={() => setLegalPage("terms")}   style={{ background:"none", border:"none", color:"inherit", cursor:"pointer", padding:0, fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}>Terms of Use</button>
-              <button onClick={() => setLegalPage("refund")}  style={{ background:"none", border:"none", color:"inherit", cursor:"pointer", padding:0, fontFamily:"inherit", fontSize:"inherit", textAlign:"left" }}>Refund Policy</button>
+              <h4>Product</h4>
+              <a href="#features">Features</a>
+              <a href="#pricing">Pricing</a>
+              <a href="#who">Who It's For</a>
             </div>
             <div className="hp-footer-col">
               <h4>Support</h4>
-              <a href="https://wa.me/916300100420" target="_blank" rel="noreferrer">WhatsApp Help</a>
+              <a href="https://wa.me/919550544441" target="_blank" rel="noreferrer">WhatsApp Help</a>
               <a href="mailto:support@manabills.in">Email Us</a>
             </div>
             <div className="hp-footer-col">
@@ -1007,14 +877,12 @@ export default function HomePage() {
         </div>
         <div className="hp-footer-bottom">
           <span>© 2026 ManaBills. All rights reserved. · Made with ❤️ in Andhra Pradesh</span>
-          <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.35)" }}>
-            Built by <strong style={{ color: "rgba(255,255,255,0.6)" }}>Bogilingam Sambasiva Prasad</strong> · Backed by <strong style={{ color: "rgba(255,255,255,0.6)" }}> Choda Saranya</strong>
-          </span>
+          <span>GST Compliant · Secure Payments</span>
         </div>
       </footer>
 
       {/* WhatsApp float */}
-      <a href="https://wa.me/916300100420" target="_blank" rel="noreferrer" className="hp-wa-float" title="Chat on WhatsApp">
+      <a href="https://wa.me/919550544441" target="_blank" rel="noreferrer" className="hp-wa-float" title="Chat on WhatsApp">
         💬
       </a>
 
@@ -1502,10 +1370,6 @@ export default function HomePage() {
           .hp-modal { padding: 1.75rem 1.25rem; }
         }
       `}</style>
-      {/* Legal Modal */}
-      {legalPage && <LegalModal pageKey={legalPage} onClose={() => setLegalPage(null)} />}
-
-
     </div>
   );
 }
