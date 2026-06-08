@@ -1,23 +1,47 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubscriptionContext } from "../../context/SubscriptionContext";
-
-// ⚠️  Do NOT call refreshSubscriptions() on mount here.
-//     The SubscriptionProvider already fetches on mount and on token change.
-//     Calling it again here was triggering a second fetch that raced with
-//     subscribe()'s optimistic update, causing the billing page to always
-//     show stale plans after plan selection.
+import { activateFreeTrial } from "../../services/subscriptionService";
 
 const BusinessSubscription = () => {
   const navigate = useNavigate();
-  const { subscribe } = useContext(SubscriptionContext);
+  const { subscribe, refreshSubscriptions } = useContext(SubscriptionContext);
+  const [trialLoading, setTrialLoading] = useState(false);
+
+  // ── Free Trial handler — hits backend, gives real 5-day subscription ──
+  const handleFreeTrial = async () => {
+    setTrialLoading(true);
+    try {
+      await activateFreeTrial("business");
+      // Update context so sidebar/nav unlocks immediately
+      subscribe("business", {
+        status:    "active",
+        plan:      "free_trial",
+        duration:  "FREE_TRIAL",
+        is_active: true,
+      });
+      refreshSubscriptions(); // sync from server
+      navigate("/dashboard/business/shop-profile", {
+        state: { isFirstSetup: true },
+      });
+    } catch (err) {
+      const msg = err?.response?.data?.error;
+      if (msg) {
+        alert(msg); // "Free trial already used" or "Already active"
+      } else {
+        alert("Could not activate free trial. Please try again.");
+      }
+    } finally {
+      setTrialLoading(false);
+    }
+  };
 
   const plans = [
     {
-      key: "free",
-      name: "FREE TRIAL",
-      tag: "3 Days Free",
-      price: "₹0",
+      key:      "free",
+      name:     "FREE TRIAL",
+      tag:      "5 Days Free",
+      price:    "₹0",
       duration: "No card required",
       highlight: false,
       features: [
@@ -28,24 +52,15 @@ const BusinessSubscription = () => {
         "Customer database",
         "WhatsApp invoice sharing",
       ],
-      action: () => {
-        subscribe("business", {
-          status: "FREE_TRIAL",
-          plan: "free",
-          duration: "3_days",
-          is_active: true, 
-        });
-        navigate("/dashboard/business/shop-profile", {
-          state: { isFirstSetup: true },
-        });
-      },
-      btnText: "Start Free Trial",
+      action:  handleFreeTrial,
+      btnText: trialLoading ? "Activating..." : "Start Free Trial",
+      disabled: trialLoading,
     },
     {
-      key: "basic",
-      name: "BASIC",
-      tag: "Best for Small Shops",
-      price: "₹199",
+      key:      "basic",
+      name:     "BASIC",
+      tag:      "Best for Small Shops",
+      price:    "₹199",
       duration: "per month",
       highlight: true,
       features: [
@@ -64,10 +79,10 @@ const BusinessSubscription = () => {
       btnText: "Choose Basic",
     },
     {
-      key: "pro",
-      name: "PRO",
-      tag: "Growing Business",
-      price: "₹299",
+      key:      "pro",
+      name:     "PRO",
+      tag:      "Growing Business",
+      price:    "₹299",
       duration: "per month",
       highlight: false,
       features: [
@@ -104,7 +119,12 @@ const BusinessSubscription = () => {
               <li key={i}>{f}</li>
             ))}
           </ul>
-          <button className="plan-btn" onClick={plan.action}>
+          <button
+            className="plan-btn"
+            onClick={plan.action}
+            disabled={plan.disabled || false}
+            style={{ opacity: plan.disabled ? 0.7 : 1, cursor: plan.disabled ? "not-allowed" : "pointer" }}
+          >
             {plan.btnText}
           </button>
           {plan.key !== "free" && (

@@ -115,7 +115,7 @@ const usePlanExpiry = (subscriptions) => {
         "1 Year":   365 * 86_400_000,
         "6 Months": 182 * 86_400_000,
         "1 Month":   30 * 86_400_000,
-        "FREE_TRIAL": 3 * 86_400_000,
+        "FREE_TRIAL": 5 * 86_400_000,
       };
       if (durationMap[sub.duration]) expiresMs = now + durationMap[sub.duration];
     }
