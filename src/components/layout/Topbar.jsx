@@ -98,7 +98,8 @@ const usePlanExpiry = (subscriptions) => {
     if (!sub || typeof sub !== "object") return;
 
     // Skip cancelled / expired subs
-    if (sub.status && sub.status !== "active") return;
+    // FIXED
+  if (sub.status && sub.status !== "active" && sub.status !== "FREE_TRIAL") return;
 
     // ── Resolve expires_at from real backend fields ──────────────────────
     // Backend serializer returns snake_case: expires_at
@@ -110,20 +111,22 @@ const usePlanExpiry = (subscriptions) => {
 
     // Fallback: if context was set with just a duration string (no API yet)
     if (!expiresMs && sub.duration) {
-      const now = Date.now();
+      const base = sub.started_at  ? new Date(sub.started_at).getTime()
+           : sub.startedAt   ? new Date(sub.startedAt).getTime()
+           : Date.now();
       const durationMap = {
         "1 Year":   365 * 86_400_000,
         "6 Months": 182 * 86_400_000,
         "1 Month":   30 * 86_400_000,
         "FREE_TRIAL": 5 * 86_400_000,
       };
-      if (durationMap[sub.duration]) expiresMs = now + durationMap[sub.duration];
+      if (durationMap[sub.duration]) expiresMs = base + durationMap[sub.duration];
     }
 
     // FREE_TRIAL shape: { status:"FREE_TRIAL", expiresAt: timestamp }
-    if (sub.status === "FREE_TRIAL" && sub.expiresAt) {
-      expiresMs = new Date(sub.expiresAt).getTime();
-    }
+    // if (sub.status === "FREE_TRIAL" && sub.expiresAt) {
+      // expiresMs = new Date(sub.expiresAt).getTime();
+    // }
 
     if (!expiresMs) return;
 
@@ -178,7 +181,8 @@ const usePlanExpiry = (subscriptions) => {
 const getActivePlans = (subscriptions) => {
   if (!subscriptions) return [];
   return Object.entries(subscriptions)
-    .filter(([, sub]) => sub && typeof sub === "object" && sub.status === "active")
+    // FIXED
+    .filter(([, sub]) => sub && typeof sub === "object" && (sub.status === "active" || sub.status === "FREE_TRIAL"))
     .map(([moduleKey, sub]) => ({
       moduleKey,
       planKey:   sub.plan_key   || "",
@@ -491,7 +495,7 @@ useEffect(() => {
     if (subLoading || !subscriptions || !Object.keys(subscriptions).length) return;
 
     Object.entries(subscriptions).forEach(([moduleKey, sub]) => {
-      if (!sub || sub.status !== "active") return;
+      if (!sub || (sub.status !== "active" && sub.status !== "FREE_TRIAL")) return;
 
       // Call backend check endpoint to get fresh days_left / hours_left
       authAxios

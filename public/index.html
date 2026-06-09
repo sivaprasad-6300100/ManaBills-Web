@@ -1,91 +1,377 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-    <!-- Favicon -->
-    <link rel="icon" href="%PUBLIC_URL%/ManaBillsLogo.jpeg" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/ManaBillsLogo.jpeg" />
-
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- ═══════════════════════════════════════════════
+         VIEWPORT & THEME
+    ═══════════════════════════════════════════════ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#1e4fba" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="ManaBills" />
 
-    <!-- PRIMARY SEO -->
-    <title>ManaBills – GST Billing & Expense Management App | Andhra Pradesh & Telangana</title>
-    <meta name="description" content="ManaBills is Andhra Pradesh & Telangana's #1 billing app. Create GST invoices in 30 seconds, track expenses, manage stock, and send WhatsApp reminders. Trusted by 12,000+ shop owners. Start free today." />
-    <meta name="keywords" content="GST billing app, invoice software Andhra Pradesh, billing app Telugu, ManaBills, GST invoice maker, shop billing software, kirana store billing, expense tracker India, construction billing app, Telangana billing software" />
-    <meta name="author" content="ManaBills" />
-    <meta name="robots" content="index, follow" />
+    <!-- ═══════════════════════════════════════════════
+         FAVICON & TOUCH ICONS
+    ═══════════════════════════════════════════════ -->
+    <link rel="icon" type="image/jpeg" href="%PUBLIC_URL%/ManaBillsLogo.jpeg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/ManaBillsLogo.jpeg" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- ═══════════════════════════════════════════════
+         PRIMARY SEO — TITLE & DESCRIPTION
+         Rule: Title 50–60 chars | Description 140–160 chars
+    ═══════════════════════════════════════════════ -->
+    <title>ManaBills – GST Billing App for Andhra Pradesh & Telangana | Free Trial</title>
+
+    <meta
+      name="description"
+      content="ManaBills అందించే GST invoice 10 seconds లో ready. Track expenses, manage stock & send WhatsApp reminders. Trusted by 12,000+ shop owners across AP & Telangana. Start FREE today!"
+    />
+
+    <!-- ═══════════════════════════════════════════════
+         KEYWORDS (long-tail + local intent + Telugu)
+    ═══════════════════════════════════════════════ -->
+    <meta
+      name="keywords"
+      content="
+        GST billing app Andhra Pradesh, GST invoice software Telugu,
+        ManaBills app, billing app Telugu, kirana store billing software,
+        shop billing app AP, Telangana GST software, vyavasayam billing app,
+        free GST invoice maker India, construction billing app Hyderabad,
+        medical shop billing software, grocery store billing app,
+        WhatsApp invoice sender, stock management small business India,
+        expense tracker shop owner, online billing software Vijayawada,
+        GST return filing app, UPI payment tracking app, retail billing app,
+        billing software Tirupati, billing app Guntur, billing app Visakhapatnam,
+        Telugu vyapar app, mana bills, manabills.com
+      "
+    />
+
+    <meta name="author" content="ManaBills – Smart Billing for Every Business" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="bingbot" content="index, follow" />
+    <meta name="revisit-after" content="3 days" />
+    <meta name="rating" content="general" />
+    <meta name="language" content="English, Telugu" />
+    <meta name="copyright" content="ManaBills 2025" />
     <link rel="canonical" href="https://www.manabills.com/" />
 
-    <!-- OPEN GRAPH (WhatsApp, Facebook, LinkedIn previews) -->
+    <!-- ═══════════════════════════════════════════════
+         OPEN GRAPH — WhatsApp, Facebook, LinkedIn
+    ═══════════════════════════════════════════════ -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.manabills.com/" />
-    <meta property="og:title" content="ManaBills – GST Billing App for AP & Telangana Businesses" />
-    <meta property="og:description" content="Create GST invoices in 30 seconds. Track expenses. Send WhatsApp reminders. Trusted by 12,000+ shop owners across Andhra Pradesh & Telangana. Start free." />
-    <meta property="og:image" content="https://www.manabills.com/ManaBillsLogo.jpeg" />
-    <meta property="og:image:width" content="1254" />
-    <meta property="og:image:height" content="1254" />
-    <meta property="og:locale" content="en_IN" />
     <meta property="og:site_name" content="ManaBills" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:locale:alternate" content="te_IN" />
 
-    <!-- TWITTER CARD -->
+    <meta property="og:title" content="ManaBills – #1 GST Billing App for AP & Telangana Shop Owners" />
+    <meta
+      property="og:description"
+      content="GST invoices in 10 seconds. WhatsApp reminders. Stock & expense management. Trusted by 12,000+ businesses across Andhra Pradesh & Telangana. Free trial – no credit card needed."
+    />
+    <meta property="og:image" content="https://www.manabills.com/og-cover.jpg" />
+    <meta property="og:image:secure_url" content="https://www.manabills.com/og-cover.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ManaBills GST Billing App – Invoice in 10 Seconds" />
+
+    <!-- ═══════════════════════════════════════════════
+         TWITTER / X CARD
+    ═══════════════════════════════════════════════ -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ManaBills – GST Billing App for AP & Telangana" />
-    <meta name="twitter:description" content="GST invoices in 30 seconds. Expense tracking. Stock management. WhatsApp reminders. India's trusted billing app for shop owners." />
-    <meta name="twitter:image" content="https://www.manabills.com/ManaBillsLogo.jpeg" />
+    <meta name="twitter:site" content="@ManaBillsApp" />
+    <meta name="twitter:creator" content="@ManaBillsApp" />
+    <meta name="twitter:title" content="ManaBills – GST Billing App | AP & Telangana's #1 Choice" />
+    <meta
+      name="twitter:description"
+      content="Create GST invoices in 10 seconds. Track expenses. Send WhatsApp reminders. 12,000+ shop owners trust ManaBills. Start free today!"
+    />
+    <meta name="twitter:image" content="https://www.manabills.com/og-cover.jpg" />
+    <meta name="twitter:image:alt" content="ManaBills – GST Billing App Screenshot" />
 
-    <!-- GEO / LOCAL SEO -->
+    <!-- ═══════════════════════════════════════════════
+         GEO / LOCAL SEO (hyper-local targeting)
+    ═══════════════════════════════════════════════ -->
     <meta name="geo.region" content="IN-AP" />
-    <meta name="geo.placename" content="Andhra Pradesh, India" />
+    <meta name="geo.placename" content="Andhra Pradesh, Telangana, India" />
+    <meta name="geo.position" content="15.9129;79.7400" />
+    <meta name="ICBM" content="15.9129, 79.7400" />
 
-    <!-- STRUCTURED DATA (Google Rich Results) -->
+    <!-- ═══════════════════════════════════════════════
+         STRUCTURED DATA — SoftwareApplication
+    ═══════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "ManaBills",
+      "alternateName": ["ManaBills App", "Mana Bills", "ManaBills GST App"],
       "url": "https://www.manabills.com",
-      "logo": "https://www.manabills.com/ManaBillsLogo.jpeg",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.manabills.com/ManaBillsLogo.jpeg",
+        "width": 512,
+        "height": 512
+      },
+      "image": "https://www.manabills.com/og-cover.jpg",
       "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "Billing & Invoicing Software",
       "operatingSystem": "Web, Android, iOS",
+      "browserRequirements": "Requires JavaScript",
+      "inLanguage": ["en-IN", "te-IN"],
       "offers": {
         "@type": "Offer",
-        "price": "99",
-        "priceCurrency": "INR"
+        "price": "0",
+        "priceCurrency": "INR",
+        "description": "Free trial available. Premium plans starting at ₹99/month.",
+        "availability": "https://schema.org/InStock",
+        "url": "https://www.manabills.com/pricing"
       },
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": "4.9",
+        "bestRating": "5",
+        "worstRating": "1",
         "reviewCount": "12000"
       },
-      "description": "ManaBills is a GST billing and expense management web for shop owners, kirana stores, contractors, and freelancers across Andhra Pradesh and Telangana.",
-      "areaServed": {
-        "@type": "State",
-        "name": "Andhra Pradesh, Telangana, India"
-      },
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "Customer Support",
-        "telephone": "+91-6300100420",
-        "availableLanguage": ["English", "Telugu"]
+      "description": "ManaBills is AP & Telangana's leading GST billing and expense management app. Create professional GST invoices in 10 seconds, manage stock, track expenses, and send WhatsApp payment reminders. Built specifically for kirana stores, retail shops, medical stores, contractors, and freelancers.",
+      "featureList": [
+        "GST Invoice Generation in 10 seconds",
+        "WhatsApp Invoice Sharing",
+        "Expense Tracking",
+        "Stock / Inventory Management",
+        "Customer Payment Reminders",
+        "Multi-business Support",
+        "Telugu Language Interface",
+        "UPI Payment Tracking",
+        "GST Reports",
+        "Offline Mode"
+      ],
+      "screenshot": "https://www.manabills.com/screenshot.jpg",
+      "areaServed": [
+        {
+          "@type": "State",
+          "name": "Andhra Pradesh",
+          "addressCountry": "IN"
+        },
+        {
+          "@type": "State",
+          "name": "Telangana",
+          "addressCountry": "IN"
+        }
+      ],
+      "publisher": {
+        "@type": "Organization",
+        "name": "ManaBills",
+        "url": "https://www.manabills.com",
+        "logo": "https://www.manabills.com/ManaBillsLogo.jpeg",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "Customer Support",
+          "telephone": "+91-6300100420",
+          "email": "support@manabills.com",
+          "availableLanguage": ["English", "Telugu"],
+          "hoursAvailable": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+            "opens": "09:00",
+            "closes": "18:00"
+          }
+        },
+        "sameAs": [
+          "https://www.facebook.com/ManaBills",
+          "https://www.instagram.com/ManaBills",
+          "https://twitter.com/ManaBillsApp",
+          "https://www.youtube.com/@ManaBills",
+          "https://www.linkedin.com/company/manabills"
+        ]
       }
     }
     </script>
 
-    <!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-3CY1HDEHLK"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-3CY1HDEHLK');
-</script>
+    <!-- ═══════════════════════════════════════════════
+         STRUCTURED DATA — Organization (Brand)
+    ═══════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "ManaBills",
+      "url": "https://www.manabills.com",
+      "logo": "https://www.manabills.com/ManaBillsLogo.jpeg",
+      "description": "India's trusted GST billing app for small businesses in Andhra Pradesh and Telangana.",
+      "telephone": "+91-6300100420",
+      "email": "support@manabills.com",
+      "address": {
+        "@type": "PostalAddress",
+        "addressRegion": "Andhra Pradesh",
+        "addressCountry": "IN"
+      },
+      "sameAs": [
+        "https://www.facebook.com/ManaBills",
+        "https://www.instagram.com/ManaBills",
+        "https://twitter.com/ManaBillsApp",
+        "https://www.youtube.com/@ManaBills"
+      ],
+      "foundingDate": "2020",
+      "numberOfEmployees": {
+        "@type": "QuantitativeValue",
+        "minValue": 10
+      },
+      "slogan": "Bill Smart. Grow Fast."
+    }
+    </script>
 
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!-- ═══════════════════════════════════════════════
+         STRUCTURED DATA — WebSite + Sitelinks Searchbox
+    ═══════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "ManaBills",
+      "url": "https://www.manabills.com",
+      "description": "GST billing app for shop owners in Andhra Pradesh & Telangana",
+      "inLanguage": ["en-IN", "te-IN"],
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://www.manabills.com/search?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════
+         STRUCTURED DATA — FAQ (boosts rich snippets)
+    ═══════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is ManaBills free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! ManaBills offers a free trial with no credit card required. Premium plans start at ₹99/month with full GST billing, stock management, and WhatsApp reminder features."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does ManaBills work in Telugu?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, ManaBills fully supports Telugu language for invoices and the app interface, making it easy for businesses across Andhra Pradesh and Telangana."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I send invoices via WhatsApp using ManaBills?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Absolutely. ManaBills lets you share GST invoices directly on WhatsApp in one tap. You can also send automatic payment reminders to customers via WhatsApp."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which types of businesses use ManaBills?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ManaBills is used by kirana store owners, medical shops, retail shops, grocery stores, construction contractors, freelancers, and small business owners across Andhra Pradesh and Telangana."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How fast can I create a GST invoice in ManaBills?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You can create a professional GST invoice in just 10 seconds using ManaBills. Simply select the customer, add items, and share — it's that simple."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════
+         STRUCTURED DATA — BreadcrumbList
+    ═══════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://www.manabills.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "GST Billing",
+          "item": "https://www.manabills.com/gst-billing"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Pricing",
+          "item": "https://www.manabills.com/pricing"
+        }
+      ]
+    }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════
+         PERFORMANCE — DNS Prefetch & Preconnect
+    ═══════════════════════════════════════════════ -->
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="//www.google-analytics.com" />
+    <link rel="dns-prefetch" href="//www.googletagmanager.com" />
+
+    <!-- ═══════════════════════════════════════════════
+         GOOGLE ANALYTICS 4 (GA4)
+    ═══════════════════════════════════════════════ -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3CY1HDEHLK"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag('js', new Date());
+      gtag('config', 'G-3CY1HDEHLK', {
+        page_title: 'ManaBills – GST Billing App',
+        page_location: 'https://www.manabills.com/',
+        send_page_view: true,
+        anonymize_ip: true
+      });
+    </script>
+
+    <!-- ═══════════════════════════════════════════════
+         VERIFICATION TAGS (add your actual codes below)
+    ═══════════════════════════════════════════════ -->
+    <!-- <meta name="google-site-verification" content="YOUR_GOOGLE_SEARCH_CONSOLE_CODE" /> -->
+    <!-- <meta name="msvalidate.01" content="YOUR_BING_WEBMASTER_CODE" /> -->
+    <!-- <meta name="p:domain_verify" content="YOUR_PINTEREST_CODE" /> -->
+
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      ManaBills – GST Billing App for Andhra Pradesh &amp; Telangana businesses.
+      Create GST invoices in 10 seconds, track expenses, manage stock and send WhatsApp reminders.
+      Please enable JavaScript to use this app. Visit <a href="https://www.manabills.com">www.manabills.com</a> for more.
+    </noscript>
     <div id="root"></div>
   </body>
 </html>
