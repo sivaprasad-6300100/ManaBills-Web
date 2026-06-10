@@ -19,6 +19,12 @@ export const getShopProfile = async () => {
   return res.data;
 };
 
+  // getChartStats------------------------------
+export const getChartStats = async (period) => {
+  const res = await authAxios.get(`${BASE}chart-stats/`, { params: { period } });
+  return res.data;
+};
+
 
 export const saveShopProfile = async (data) => {
   const res = await authAxios.post(`${BASE}shop-profile/`, data);
