@@ -20,10 +20,12 @@ export const getShopProfile = async () => {
 };
 
   // getChartStats------------------------------
-export const getChartStats = async (period) => {
-  const res = await authAxios.get(`${BASE}chart-stats/`, { params: { period } });
+export const getChartStats = async (period, options = {}) => {
+  const params = { period, ...options };
+  const res = await authAxios.get(`${BASE}chart-stats/`, { params });
   return res.data;
 };
+
 
 
 export const saveShopProfile = async (data) => {
