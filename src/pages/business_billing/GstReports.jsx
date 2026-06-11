@@ -457,7 +457,9 @@ const GstReports = () => {
 
         // Auto carry forward leftover ITC
         const totalITC   = itcClaimedFromStock + openingITC;
-        const leftover   = Math.max(0, totalITC - gst);
+        const used     = Math.min(gst, totalITC);   
+        const leftover = Math.max(0, totalITC - gst);
+
         if(leftover > 0) {
             saveOpeningITC(leftover, selectedYear).then(() => {
               setOpeningITCInput(leftover.toString());

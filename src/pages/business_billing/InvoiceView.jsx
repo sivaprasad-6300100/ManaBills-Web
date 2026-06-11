@@ -42,13 +42,20 @@ const PdfDocument = React.forwardRef(({ invoice }, ref) => {
           </div>
         </div>
 
+
+
         {invoice?.shop_name && (
           <div className="pdf-shop-block">
             <div className="pdf-shop-name">{invoice.shop_name}</div>
+            {invoice.shop_owner   && <div className="pdf-shop-det">👤 {invoice.shop_owner}</div>}
+            {invoice.shop_mobile  && <div className="pdf-shop-det">📞 {invoice.shop_mobile}</div>}
             {invoice.shop_address && <div className="pdf-shop-det">📍 {invoice.shop_address}</div>}
             {invoice.shop_gst     && <div className="pdf-shop-det">GSTIN: <strong>{invoice.shop_gst}</strong></div>}
           </div>
         )}
+
+
+
 
         <div className="pdf-info-row">
           <div>
@@ -283,7 +290,24 @@ const CSS = `
   .pdf-footer{border-top:1.5px solid #e5e7eb;padding-top:14px;display:flex;justify-content:space-between;align-items:flex-end;}
   .pdf-footer-brand{font-size:0.65rem;color:#9ca3af;}
   .pdf-powered{font-size:0.6rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;text-align:right;}
-  @media(max-width:640px){.pdf-doc{padding:20px 14px;}.pdf-header{flex-direction:column;gap:8px;}.pdf-inv-meta{text-align:left;}.pdf-info-row{grid-template-columns:1fr;gap:8px;}.pdf-totals{width:100%;}.pdf-footer{flex-direction:column;gap:8px;align-items:flex-start;}}
+  @media(max-width:640px){
+  .pdf-doc{padding:16px 10px;overflow-x:hidden;}
+  .pdf-header{flex-direction:column;gap:8px;}
+  .pdf-inv-meta{text-align:left;}
+  .pdf-info-row{grid-template-columns:1fr;gap:8px;}
+  .pdf-totals{width:100%;}
+  .pdf-footer{flex-direction:column;gap:8px;align-items:flex-start;}
+  .pdf-table{table-layout:fixed;width:100%;}
+  .pdf-table th{font-size:0.62rem;padding:7px 5px;letter-spacing:0;}
+  .pdf-table td{font-size:0.75rem;padding:7px 5px;word-break:break-word;}
+  .pdf-table th:nth-child(1),.pdf-table td:nth-child(1){width:20px;}
+  .pdf-table th:nth-child(2),.pdf-table td:nth-child(2){width:auto;}
+  .pdf-table th:nth-child(3),.pdf-table td:nth-child(3){width:36px;text-align:center;}
+  .pdf-table th:nth-child(4),.pdf-table td:nth-child(4){width:36px;text-align:center;}
+  .pdf-table th:nth-child(5),.pdf-table td:nth-child(5){width:56px;text-align:right;}
+  .pdf-table th:nth-child(6),.pdf-table td:nth-child(6){width:62px;text-align:right;}
+  .pdf-pay-block{flex-wrap:wrap;gap:8px;}
+}
 `;
 
 export default InvoiceView;
