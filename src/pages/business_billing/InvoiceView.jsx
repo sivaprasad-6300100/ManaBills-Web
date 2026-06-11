@@ -8,7 +8,7 @@ import { useParams } from "react-router-dom";
 
 // ── Public fetch — NO auth token needed ──────────────────────
 const fetchPublicInvoice = async (invoiceId) => {
-  const BASE = process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+  const BASE = (process.env.REACT_APP_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
   const res  = await fetch(`${BASE}/business/invoices/public/${invoiceId}/`);
   if (!res.ok) throw new Error(String(res.status));
   return res.json();
