@@ -5,9 +5,6 @@ import { SubscriptionContext } from "../../context/SubscriptionContext";
 import { authAxios } from "../../services/api";
 import { getShopProfile, saveShopProfile } from "../../services/businessService";
 
-/* ══════════════════════════════════════════
-   DESIGN TOKENS
-══════════════════════════════════════════ */
 const T = {
   navy:    "#0B1829",
   navyMid: "#162438",
@@ -36,9 +33,6 @@ const T = {
   radiusSm:"10px",
 };
 
-/* ══════════════════════════════════════════
-   TABS
-══════════════════════════════════════════ */
 const TABS = [
   { key: "profile",       label: "My Profile",     icon: "M12 12c2.7 0 4-1.8 4-4s-1.3-4-4-4-4 1.8-4 4 1.3 4 4 4zm0 2c-4.4 0-8 2.7-8 6h16c0-3.3-3.6-6-8-6z" },
   { key: "subscriptions", label: "Subscriptions",  icon: "M9 12l2 2 4-4M7 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2h-2M9 3h6M9 3a1 1 0 000 2h6a1 1 0 000-2" },
@@ -65,43 +59,19 @@ const SHOP_TYPES = [
   { value: "Others",          label: "📦 Others"         },
 ];
 
-/* ══════════════════════════════════════════
-   LEGAL PAGE CONTENT
-══════════════════════════════════════════ */
 const LEGAL_PAGES = {
   privacy: {
     title: "Privacy Policy",
     icon: "🔒",
     lastUpdated: "January 1, 2025",
     sections: [
-      {
-        heading: "Information We Collect",
-        content: `We collect information you provide directly to us when you create an account, such as your name, mobile number, email address, and shop details. We also collect business information including shop name, GST number, and address that you enter into the app. Additionally, we collect usage data such as invoice records, expense entries, and billing history that you create within ManaBills.`,
-      },
-      {
-        heading: "How We Use Your Information",
-        content: `We use the information we collect to:\n• Provide, maintain, and improve our billing and expense management services\n• Generate invoices and financial reports on your behalf\n• Send you transactional notifications related to your account\n• Respond to your support queries and feedback\n• Ensure the security and integrity of our platform`,
-      },
-      {
-        heading: "Data Storage & Security",
-        content: `Your data is stored on secure, encrypted servers hosted in India. We implement industry-standard security measures including SSL/TLS encryption for data transmission and AES-256 encryption at rest. We perform regular security audits and maintain strict access controls to ensure your business data remains private and protected.`,
-      },
-      {
-        heading: "Data Sharing",
-        content: `We do not sell, trade, or rent your personal information to third parties. We may share anonymized, aggregated data for analytics purposes. We will only disclose your information when required by law or with your explicit consent.`,
-      },
-      {
-        heading: "Data Retention",
-        content: `We retain your account and business data for as long as your account is active. If you delete your account, we will permanently delete your data within 30 days, except where retention is required by law (such as GST billing records which must be retained for 7 years as per Indian tax law).`,
-      },
-      {
-        heading: "Your Rights",
-        content: `You have the right to access, correct, or delete your personal data at any time by contacting us at support@manabills.in. You may also request a copy of all data we hold about you. We will respond to all such requests within 15 business days.`,
-      },
-      {
-        heading: "Contact Us",
-        content: `If you have any questions about this Privacy Policy, please contact us at:\n📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441`,
-      },
+      { heading: "Information We Collect", content: `We collect information you provide directly to us when you create an account, such as your name, mobile number, email address, and shop details. We also collect business information including shop name, GST number, and address that you enter into the app. Additionally, we collect usage data such as invoice records, expense entries, and billing history that you create within ManaBills.` },
+      { heading: "How We Use Your Information", content: `We use the information we collect to:\n• Provide, maintain, and improve our billing and expense management services\n• Generate invoices and financial reports on your behalf\n• Send you transactional notifications related to your account\n• Respond to your support queries and feedback\n• Ensure the security and integrity of our platform` },
+      { heading: "Data Storage & Security", content: `Your data is stored on secure, encrypted servers hosted in India. We implement industry-standard security measures including SSL/TLS encryption for data transmission and AES-256 encryption at rest. We perform regular security audits and maintain strict access controls to ensure your business data remains private and protected.` },
+      { heading: "Data Sharing", content: `We do not sell, trade, or rent your personal information to third parties. We may share anonymized, aggregated data for analytics purposes. We will only disclose your information when required by law or with your explicit consent.` },
+      { heading: "Data Retention", content: `We retain your account and business data for as long as your account is active. If you delete your account, we will permanently delete your data within 30 days, except where retention is required by law (such as GST billing records which must be retained for 7 years as per Indian tax law).` },
+      { heading: "Your Rights", content: `You have the right to access, correct, or delete your personal data at any time by contacting us at support@manabills.in. You may also request a copy of all data we hold about you. We will respond to all such requests within 15 business days.` },
+      { heading: "Contact Us", content: `If you have any questions about this Privacy Policy, please contact us at:\n📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441` },
     ],
   },
   terms: {
@@ -109,38 +79,14 @@ const LEGAL_PAGES = {
     icon: "📋",
     lastUpdated: "January 1, 2025",
     sections: [
-      {
-        heading: "Acceptance of Terms",
-        content: `By accessing or using ManaBills, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our application. These terms apply to all users of ManaBills, including shop owners, individuals, and businesses.`,
-      },
-      {
-        heading: "Use of Service",
-        content: `ManaBills is a billing and expense management application intended for lawful business use in India. You agree to:\n• Use the app only for legitimate business purposes\n• Provide accurate and truthful information\n• Comply with all applicable Indian laws and regulations including GST\n• Not attempt to reverse engineer, hack, or misuse the platform`,
-      },
-      {
-        heading: "Subscription & Payments",
-        content: `ManaBills offers both free and paid subscription plans. Paid plans are billed monthly or annually. All payments are processed securely through our payment partners. Subscriptions auto-renew unless cancelled at least 24 hours before the renewal date. Prices are subject to change with 30 days advance notice.`,
-      },
-      {
-        heading: "Intellectual Property",
-        content: `All content, features, and functionality of ManaBills — including the software, design, text, and graphics — are owned by ManaBills and protected by Indian and international copyright laws. You retain ownership of all data you enter into the application.`,
-      },
-      {
-        heading: "Limitation of Liability",
-        content: `ManaBills is provided "as is" without warranty of any kind. We shall not be liable for any indirect, incidental, or consequential damages arising from your use of the service. Our total liability to you shall not exceed the amount you paid for the service in the last 3 months.`,
-      },
-      {
-        heading: "Account Termination",
-        content: `We reserve the right to suspend or terminate accounts that violate these terms, engage in fraudulent activity, or misuse the platform. You may delete your account at any time by contacting support. Upon termination, your right to use the service ceases immediately.`,
-      },
-      {
-        heading: "Governing Law",
-        content: `These Terms shall be governed by the laws of India. Any disputes arising under these terms shall be subject to the exclusive jurisdiction of the courts in Andhra Pradesh, India.`,
-      },
-      {
-        heading: "Contact",
-        content: `For questions about these Terms, contact us at:\n📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441`,
-      },
+      { heading: "Acceptance of Terms", content: `By accessing or using ManaBills, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our application. These terms apply to all users of ManaBills, including shop owners, individuals, and businesses.` },
+      { heading: "Use of Service", content: `ManaBills is a billing and expense management application intended for lawful business use in India. You agree to:\n• Use the app only for legitimate business purposes\n• Provide accurate and truthful information\n• Comply with all applicable Indian laws and regulations including GST\n• Not attempt to reverse engineer, hack, or misuse the platform` },
+      { heading: "Subscription & Payments", content: `ManaBills offers both free and paid subscription plans. Paid plans are billed monthly or annually. All payments are processed securely through our payment partners. Subscriptions auto-renew unless cancelled at least 24 hours before the renewal date. Prices are subject to change with 30 days advance notice.` },
+      { heading: "Intellectual Property", content: `All content, features, and functionality of ManaBills — including the software, design, text, and graphics — are owned by ManaBills and protected by Indian and international copyright laws. You retain ownership of all data you enter into the application.` },
+      { heading: "Limitation of Liability", content: `ManaBills is provided "as is" without warranty of any kind. We shall not be liable for any indirect, incidental, or consequential damages arising from your use of the service. Our total liability to you shall not exceed the amount you paid for the service in the last 3 months.` },
+      { heading: "Account Termination", content: `We reserve the right to suspend or terminate accounts that violate these terms, engage in fraudulent activity, or misuse the platform. You may delete your account at any time by contacting support. Upon termination, your right to use the service ceases immediately.` },
+      { heading: "Governing Law", content: `These Terms shall be governed by the laws of India. Any disputes arising under these terms shall be subject to the exclusive jurisdiction of the courts in Andhra Pradesh, India.` },
+      { heading: "Contact", content: `For questions about these Terms, contact us at:\n📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441` },
     ],
   },
   refund: {
@@ -148,37 +94,16 @@ const LEGAL_PAGES = {
     icon: "💰",
     lastUpdated: "January 1, 2025",
     sections: [
-      {
-        heading: "Free Trial",
-        content: `ManaBills offers a free trial period for all new users so you can evaluate the service before committing to a paid plan. We encourage you to fully explore the features during the trial period before subscribing.`,
-      },
-      {
-        heading: "Eligibility for Refund",
-        content: `We offer refunds under the following conditions:\n• Within 7 days of your initial subscription payment if you have not extensively used the service\n• In case of technical issues caused by our platform that we are unable to resolve within 72 hours\n• Duplicate charges or billing errors\n\nRefunds are not provided for:\n• Partial months of service\n• Accounts suspended for Terms of Service violations\n• Change of mind after 7 days`,
-      },
-      {
-        heading: "Refund Process",
-        content: `To request a refund:\n1. Contact us via WhatsApp at +91 95505 44441 or email support@manabills.in\n2. Provide your registered mobile number and reason for refund\n3. Our team will review your request within 2 business days\n4. Approved refunds will be processed within 5–7 business days to your original payment method`,
-      },
-      {
-        heading: "Annual Plans",
-        content: `For annual subscriptions, refunds are prorated based on the unused months if cancelled within the first 30 days. After 30 days, annual plan refunds are evaluated on a case-by-case basis. Please contact our support team to discuss your situation.`,
-      },
-      {
-        heading: "Cancellation",
-        content: `You may cancel your subscription at any time. Cancellation takes effect at the end of the current billing period. You will continue to have access to paid features until the billing period ends. No further charges will be made after cancellation.`,
-      },
-      {
-        heading: "Contact for Refunds",
-        content: `For all refund requests and billing queries:\n📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441\n🕐 Support hours: Mon–Sat, 9AM–8PM IST`,
-      },
+      { heading: "Free Trial", content: `ManaBills offers a free trial period for all new users so you can evaluate the service before committing to a paid plan. We encourage you to fully explore the features during the trial period before subscribing.` },
+      { heading: "Eligibility for Refund", content: `We offer refunds under the following conditions:\n• Within 7 days of your initial subscription payment if you have not extensively used the service\n• In case of technical issues caused by our platform that we are unable to resolve within 72 hours\n• Duplicate charges or billing errors\n\nRefunds are not provided for:\n• Partial months of service\n• Accounts suspended for Terms of Service violations\n• Change of mind after 7 days` },
+      { heading: "Refund Process", content: `To request a refund:\n1. Contact us via WhatsApp at +91 95505 44441 or email support@manabills.in\n2. Provide your registered mobile number and reason for refund\n3. Our team will review your request within 2 business days\n4. Approved refunds will be processed within 5–7 business days to your original payment method` },
+      { heading: "Annual Plans", content: `For annual subscriptions, refunds are prorated based on the unused months if cancelled within the first 30 days. After 30 days, annual plan refunds are evaluated on a case-by-case basis. Please contact our support team to discuss your situation.` },
+      { heading: "Cancellation", content: `You may cancel your subscription at any time. Cancellation takes effect at the end of the current billing period. You will continue to have access to paid features until the billing period ends. No further charges will be made after cancellation.` },
+      { heading: "Contact for Refunds", content: `For all refund requests and billing queries:\n📧 support@manabills.in\n💬 WhatsApp: +91 95505 44441\n🕐 Support hours: Mon–Sat, 9AM–8PM IST` },
     ],
   },
 };
 
-/* ══════════════════════════════════════════
-   SHARED PRIMITIVES
-══════════════════════════════════════════ */
 const inputBase = {
   width: "100%", padding: "11px 14px",
   border: `1.5px solid ${T.border}`,
@@ -251,34 +176,41 @@ const Field = ({ label, hint, children, locked }) => (
   </div>
 );
 
-const Card = ({ title, subtitle, icon, accent = T.navy, children, action, noPad }) => (
+const Card = ({ title, subtitle, icon, accent = T.navy, children, action, noPad, isMobile }) => (
   <div style={{
-    background: T.white, border: `1px solid ${T.border}`,
-    borderRadius: T.radius, overflow: "hidden",
-    boxShadow: "0 2px 12px rgba(11,24,41,0.05)", marginBottom: "1.25rem",
+    background: T.white,
+    border: isMobile ? "none" : `1px solid ${T.border}`,
+    borderTop: isMobile ? `1px solid ${T.border}` : undefined,
+    borderBottom: isMobile ? `1px solid ${T.border}` : undefined,
+    borderRadius: isMobile ? 0 : T.radius,
+    overflow: "hidden",
+    boxShadow: isMobile ? "none" : "0 2px 12px rgba(11,24,41,0.05)",
+    marginBottom: isMobile ? "0.5rem" : "1.25rem",
   }}>
     <div style={{
-      padding: "1rem 1.4rem", borderBottom: `1px solid ${T.border}`,
+      padding: isMobile ? "0.85rem 1rem" : "1rem 1.4rem",
+      borderBottom: `1px solid ${T.border}`,
       display: "flex", alignItems: "center", justifyContent: "space-between",
       background: "#FAFBFC",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
         <div style={{
-          width: 34, height: 34, borderRadius: "9px",
+          width: isMobile ? 30 : 34, height: isMobile ? 30 : 34,
+          borderRadius: "9px",
           background: `${accent}14`, border: `1.5px solid ${accent}22`,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "1rem", flexShrink: 0,
+          fontSize: isMobile ? "0.9rem" : "1rem", flexShrink: 0,
         }}>
           {icon}
         </div>
         <div>
-          <div style={{ fontSize: "0.88rem", fontWeight: 800, color: T.text1, letterSpacing: "-0.01em" }}>{title}</div>
-          {subtitle && <div style={{ fontSize: "0.7rem", color: T.text3, marginTop: "1px" }}>{subtitle}</div>}
+          <div style={{ fontSize: isMobile ? "0.82rem" : "0.88rem", fontWeight: 800, color: T.text1, letterSpacing: "-0.01em" }}>{title}</div>
+          {subtitle && <div style={{ fontSize: "0.67rem", color: T.text3, marginTop: "1px" }}>{subtitle}</div>}
         </div>
       </div>
       {action}
     </div>
-    <div style={noPad ? {} : { padding: "1.3rem 1.4rem" }}>{children}</div>
+    <div style={noPad ? {} : { padding: isMobile ? "1rem" : "1.3rem 1.4rem" }}>{children}</div>
   </div>
 );
 
@@ -305,25 +237,28 @@ const SolidBtn = ({ children, color = T.navy, onClick, disabled, style: extra })
   </button>
 );
 
-const Tile = ({ icon, label, value, sub }) => (
+const Tile = ({ icon, label, value, sub, isMobile }) => (
   <div style={{
-    background: T.bg, border: `1px solid ${T.border}`,
-    borderRadius: T.radiusSm, padding: "11px 13px",
-    display: "flex", alignItems: "flex-start", gap: "9px",
+    background: T.bg,
+    border: `1px solid ${T.border}`,
+    borderRadius: isMobile ? "12px" : T.radiusSm,
+    padding: isMobile ? "12px 13px" : "11px 13px",
+    display: "flex", alignItems: "flex-start", gap: "10px",
   }}>
     <div style={{
-      width: 30, height: 30, borderRadius: "8px", background: "rgba(11,24,41,0.06)",
+      width: isMobile ? 34 : 30, height: isMobile ? 34 : 30,
+      borderRadius: "9px", background: "rgba(11,24,41,0.06)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: "0.85rem", flexShrink: 0, marginTop: "1px",
+      fontSize: isMobile ? "1rem" : "0.85rem", flexShrink: 0, marginTop: "1px",
     }}>
       {icon}
     </div>
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: "0.63rem", fontWeight: 700, color: T.text3,
+      <div style={{ fontSize: "0.62rem", fontWeight: 700, color: T.text3,
         textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "3px" }}>
         {label}
       </div>
-      <div style={{ fontSize: "0.85rem", fontWeight: 600, color: T.text1,
+      <div style={{ fontSize: isMobile ? "0.88rem" : "0.85rem", fontWeight: 600, color: T.text1,
         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {value}
       </div>
@@ -332,16 +267,11 @@ const Tile = ({ icon, label, value, sub }) => (
   </div>
 );
 
-/* ══════════════════════════════════════════
-   LEGAL PAGE COMPONENT
-══════════════════════════════════════════ */
 const LegalPage = ({ pageKey, onBack }) => {
   const page = LEGAL_PAGES[pageKey];
   if (!page) return null;
-
   return (
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Inter','Segoe UI',sans-serif" }}>
-      {/* Header */}
       <div style={{
         background: `linear-gradient(130deg, ${T.navy} 0%, ${T.navyMid} 100%)`,
         position: "sticky", top: 0, zIndex: 100,
@@ -360,8 +290,7 @@ const LegalPage = ({ pageKey, onBack }) => {
             ← Back
           </button>
           <div>
-            <div style={{ fontSize: "1rem", fontWeight: 800, color: "#fff",
-              fontFamily: "'Georgia',serif" }}>
+            <div style={{ fontSize: "1rem", fontWeight: 800, color: "#fff", fontFamily: "'Georgia',serif" }}>
               {page.icon} {page.title}
             </div>
             <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.45)" }}>
@@ -370,19 +299,15 @@ const LegalPage = ({ pageKey, onBack }) => {
           </div>
         </div>
       </div>
-
-      {/* Content */}
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "1.5rem 1.25rem" }}>
         <div style={{
           background: T.white, border: `1px solid ${T.border}`,
           borderRadius: T.radius, overflow: "hidden",
           boxShadow: "0 2px 12px rgba(11,24,41,0.05)",
         }}>
-          {/* Intro strip */}
           <div style={{
             background: `linear-gradient(135deg, ${T.goldPale}, rgba(200,146,58,0.04))`,
             border: `1px solid ${T.goldBorder}`,
-            borderRadius: 0,
             padding: "1rem 1.4rem",
             borderBottom: `1px solid ${T.border}`,
           }}>
@@ -390,8 +315,6 @@ const LegalPage = ({ pageKey, onBack }) => {
               💡 This document governs your use of ManaBills. By using our service, you agree to the terms outlined below. If you have questions, contact <strong>support@manabills.in</strong>.
             </div>
           </div>
-
-          {/* Sections */}
           <div style={{ padding: "1.4rem" }}>
             {page.sections.map((section, i) => (
               <div key={i} style={{
@@ -399,9 +322,7 @@ const LegalPage = ({ pageKey, onBack }) => {
                 paddingBottom: i < page.sections.length - 1 ? "1.5rem" : 0,
                 borderBottom: i < page.sections.length - 1 ? `1px solid ${T.border}` : "none",
               }}>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.6rem",
-                }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.6rem" }}>
                   <div style={{
                     width: 22, height: 22, borderRadius: "50%",
                     background: T.goldPale, border: `1px solid ${T.goldBorder}`,
@@ -410,35 +331,22 @@ const LegalPage = ({ pageKey, onBack }) => {
                   }}>
                     {i + 1}
                   </div>
-                  <div style={{ fontSize: "0.9rem", fontWeight: 800, color: T.text1,
-                    letterSpacing: "-0.01em" }}>
+                  <div style={{ fontSize: "0.9rem", fontWeight: 800, color: T.text1, letterSpacing: "-0.01em" }}>
                     {section.heading}
                   </div>
                 </div>
-                <div style={{
-                  fontSize: "0.83rem", color: T.text2, lineHeight: 1.75,
-                  paddingLeft: "1.8rem", whiteSpace: "pre-line",
-                }}>
+                <div style={{ fontSize: "0.83rem", color: T.text2, lineHeight: 1.75, paddingLeft: "1.8rem", whiteSpace: "pre-line" }}>
                   {section.content}
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Footer */}
           <div style={{
-            padding: "1rem 1.4rem",
-            background: T.bg,
-            borderTop: `1px solid ${T.border}`,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            flexWrap: "wrap", gap: 8,
+            padding: "1rem 1.4rem", background: T.bg, borderTop: `1px solid ${T.border}`,
+            display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8,
           }}>
-            <span style={{ fontSize: "0.72rem", color: T.text3 }}>
-              © 2025 ManaBills. All rights reserved.
-            </span>
-            <span style={{ fontSize: "0.72rem", color: T.text3 }}>
-              Made with ❤️ in Andhra Pradesh 🇮🇳
-            </span>
+            <span style={{ fontSize: "0.72rem", color: T.text3 }}>© 2025 ManaBills. All rights reserved.</span>
+            <span style={{ fontSize: "0.72rem", color: T.text3 }}>Made with ❤️ in Andhra Pradesh 🇮🇳</span>
           </div>
         </div>
       </div>
@@ -446,96 +354,40 @@ const LegalPage = ({ pageKey, onBack }) => {
   );
 };
 
-/* ══════════════════════════════════════════
-   MOBILE BOTTOM NAV TAB BAR
-══════════════════════════════════════════ */
-const MobileTabBar = ({ activeTab, setActiveTab }) => {
-  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
-  if (!isMobile) return null;
-  return (
-    <div style={{
-      position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200,
-      background: T.white, borderTop: `1px solid ${T.border}`,
-      display: "flex", boxShadow: "0 -4px 20px rgba(11,24,41,0.08)",
-      paddingBottom: "env(safe-area-inset-bottom, 0px)",
-    }}>
-      {TABS.map(tab => {
-        const isActive = activeTab === tab.key;
-        return (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            style={{
-              flex: 1, padding: "8px 4px 10px",
-              border: "none", background: "transparent",
-              cursor: "pointer", fontFamily: "inherit",
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-            }}
-          >
-            <div style={{
-              width: 32, height: 32, borderRadius: "9px",
-              background: isActive ? T.goldPale : "transparent",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transition: "all 0.15s",
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke={isActive ? T.gold : T.text3} strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round">
-                <path d={tab.icon} />
-              </svg>
-            </div>
-            <span style={{
-              fontSize: "0.6rem", fontWeight: isActive ? 700 : 500,
-              color: isActive ? T.gold : T.text3, letterSpacing: "0.01em",
-              lineHeight: 1,
-            }}>
-              {tab.label.split(" ")[0]}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-};
-
-/* ══════════════════════════════════════════
-   MAIN
-══════════════════════════════════════════ */
 const AccountPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, login, logout, accessToken } = useContext(AuthContext);
-  const { subscriptions }       = useContext(SubscriptionContext);
+  const { subscriptions } = useContext(SubscriptionContext);
 
   const [activeTab, setActiveTab] = useState(location.state?.tab || "profile");
-  const [legalPage, setLegalPage] = useState(null); // "privacy" | "terms" | "refund" | null
-  const [isMobile, setIsMobile]   = useState(false);
+  const [legalPage, setLegalPage] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [name,        setName]        = useState(user?.full_name     || "");
-  const [mobile,      setMobile]      = useState(user?.mobile_number || "");
-  const [email,       setEmail]       = useState(user?.email         || "");
+  const [name, setName] = useState(user?.full_name || "");
+  const [mobile, setMobile] = useState(user?.mobile_number || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [savingLogin, setSavingLogin] = useState(false);
-  const [loginEditing,setLoginEditing]= useState(false);
+  const [loginEditing, setLoginEditing] = useState(false);
 
-  const [shop,       setShop]       = useState({ shop_name:"", owner_name:"", mobile:"", extra_mobile:"", address:"", shop_type:"", timings:"", gst_enabled:false, gst_number:"" });
-  const [shopLoading,setShopLoading]= useState(true);
+  const [shop, setShop] = useState({ shop_name:"", owner_name:"", mobile:"", extra_mobile:"", address:"", shop_type:"", timings:"", gst_enabled:false, gst_number:"" });
+  const [shopLoading, setShopLoading] = useState(true);
   const [shopSaving, setShopSaving] = useState(false);
-  const [shopEditing,setShopEditing]= useState(false);
+  const [shopEditing, setShopEditing] = useState(false);
   const [shopExists, setShopExists] = useState(false);
 
-  const [oldPass,    setOldPass]    = useState("");
-  const [newPass,    setNewPass]    = useState("");
-  const [confirmPass,setConfirmPass]= useState("");
+  const [oldPass, setOldPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
   const [savingPass, setSavingPass] = useState(false);
-  const [showPw,     setShowPw]     = useState({ old:false, new:false, confirm:false });
+  const [showPw, setShowPw] = useState({ old:false, new:false, confirm:false });
 
   const [toast, setToast] = useState(null);
 
   const activeModules = Object.keys(subscriptions);
   const initials = name ? name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) : "U";
 
-  /* ── Responsive detection ── */
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 768);
     check();
@@ -549,11 +401,7 @@ const AccountPage = () => {
   };
 
   useEffect(() => {
-    if (!accessToken) {
-    setShopLoading(false);
-    return;
-  }
-
+    if (!accessToken) { setShopLoading(false); return; }
     getShopProfile()
       .then(data => {
         setShop({ shop_name:data.shop_name||"", owner_name:data.owner_name||"", mobile:data.mobile||"", extra_mobile:data.extra_mobile||"", address:data.address||"", shop_type:data.shop_type||"", timings:data.timings||"", gst_enabled:data.gst_enabled||false, gst_number:data.gst_number||"" });
@@ -590,7 +438,7 @@ const AccountPage = () => {
   const handlePasswordChange = async () => {
     if (!oldPass||!newPass) return showToast("Fill all password fields","error");
     if (newPass!==confirmPass) return showToast("New passwords don't match","error");
-    if (newPass.length<6)     return showToast("Password must be at least 6 characters","error");
+    if (newPass.length<6) return showToast("Password must be at least 6 characters","error");
     setSavingPass(true);
     try {
       await authAxios.post("auth/change-password/", { old_password:oldPass, new_password:newPass });
@@ -601,11 +449,7 @@ const AccountPage = () => {
   };
 
   const handleLogout = () => { logout(); localStorage.clear(); navigate("/",{replace:true}); };
-
-  const handleTabChange = (key) => {
-    setActiveTab(key);
-    setSidebarOpen(false);
-  };
+  const handleTabChange = (key) => { setActiveTab(key); setSidebarOpen(false); };
 
   const pwStrength = pw => {
     if (!pw) return 0;
@@ -619,94 +463,153 @@ const AccountPage = () => {
   const strengthColor=["#e5e7eb","#dc2626","#f59e0b","#22c55e","#15803d"];
   const strengthLabel=["","Weak","Fair","Good","Strong"];
 
-  /* ── If a legal page is open, render it ── */
   if (legalPage) {
     return <LegalPage pageKey={legalPage} onBack={() => setLegalPage(null)} />;
   }
 
-  /* ══════════════════════════════════════════
-     TAB: MY PROFILE
-  ══════════════════════════════════════════ */
+  /* ── PROFILE TAB ── */
   const renderProfile = () => (
-    <div style={{ maxWidth: isMobile ? "100%" : 700 }}>
-      {/* ── Hero ── */}
+    <div>
+      {/* Hero — redesigned mobile */}
       <div style={{
-        background: `linear-gradient(130deg, ${T.navy} 0%, ${T.navyMid} 100%)`,
-        borderRadius: T.radius, padding: isMobile ? "1.2rem 1.1rem" : "1.5rem 1.75rem",
-        marginBottom: "1.25rem", position: "relative", overflow: "hidden",
-        display: "flex", alignItems: "center", gap: isMobile ? "0.9rem" : "1.25rem",
-        border: `1px solid rgba(255,255,255,0.06)`,
+        background: `linear-gradient(145deg, ${T.navy} 0%, #1a3050 100%)`,
+        margin: isMobile ? "0 0 0.5rem 0" : "0 0 1.25rem 0",
+        borderRadius: isMobile ? 0 : T.radius,
+        padding: isMobile ? "1.5rem 1rem 1.25rem" : "1.5rem 1.75rem",
+        position: "relative", overflow: "hidden",
+        border: isMobile ? "none" : `1px solid rgba(255,255,255,0.06)`,
+        borderTop: isMobile ? "none" : undefined,
+        borderBottom: isMobile ? `1px solid rgba(255,255,255,0.06)` : undefined,
       }}>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:3,
           background:"linear-gradient(90deg,#C8923A,#E4A94A,#F4C542,#E4A94A,#C8923A)" }} />
-        <div style={{ position:"absolute", top:-40, right:-30, width:180, height:180,
-          borderRadius:"50%", background:"radial-gradient(circle,rgba(200,146,58,0.18) 0%,transparent 70%)", pointerEvents:"none" }} />
-        <div style={{
-          width: isMobile ? 56 : 68, height: isMobile ? 56 : 68, borderRadius:"50%", flexShrink:0,
-          background:"linear-gradient(135deg,#C8923A,#E4A94A)",
-          display:"flex", alignItems:"center", justifyContent:"center",
-          fontSize: isMobile ? "1.1rem" : "1.45rem", fontWeight:900, color:T.navy,
-          border:"3px solid rgba(200,146,58,0.35)", position:"relative", zIndex:1,
-          fontFamily:"'Georgia',serif",
-        }}>
-          {initials}
-        </div>
-        <div style={{ flex:1, minWidth:0, position:"relative", zIndex:1 }}>
-          <div style={{ fontSize: isMobile ? "1rem" : "1.15rem", fontWeight:800, color:"#fff",
-            fontFamily:"'Georgia',serif", marginBottom:4, letterSpacing:"-0.01em",
-            whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-            {name||"Your Name"}
-          </div>
-          <div style={{ fontSize:"0.75rem", color:"rgba(255,255,255,0.5)", marginBottom: isMobile ? 6 : 9 }}>
-            📱 {mobile||"—"}
-            {email && !isMobile && <span style={{ marginLeft:12 }}>✉️ {email}</span>}
-          </div>
-          <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
-            {activeModules.length>0 ? activeModules.map(k=>{
-              const m=MODULE_META[k]||{};
-              return (
-                <span key={k} style={{
-                  fontSize:"0.58rem", fontWeight:700,
-                  background:"rgba(200,146,58,0.18)", border:"1px solid rgba(200,146,58,0.32)",
-                  color:"#E4A94A", padding:"2px 7px", borderRadius:"100px",
-                  letterSpacing:"0.04em", textTransform:"uppercase",
-                }}>
-                  {m.icon} {m.label}
-                </span>
-              );
-            }) : (
-              <span style={{ fontSize:"0.58rem", fontWeight:700,
-                background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)",
-                color:"rgba(255,255,255,0.4)", padding:"2px 8px", borderRadius:"100px" }}>
-                No active plans
-              </span>
+        <div style={{ position:"absolute", top:-60, right:-40, width:220, height:220,
+          borderRadius:"50%", background:"radial-gradient(circle,rgba(200,146,58,0.15) 0%,transparent 70%)", pointerEvents:"none" }} />
+
+        {isMobile ? (
+          /* Mobile hero: centered avatar + stacked info */
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"0.75rem", position:"relative", zIndex:1 }}>
+            <div style={{
+              width:72, height:72, borderRadius:"50%",
+              background:"linear-gradient(135deg,#C8923A,#E4A94A)",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:"1.5rem", fontWeight:900, color:T.navy,
+              border:"3px solid rgba(200,146,58,0.4)",
+              fontFamily:"'Georgia',serif",
+              boxShadow:"0 8px 24px rgba(200,146,58,0.3)",
+            }}>
+              {initials}
+            </div>
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontSize:"1.1rem", fontWeight:800, color:"#fff",
+                fontFamily:"'Georgia',serif", letterSpacing:"-0.01em", marginBottom:4 }}>
+                {name||"Your Name"}
+              </div>
+              <div style={{ fontSize:"0.78rem", color:"rgba(255,255,255,0.55)", marginBottom:8 }}>
+                📱 {mobile||"—"}
+              </div>
+              <div style={{ display:"flex", gap:5, flexWrap:"wrap", justifyContent:"center" }}>
+                {activeModules.length>0 ? activeModules.map(k=>{
+                  const m=MODULE_META[k]||{};
+                  return (
+                    <span key={k} style={{
+                      fontSize:"0.6rem", fontWeight:700,
+                      background:"rgba(200,146,58,0.2)", border:"1px solid rgba(200,146,58,0.35)",
+                      color:"#E4A94A", padding:"3px 9px", borderRadius:"100px",
+                      letterSpacing:"0.04em", textTransform:"uppercase",
+                    }}>
+                      {m.icon} {m.label}
+                    </span>
+                  );
+                }) : (
+                  <span style={{ fontSize:"0.6rem", fontWeight:700,
+                    background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
+                    color:"rgba(255,255,255,0.4)", padding:"3px 9px", borderRadius:"100px" }}>
+                    No active plans
+                  </span>
+                )}
+              </div>
+            </div>
+            {!loginEditing && (
+              <button onClick={()=>setLoginEditing(true)} style={{
+                background:"rgba(200,146,58,0.15)", border:"1.5px solid rgba(200,146,58,0.35)",
+                color:"#E4A94A", borderRadius:"100px", padding:"8px 20px",
+                fontSize:"0.78rem", fontWeight:700, cursor:"pointer", fontFamily:"inherit",
+              }}>
+                ✏️ Edit Profile
+              </button>
             )}
           </div>
-        </div>
-        {!loginEditing && (
-          <button onClick={()=>setLoginEditing(true)} style={{
-            background:"rgba(200,146,58,0.14)", border:"1.5px solid rgba(200,146,58,0.32)",
-            color:"#E4A94A", borderRadius:T.radiusSm, padding: isMobile ? "6px 12px" : "7px 16px",
-            fontSize:"0.75rem", fontWeight:700, cursor:"pointer", fontFamily:"inherit",
-            flexShrink:0, position:"relative", zIndex:1,
-          }}>
-            ✏️ Edit
-          </button>
+        ) : (
+          /* Desktop hero */
+          <div style={{ display:"flex", alignItems:"center", gap:"1.25rem" }}>
+            <div style={{
+              width:68, height:68, borderRadius:"50%", flexShrink:0,
+              background:"linear-gradient(135deg,#C8923A,#E4A94A)",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:"1.45rem", fontWeight:900, color:T.navy,
+              border:"3px solid rgba(200,146,58,0.35)", position:"relative", zIndex:1,
+              fontFamily:"'Georgia',serif",
+            }}>
+              {initials}
+            </div>
+            <div style={{ flex:1, minWidth:0, position:"relative", zIndex:1 }}>
+              <div style={{ fontSize:"1.15rem", fontWeight:800, color:"#fff",
+                fontFamily:"'Georgia',serif", marginBottom:4, letterSpacing:"-0.01em",
+                whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                {name||"Your Name"}
+              </div>
+              <div style={{ fontSize:"0.75rem", color:"rgba(255,255,255,0.5)", marginBottom:9 }}>
+                📱 {mobile||"—"}
+                {email && <span style={{ marginLeft:12 }}>✉️ {email}</span>}
+              </div>
+              <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                {activeModules.length>0 ? activeModules.map(k=>{
+                  const m=MODULE_META[k]||{};
+                  return (
+                    <span key={k} style={{
+                      fontSize:"0.58rem", fontWeight:700,
+                      background:"rgba(200,146,58,0.18)", border:"1px solid rgba(200,146,58,0.32)",
+                      color:"#E4A94A", padding:"2px 7px", borderRadius:"100px",
+                      letterSpacing:"0.04em", textTransform:"uppercase",
+                    }}>
+                      {m.icon} {m.label}
+                    </span>
+                  );
+                }) : (
+                  <span style={{ fontSize:"0.58rem", fontWeight:700,
+                    background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)",
+                    color:"rgba(255,255,255,0.4)", padding:"2px 8px", borderRadius:"100px" }}>
+                    No active plans
+                  </span>
+                )}
+              </div>
+            </div>
+            {!loginEditing && (
+              <button onClick={()=>setLoginEditing(true)} style={{
+                background:"rgba(200,146,58,0.14)", border:"1.5px solid rgba(200,146,58,0.32)",
+                color:"#E4A94A", borderRadius:T.radiusSm, padding:"7px 16px",
+                fontSize:"0.75rem", fontWeight:700, cursor:"pointer", fontFamily:"inherit",
+                flexShrink:0, position:"relative", zIndex:1,
+              }}>
+                ✏️ Edit
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      {/* ── Login Details ── */}
-      <Card title="Login Details" subtitle="Account credentials & contact info" icon="👤" accent={T.blue}
+      <Card title="Login Details" subtitle="Account credentials & contact info" icon="👤" accent={T.blue} isMobile={isMobile}
         action={!loginEditing ? (
           <GhostBtn color={T.blue} onClick={()=>setLoginEditing(true)}>Edit</GhostBtn>
         ) : null}
       >
         {!loginEditing ? (
-          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:"0.75rem" }}>
-            <Tile icon="👤" label="Full Name"    value={name||"—"} />
-            <Tile icon="📱" label="Mobile"       value={mobile||"—"} sub="Cannot be changed" />
-            <Tile icon="✉️" label="Email"         value={email||"Not set"} />
-            <Tile icon="🏪" label="Account Type" value="Shop Owner" />
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr", gap:"0.65rem" }}>
+            <Tile icon="👤" label="Full Name"    value={name||"—"} isMobile={isMobile} />
+            <Tile icon="📱" label="Mobile"       value={mobile||"—"} sub="Cannot be changed" isMobile={isMobile} />
+            <Tile icon="✉️"  label="Email"        value={email||"Not set"} isMobile={isMobile} />
+            <Tile icon="🏪" label="Account Type" value="Shop Owner" isMobile={isMobile} />
           </div>
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:"1rem" }}>
@@ -733,8 +636,7 @@ const AccountPage = () => {
         )}
       </Card>
 
-      {/* ── Shop Profile ── */}
-      <Card title="Shop Profile" subtitle={shopExists?"Business info on every invoice":"Not set up yet"} icon="🏪" accent={T.gold}
+      <Card title="Shop Profile" subtitle={shopExists?"Business info on every invoice":"Not set up yet"} icon="🏪" accent={T.gold} isMobile={isMobile}
         action={shopExists&&!shopEditing ? (
           <GhostBtn color={T.gold} onClick={()=>setShopEditing(true)}>Edit</GhostBtn>
         ) : null}
@@ -773,13 +675,13 @@ const AccountPage = () => {
                 {shop.gst_enabled?"✓ GST":"No GST"}
               </span>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:"0.75rem" }}>
-              <Tile icon="👤" label="Owner"        value={shop.owner_name} />
-              <Tile icon="📱" label="Mobile"       value={shop.mobile} />
-              <Tile icon="📞" label="Extra Mobile" value={shop.extra_mobile||"—"} />
-              <Tile icon="🧾" label="GST Number"   value={shop.gst_enabled?(shop.gst_number||"Not added"):"N/A"} />
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.65rem" }}>
+              <Tile icon="👤" label="Owner"        value={shop.owner_name} isMobile={isMobile} />
+              <Tile icon="📱" label="Mobile"       value={shop.mobile} isMobile={isMobile} />
+              <Tile icon="📞" label="Extra Mobile" value={shop.extra_mobile||"—"} isMobile={isMobile} />
+              <Tile icon="🧾" label="GST Number"   value={shop.gst_enabled?(shop.gst_number||"Not added"):"N/A"} isMobile={isMobile} />
               <div style={{ gridColumn:"1/-1" }}>
-                <Tile icon="📍" label="Address" value={shop.address} />
+                <Tile icon="📍" label="Address" value={shop.address} isMobile={isMobile} />
               </div>
             </div>
           </div>
@@ -866,48 +768,51 @@ const AccountPage = () => {
     </div>
   );
 
-  /* ══════════════════════════════════════════
-     TAB: SUBSCRIPTIONS
-  ══════════════════════════════════════════ */
+  /* ── SUBSCRIPTIONS TAB ── */
   const renderSubscriptions = () => (
-    <div style={{ maxWidth: isMobile ? "100%" : 700 }}>
+    <div>
+      {/* Stats row */}
       <div style={{
         display:"grid", gridTemplateColumns:"repeat(3,1fr)",
-        gap: isMobile ? "0.6rem" : "0.85rem", marginBottom:"1.5rem",
+        gap: isMobile ? "0.5rem" : "0.85rem",
+        marginBottom: isMobile ? "0.5rem" : "1.5rem",
+        padding: isMobile ? "0.75rem 1rem" : 0,
+        background: isMobile ? T.white : "transparent",
+        borderBottom: isMobile ? `1px solid ${T.border}` : "none",
+        borderTop: isMobile ? `1px solid ${T.border}` : "none",
       }}>
         {[
-          { label:"Active Plans",  value: activeModules.length.toString(), accent:T.blue,   bg:T.bluePale,   icon:"📦" },
-          { label:"Free Trials",   value: activeModules.filter(k=>subscriptions[k]?.status==="FREE_TRIAL").length.toString(), accent:T.gold, bg:T.goldPale, icon:"🎁" },
-          { label:"Paid Modules",  value: activeModules.filter(k=>subscriptions[k]?.status!=="FREE_TRIAL").length.toString(), accent:T.green, bg:T.greenPale, icon:"✅" },
+          { label:"Active",  value: activeModules.length.toString(), accent:T.blue,   bg:T.bluePale,   icon:"📦" },
+          { label:"Trials",  value: activeModules.filter(k=>subscriptions[k]?.status==="FREE_TRIAL").length.toString(), accent:T.gold, bg:T.goldPale, icon:"🎁" },
+          { label:"Paid",    value: activeModules.filter(k=>subscriptions[k]?.status!=="FREE_TRIAL").length.toString(), accent:T.green, bg:T.greenPale, icon:"✅" },
         ].map(s=>(
           <div key={s.label} style={{
-            background:T.white, border:`1px solid ${T.border}`,
-            borderRadius:T.radius, padding: isMobile ? "0.8rem 0.7rem" : "1rem 1.1rem",
-            boxShadow:"0 2px 10px rgba(11,24,41,0.04)",
-            display:"flex", flexDirection: isMobile ? "column" : "row",
-            alignItems: isMobile ? "center" : "center", gap: isMobile ? "0.4rem" : "0.75rem",
-            textAlign: isMobile ? "center" : "left",
+            background: isMobile ? T.bg : T.white,
+            border: `1px solid ${T.border}`,
+            borderRadius: isMobile ? "14px" : T.radius,
+            padding: isMobile ? "0.9rem 0.6rem" : "1rem 1.1rem",
+            boxShadow: isMobile ? "none" : "0 2px 10px rgba(11,24,41,0.04)",
+            display:"flex", flexDirection:"column", alignItems:"center", gap:"0.4rem", textAlign:"center",
           }}>
-            <div style={{ width: isMobile ? 36 : 40, height: isMobile ? 36 : 40, borderRadius:"10px", background:s.bg,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize: isMobile ? "1rem" : "1.1rem", flexShrink:0 }}>
+            <div style={{ width:36, height:36, borderRadius:"10px", background:s.bg,
+              display:"flex", alignItems:"center", justifyContent:"center", fontSize:"1rem" }}>
               {s.icon}
             </div>
-            <div>
-              <div style={{ fontSize: isMobile ? "0.58rem" : "0.65rem", fontWeight:700, color:T.text3,
-                textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:2 }}>
-                {isMobile ? s.label.split(" ")[0] : s.label}
-              </div>
-              <div style={{ fontSize: isMobile ? "1.3rem" : "1.5rem", fontWeight:900, color:s.accent, lineHeight:1 }}>
-                {s.value}
-              </div>
+            <div style={{ fontSize:"1.4rem", fontWeight:900, color:s.accent,
+              fontFamily:"'Georgia',serif", lineHeight:1 }}>
+              {s.value}
+            </div>
+            <div style={{ fontSize:"0.6rem", fontWeight:700, color:T.text3,
+              textTransform:"uppercase", letterSpacing:"0.07em" }}>
+              {s.label}
             </div>
           </div>
         ))}
       </div>
-      <Card title="Active Plans" subtitle="Your subscribed modules" icon="📦" accent={T.blue}>
+
+      <Card title="Active Plans" subtitle="Your subscribed modules" icon="📦" accent={T.blue} isMobile={isMobile}>
         {activeModules.length===0 ? (
-          <div style={{ textAlign:"center", padding:"2rem 1rem" }}>
+          <div style={{ textAlign:"center", padding: isMobile ? "1.5rem 0.75rem" : "2rem 1rem" }}>
             <div style={{ fontSize:"2.5rem", marginBottom:"0.75rem" }}>📦</div>
             <div style={{ fontSize:"0.98rem", fontWeight:700, color:T.text1, marginBottom:"0.4rem" }}>No Active Subscriptions</div>
             <div style={{ fontSize:"0.83rem", color:T.text2, marginBottom:"1.25rem" }}>
@@ -916,7 +821,7 @@ const AccountPage = () => {
             <SolidBtn onClick={()=>navigate("/subscription")}>View All Plans →</SolidBtn>
           </div>
         ) : (
-          <div style={{ display:"flex", flexDirection:"column", gap:"0.65rem" }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:"0.6rem" }}>
             {activeModules.map(key=>{
               const meta=MODULE_META[key]||{ label:key, color:T.text2, bg:"#f3f4f6", icon:"📌" };
               const sub=subscriptions[key];
@@ -926,9 +831,10 @@ const AccountPage = () => {
                   display:"flex", alignItems:"center", gap:"11px",
                   background:T.bg, border:`1px solid ${T.border}`,
                   borderLeft:`4px solid ${meta.color}`,
-                  borderRadius:T.radiusSm, padding:"13px 15px",
+                  borderRadius: isMobile ? "12px" : T.radiusSm,
+                  padding: isMobile ? "12px 13px" : "13px 15px",
                 }}>
-                  <div style={{ width:38, height:38, borderRadius:"9px", background:meta.bg,
+                  <div style={{ width:36, height:36, borderRadius:"9px", background:meta.bg,
                     display:"flex", alignItems:"center", justifyContent:"center",
                     fontSize:"1.05rem", flexShrink:0 }}>
                     {meta.icon}
@@ -945,7 +851,7 @@ const AccountPage = () => {
                     </span>
                   </div>
                   <GhostBtn color={meta.color} onClick={()=>navigate(`/subscription/${key}`)}>
-                    Manage →
+                    {isMobile ? "→" : "Manage →"}
                   </GhostBtn>
                 </div>
               );
@@ -953,18 +859,24 @@ const AccountPage = () => {
           </div>
         )}
       </Card>
+
+      {/* Upsell banner */}
       <div style={{
         background:`linear-gradient(130deg,${T.navy} 0%,${T.navyMid} 100%)`,
-        borderRadius:T.radius, padding: isMobile ? "1.1rem 1.2rem" : "1.4rem 1.6rem",
+        borderRadius: isMobile ? 0 : T.radius,
+        margin: isMobile ? "0" : "0",
+        padding: isMobile ? "1.25rem 1rem" : "1.4rem 1.6rem",
         display:"flex", alignItems:"center", justifyContent:"space-between",
-        gap:"1rem", flexWrap:"wrap",
+        gap:"1rem",
         position:"relative", overflow:"hidden",
-        border:`1px solid rgba(255,255,255,0.05)`,
+        border: isMobile ? "none" : `1px solid rgba(255,255,255,0.05)`,
+        borderTop: isMobile ? `1px solid rgba(255,255,255,0.06)` : undefined,
+        borderBottom: isMobile ? `1px solid rgba(255,255,255,0.06)` : undefined,
       }}>
         <div style={{ position:"absolute", top:-30, right:-20, width:150, height:150,
           borderRadius:"50%", background:"radial-gradient(circle,rgba(200,146,58,0.15) 0%,transparent 70%)", pointerEvents:"none" }} />
         <div style={{ position:"relative", zIndex:1 }}>
-          <div style={{ fontSize: isMobile ? "0.88rem" : "0.95rem", fontWeight:800, color:"#fff", marginBottom:4, fontFamily:"'Georgia',serif" }}>
+          <div style={{ fontSize:"0.95rem", fontWeight:800, color:"#fff", marginBottom:4, fontFamily:"'Georgia',serif" }}>
             Unlock More Modules
           </div>
           <div style={{ fontSize:"0.75rem", color:"rgba(255,255,255,0.5)" }}>
@@ -983,20 +895,24 @@ const AccountPage = () => {
     </div>
   );
 
-  /* ══════════════════════════════════════════
-     TAB: SECURITY
-  ══════════════════════════════════════════ */
+  /* ── SECURITY TAB ── */
   const renderSecurity = () => (
-    <div style={{ maxWidth: isMobile ? "100%" : 700 }}>
+    <div>
+      {/* Security score bar */}
       <div style={{
-        background:T.white, border:`1px solid ${T.border}`,
-        borderRadius:T.radius, padding:"1.25rem 1.5rem",
-        marginBottom:"1.25rem", display:"flex", alignItems:"center", gap:"1rem",
-        boxShadow:"0 2px 12px rgba(11,24,41,0.05)",
+        background: T.white,
+        border: isMobile ? "none" : `1px solid ${T.border}`,
+        borderTop: isMobile ? `1px solid ${T.border}` : undefined,
+        borderBottom: isMobile ? `1px solid ${T.border}` : undefined,
+        borderRadius: isMobile ? 0 : T.radius,
+        padding: isMobile ? "1rem" : "1.25rem 1.5rem",
+        marginBottom: isMobile ? "0.5rem" : "1.25rem",
+        display:"flex", alignItems:"center", gap:"1rem",
+        boxShadow: isMobile ? "none" : "0 2px 12px rgba(11,24,41,0.05)",
       }}>
-        <div style={{ width:56, height:56, borderRadius:"50%", flexShrink:0,
+        <div style={{ width:52, height:52, borderRadius:"50%", flexShrink:0,
           background:"rgba(22,128,60,0.1)", border:"2.5px solid rgba(22,128,60,0.3)",
-          display:"flex", alignItems:"center", justifyContent:"center", fontSize:"1.5rem" }}>
+          display:"flex", alignItems:"center", justifyContent:"center", fontSize:"1.4rem" }}>
           🔐
         </div>
         <div style={{ flex:1 }}>
@@ -1011,7 +927,7 @@ const AccountPage = () => {
         </div>
       </div>
 
-      <Card title="Change Password" subtitle="Update your account password" icon="🔐" accent={T.violet}>
+      <Card title="Change Password" subtitle="Update your account password" icon="🔐" accent={T.violet} isMobile={isMobile}>
         <div style={{ display:"flex", flexDirection:"column", gap:"1rem" }}>
           {[
             { label:"Current Password", val:oldPass, setter:setOldPass, key:"old",     ph:"Enter current password" },
@@ -1056,23 +972,26 @@ const AccountPage = () => {
               )}
             </Field>
           ))}
-          <SolidBtn color={T.violet} onClick={handlePasswordChange} disabled={savingPass} style={{ width:"fit-content" }}>
+          <SolidBtn color={T.violet} onClick={handlePasswordChange} disabled={savingPass}
+            style={{ width: isMobile ? "100%" : "fit-content" }}>
             {savingPass?"Updating…":"Update Password"}
           </SolidBtn>
         </div>
       </Card>
 
-      <Card title="Danger Zone" subtitle="Irreversible account actions" icon="⚠️" accent={T.red}>
+      <Card title="Danger Zone" subtitle="Irreversible account actions" icon="⚠️" accent={T.red} isMobile={isMobile}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
           <div>
             <div style={{ fontSize:"0.87rem", fontWeight:700, color:T.text1, marginBottom:3 }}>Sign out of ManaBills</div>
             <div style={{ fontSize:"0.76rem", color:T.text2 }}>Removes all session data from this device.</div>
           </div>
           <button onClick={handleLogout} style={{
-            padding:"9px 20px", background:T.redPale,
+            padding:"10px 22px", background:T.redPale,
             border:`1.5px solid rgba(220,38,38,0.25)`, color:T.red,
-            borderRadius:T.radiusSm, fontWeight:700, fontSize:"0.83rem",
+            borderRadius: isMobile ? "100px" : T.radiusSm,
+            fontWeight:700, fontSize:"0.83rem",
             cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap",
+            width: isMobile ? "100%" : "auto",
           }}>
             🚪 Sign Out
           </button>
@@ -1081,13 +1000,11 @@ const AccountPage = () => {
     </div>
   );
 
-  /* ══════════════════════════════════════════
-     TAB: HELP & SUPPORT
-  ══════════════════════════════════════════ */
+  /* ── SUPPORT TAB ── */
   const renderSupport = () => (
-    <div style={{ maxWidth: isMobile ? "100%" : 700 }}>
-      <Card title="Get Help" subtitle="Reach us any time — we respond fast" icon="💬" accent={T.teal}>
-        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:"0.75rem" }}>
+    <div>
+      <Card title="Get Help" subtitle="Reach us any time — we respond fast" icon="💬" accent={T.teal} isMobile={isMobile}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.65rem" }}>
           {[
             { icon:"💬", title:"WhatsApp",     sub:"Chat with us instantly",   color:"#25D366",
               action:()=>window.open("https://wa.me/919550544441?text=Hi, I need help with ManaBills","_blank") },
@@ -1100,20 +1017,20 @@ const AccountPage = () => {
           ].map(item=>(
             <div key={item.title} onClick={item.action} style={{
               background:T.bg, border:`1px solid ${T.border}`,
-              borderRadius:T.radiusSm, padding:"14px 15px", cursor:"pointer",
-              transition:"all 0.2s", display:"flex", gap:"11px", alignItems:"flex-start",
+              borderRadius: isMobile ? "14px" : T.radiusSm,
+              padding: isMobile ? "14px 12px" : "14px 15px",
+              cursor:"pointer", transition:"all 0.2s",
+              display:"flex", flexDirection: isMobile ? "column" : "row",
+              gap: isMobile ? "8px" : "11px",
+              alignItems: isMobile ? "flex-start" : "flex-start",
             }}
             onMouseEnter={e=>{
               e.currentTarget.style.borderColor=item.color+"44";
               e.currentTarget.style.background=T.white;
-              e.currentTarget.style.transform="translateY(-2px)";
-              e.currentTarget.style.boxShadow=`0 6px 18px ${item.color}16`;
             }}
             onMouseLeave={e=>{
               e.currentTarget.style.borderColor=T.border;
               e.currentTarget.style.background=T.bg;
-              e.currentTarget.style.transform="none";
-              e.currentTarget.style.boxShadow="none";
             }}>
               <div style={{ width:36, height:36, borderRadius:"9px", background:`${item.color}14`,
                 display:"flex", alignItems:"center", justifyContent:"center",
@@ -1121,29 +1038,30 @@ const AccountPage = () => {
                 {item.icon}
               </div>
               <div>
-                <div style={{ fontSize:"0.85rem", fontWeight:700, color:T.text1, marginBottom:2 }}>{item.title}</div>
-                <div style={{ fontSize:"0.7rem", color:T.text2 }}>{item.sub}</div>
+                <div style={{ fontSize: isMobile ? "0.82rem" : "0.85rem", fontWeight:700, color:T.text1, marginBottom:2 }}>{item.title}</div>
+                <div style={{ fontSize:"0.68rem", color:T.text2 }}>{item.sub}</div>
               </div>
             </div>
           ))}
         </div>
       </Card>
 
-      <Card title="Support Hours" subtitle="When we're available" icon="🕐" accent={T.gold}>
-        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:"0.75rem" }}>
+      <Card title="Support Hours" subtitle="When we're available" icon="🕐" accent={T.gold} isMobile={isMobile}>
+        <div style={{ display:"flex", flexDirection:"column", gap:"0.65rem" }}>
           {[
             { day:"Monday – Saturday", time:"9:00 AM – 8:00 PM", status:"open" },
             { day:"Sunday",            time:"10:00 AM – 5:00 PM", status:"limited" },
           ].map(h=>(
             <div key={h.day} style={{
               background:T.bg, border:`1px solid ${T.border}`,
-              borderRadius:T.radiusSm, padding:"13px 15px",
+              borderRadius: isMobile ? "12px" : T.radiusSm,
+              padding:"13px 15px",
               display:"flex", alignItems:"center", gap:10,
             }}>
               <div style={{ width:10, height:10, borderRadius:"50%", flexShrink:0,
                 background: h.status==="open"?T.green:"#F59E0B" }} />
-              <div>
-                <div style={{ fontSize:"0.8rem", fontWeight:700, color:T.text1, marginBottom:2 }}>{h.day}</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:"0.82rem", fontWeight:700, color:T.text1, marginBottom:2 }}>{h.day}</div>
                 <div style={{ fontSize:"0.72rem", color:T.text2 }}>{h.time}</div>
               </div>
             </div>
@@ -1156,7 +1074,7 @@ const AccountPage = () => {
         </div>
       </Card>
 
-      <Card title="Frequently Asked Questions" subtitle="Common questions answered" icon="❓" accent="#6b7280">
+      <Card title="Frequently Asked Questions" subtitle="Common questions answered" icon="❓" accent="#6b7280" isMobile={isMobile}>
         <div style={{ display:"flex", flexDirection:"column", gap:"0.5rem" }}>
           {[
             { q:"How do I create my first invoice?",        a:"Go to Business Billing → Create Invoice. Fill in customer details and products only." },
@@ -1170,16 +1088,18 @@ const AccountPage = () => {
     </div>
   );
 
-  /* ══════════════════════════════════════════
-     TAB: ABOUT
-  ══════════════════════════════════════════ */
+  /* ── ABOUT TAB ── */
   const renderAbout = () => (
-    <div style={{ maxWidth: isMobile ? "100%" : 700 }}>
+    <div>
+      {/* Hero banner */}
       <div style={{
         background:`linear-gradient(130deg,${T.navy} 0%,${T.navyMid} 100%)`,
-        borderRadius:T.radius, padding: isMobile ? "1.5rem 1.25rem" : "2rem 2rem",
-        marginBottom:"1.25rem", textAlign:"center", position:"relative", overflow:"hidden",
-        border:`1px solid rgba(255,255,255,0.05)`,
+        borderRadius: isMobile ? 0 : T.radius,
+        padding: isMobile ? "2rem 1rem 1.75rem" : "2rem 2rem",
+        marginBottom: isMobile ? "0.5rem" : "1.25rem",
+        textAlign:"center", position:"relative", overflow:"hidden",
+        border: isMobile ? "none" : `1px solid rgba(255,255,255,0.05)`,
+        borderBottom: isMobile ? `1px solid rgba(255,255,255,0.06)` : undefined,
       }}>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:3,
           background:"linear-gradient(90deg,#C8923A,#E4A94A,#F4C542,#E4A94A,#C8923A)" }} />
@@ -1187,7 +1107,7 @@ const AccountPage = () => {
           width:220, height:220, borderRadius:"50%",
           background:"radial-gradient(circle,rgba(200,146,58,0.15) 0%,transparent 70%)", pointerEvents:"none" }} />
         <div style={{ position:"relative", zIndex:1 }}>
-          <div style={{ fontSize: isMobile ? "1.8rem" : "2.2rem", fontWeight:900, color:"#fff",
+          <div style={{ fontSize: isMobile ? "2rem" : "2.2rem", fontWeight:900, color:"#fff",
             fontFamily:"'Georgia',serif", letterSpacing:"-0.02em", marginBottom:6 }}>
             Mana<span style={{ color:T.goldLight }}>Bills</span>
           </div>
@@ -1200,7 +1120,7 @@ const AccountPage = () => {
             Andhra Pradesh & Telangana's trusted billing and expense management app —
             built for shop owners, families, and contractors.
           </p>
-          <div style={{ display:"flex", justifyContent:"center", gap: isMobile ? "0.6rem" : "0.85rem", flexWrap:"wrap" }}>
+          <div style={{ display:"flex", justifyContent:"center", gap:"0.65rem", flexWrap:"wrap" }}>
             {[
               { value:"50K+",   label:"Invoices",  color:"#93C5FD" },
               { value:"₹2Cr+",  label:"Tracked",   color:"#86EFAC" },
@@ -1209,10 +1129,11 @@ const AccountPage = () => {
               <div key={s.label} style={{
                 background:"rgba(255,255,255,0.06)",
                 border:"1px solid rgba(255,255,255,0.1)",
-                borderRadius:T.radiusSm, padding: isMobile ? "10px 16px" : "12px 20px", textAlign:"center",
-                minWidth: isMobile ? 75 : 90,
+                borderRadius: isMobile ? "14px" : T.radiusSm,
+                padding: isMobile ? "12px 18px" : "12px 20px",
+                textAlign:"center", minWidth: isMobile ? 80 : 90,
               }}>
-                <div style={{ fontSize: isMobile ? "1.1rem" : "1.3rem", fontWeight:900, color:s.color,
+                <div style={{ fontSize:"1.2rem", fontWeight:900, color:s.color,
                   fontFamily:"'Georgia',serif", marginBottom:2 }}>
                   {s.value}
                 </div>
@@ -1226,39 +1147,38 @@ const AccountPage = () => {
         </div>
       </div>
 
-      <Card title="What ManaBills Offers" subtitle="Everything you get with your account" icon="✨" accent={T.gold}>
-        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:"0.75rem" }}>
+      <Card title="What ManaBills Offers" subtitle="Everything you get with your account" icon="✨" accent={T.gold} isMobile={isMobile}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.65rem" }}>
           {[
-            { icon:"🧾", title:"Smart Invoicing",       desc:"GST-ready, professional invoices in seconds" },
-            { icon:"📊", title:"Expense Tracking",       desc:"Monitor every rupee across categories" },
-            { icon:"🏗️", title:"Construction Billing",  desc:"Material and labour bill management" },
-            { icon:"🏠", title:"Home Expenses",          desc:"Track household spending effortlessly" },
-            { icon:"📤", title:"PDF Export",             desc:"Share invoices instantly via WhatsApp" },
-            { icon:"☁️", title:"Cloud Sync",             desc:"Access your data on any device, anytime" },
+            { icon:"🧾", title:"Smart Invoicing",       desc:"GST-ready invoices in seconds" },
+            { icon:"📊", title:"Expense Tracking",       desc:"Monitor every rupee" },
+            { icon:"🏗️", title:"Construction Billing",  desc:"Material & labour bills" },
+            { icon:"🏠", title:"Home Expenses",          desc:"Track household spending" },
+            { icon:"📤", title:"PDF Export",             desc:"Share via WhatsApp instantly" },
+            { icon:"☁️", title:"Cloud Sync",             desc:"Access on any device" },
           ].map(f=>(
             <div key={f.title} style={{
               background:T.bg, border:`1px solid ${T.border}`,
-              borderRadius:T.radiusSm, padding:"12px 14px",
-              display:"flex", gap:10, alignItems:"flex-start",
+              borderRadius: isMobile ? "12px" : T.radiusSm,
+              padding: isMobile ? "12px 11px" : "12px 14px",
+              display:"flex", gap:9, alignItems:"flex-start",
             }}>
-              <div style={{ width:34, height:34, borderRadius:"8px", background:T.goldPale,
+              <div style={{ width:32, height:32, borderRadius:"8px", background:T.goldPale,
                 display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:"0.95rem", flexShrink:0 }}>
+                fontSize:"0.9rem", flexShrink:0 }}>
                 {f.icon}
               </div>
               <div>
-                <div style={{ fontSize:"0.82rem", fontWeight:700, color:T.text1, marginBottom:2 }}>{f.title}</div>
-                <div style={{ fontSize:"0.7rem", color:T.text2, lineHeight:1.5 }}>{f.desc}</div>
+                <div style={{ fontSize: isMobile ? "0.78rem" : "0.82rem", fontWeight:700, color:T.text1, marginBottom:2 }}>{f.title}</div>
+                <div style={{ fontSize:"0.67rem", color:T.text2, lineHeight:1.5 }}>{f.desc}</div>
               </div>
             </div>
           ))}
         </div>
       </Card>
 
-
-      {/* ── The Team ── */}
-      <Card title="The Team" subtitle="People behind ManaBills" icon="👥" accent={T.gold}>
-        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:"0.75rem" }}>
+      <Card title="The Team" subtitle="People behind ManaBills" icon="👥" accent={T.gold} isMobile={isMobile}>
+        <div style={{ display:"flex", flexDirection:"column", gap:"0.65rem" }}>
           {[
             { icon:"💻", role:"Founder & Developer", name:"Siva Prasad", desc:"Architected and built ManaBills from the ground up" },
             { icon:"💼", role:"Investment & Support", name:"Saranya",     desc:"Backed the vision and made ManaBills possible" },
@@ -1266,60 +1186,61 @@ const AccountPage = () => {
             <div key={p.name} style={{
               background:`linear-gradient(135deg, ${T.goldPale}, rgba(200,146,58,0.04))`,
               border:`1.5px solid ${T.goldBorder}`,
-              borderRadius:T.radiusSm, padding:"14px 15px",
-              display:"flex", gap:11, alignItems:"flex-start",
+              borderRadius: isMobile ? "14px" : T.radiusSm,
+              padding: isMobile ? "14px" : "14px 15px",
+              display:"flex", gap:12, alignItems:"flex-start",
             }}>
               <div style={{
-                width:40, height:40, borderRadius:"50%",
+                width:44, height:44, borderRadius:"50%",
                 background:"linear-gradient(135deg,#C8923A,#E4A94A)",
                 display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:"1rem", flexShrink:0,
+                fontSize:"1.1rem", flexShrink:0,
                 border:"2px solid rgba(200,146,58,0.3)",
               }}>
                 {p.icon}
               </div>
               <div>
-                <div style={{ fontSize:"0.62rem", fontWeight:700, color:T.gold,
+                <div style={{ fontSize:"0.6rem", fontWeight:700, color:T.gold,
                   textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:2 }}>
                   {p.role}
                 </div>
-                <div style={{ fontSize:"0.9rem", fontWeight:800, color:T.text1,
+                <div style={{ fontSize:"0.92rem", fontWeight:800, color:T.text1,
                   fontFamily:"'Georgia',serif", marginBottom:3 }}>
                   {p.name}
                 </div>
-                <div style={{ fontSize:"0.7rem", color:T.text2, lineHeight:1.5 }}>{p.desc}</div>
+                <div style={{ fontSize:"0.72rem", color:T.text2, lineHeight:1.5 }}>{p.desc}</div>
               </div>
             </div>
           ))}
         </div>
       </Card>
 
-      {/* Legal — NOW WORKING */}
-      <Card title="Legal & Info" subtitle="Tap to read full documents" icon="📄" accent="#6b7280">
+      <Card title="Legal & Info" subtitle="Tap to read full documents" icon="📄" accent="#6b7280" isMobile={isMobile}>
         <div style={{ display:"flex", flexDirection:"column", gap:"0.5rem", marginBottom:"1rem" }}>
           {[
-            { key:"privacy", label:"🔒 Privacy Policy",      desc:"How we collect and protect your data" },
-            { key:"terms",   label:"📋 Terms of Service",     desc:"Rules governing your use of ManaBills" },
-            { key:"refund",  label:"💰 Refund Policy",        desc:"Cancellation and money-back terms" },
+            { key:"privacy", label:"🔒 Privacy Policy",  desc:"How we collect and protect your data" },
+            { key:"terms",   label:"📋 Terms of Service", desc:"Rules governing your use of ManaBills" },
+            { key:"refund",  label:"💰 Refund Policy",    desc:"Cancellation and money-back terms" },
           ].map(item => (
             <button
               key={item.key}
               onClick={() => setLegalPage(item.key)}
               style={{
                 width:"100%", background:T.bg, border:`1px solid ${T.border}`,
-                borderRadius:T.radiusSm, padding:"12px 14px",
+                borderRadius: isMobile ? "12px" : T.radiusSm,
+                padding: isMobile ? "13px 14px" : "12px 14px",
                 cursor:"pointer", fontFamily:"inherit", textAlign:"left",
                 display:"flex", alignItems:"center", justifyContent:"space-between",
                 transition:"all 0.18s",
               }}
-              onMouseEnter={e=>{ e.currentTarget.style.borderColor=T.borderMid; e.currentTarget.style.background=T.white; e.currentTarget.style.transform="translateX(2px)"; }}
-              onMouseLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.background=T.bg; e.currentTarget.style.transform="none"; }}
+              onMouseEnter={e=>{ e.currentTarget.style.borderColor=T.borderMid; e.currentTarget.style.background=T.white; }}
+              onMouseLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.background=T.bg; }}
             >
               <div>
                 <div style={{ fontSize:"0.85rem", fontWeight:700, color:T.text1, marginBottom:2 }}>{item.label}</div>
                 <div style={{ fontSize:"0.7rem", color:T.text2 }}>{item.desc}</div>
               </div>
-              <span style={{ color:T.text3, fontSize:"0.9rem", flexShrink:0 }}>›</span>
+              <span style={{ color:T.text3, fontSize:"1.1rem", flexShrink:0 }}>›</span>
             </button>
           ))}
         </div>
@@ -1329,8 +1250,8 @@ const AccountPage = () => {
           padding:"11px 13px", background:T.bg, border:`1px solid ${T.border}`,
           borderRadius:T.radiusSm,
         }}>
-          <span style={{ fontSize:"0.78rem", color:T.text3 }}>© 2025 ManaBills. All rights reserved.</span>
-          <span style={{ fontSize:"0.78rem", color:T.text3 }}>Made with ❤️ in Andhra Pradesh 🇮🇳</span>
+          <span style={{ fontSize:"0.72rem", color:T.text3 }}>© 2025 ManaBills. All rights reserved.</span>
+          <span style={{ fontSize:"0.72rem", color:T.text3 }}>Made with ❤️ in Andhra Pradesh 🇮🇳</span>
         </div>
       </Card>
     </div>
@@ -1341,85 +1262,98 @@ const AccountPage = () => {
     security: renderSecurity, support: renderSupport, about: renderAbout,
   };
 
-  /* ══════════════════════════════════════════
-     ROOT JSX
-  ══════════════════════════════════════════ */
   return (
-    <div style={{ minHeight:"100vh", background:T.bg, fontFamily:"'Inter','Segoe UI',sans-serif" }}>
+    <div style={{ minHeight:"100vh", background: isMobile ? "#F0F2F5" : T.bg, fontFamily:"'Inter','Segoe UI',sans-serif" }}>
 
       {/* Toast */}
       {toast && (
         <div style={{
-          position:"fixed", top:68, left:"50%", transform:"translateX(-50%)",
-          zIndex:9999, padding:"10px 22px", borderRadius:"100px",
+          position:"fixed", top: isMobile ? 64 : 68, left:"50%", transform:"translateX(-50%)",
+          zIndex:9999, padding: isMobile ? "11px 24px" : "10px 22px",
+          borderRadius:"100px",
           fontWeight:600, fontSize:"0.83rem", whiteSpace:"nowrap",
           background: toast.type==="success"?T.navy:T.red,
-          color:"#fff", boxShadow:"0 6px 24px rgba(0,0,0,0.18)",
+          color:"#fff", boxShadow:"0 6px 24px rgba(0,0,0,0.22)",
           animation:"toastIn 0.22s ease",
         }}>
           {toast.type==="success"?"✓":"✗"} {toast.msg}
         </div>
       )}
 
-      {/* ── Mobile overlay backdrop ── */}
+      {/* Mobile overlay backdrop */}
       {isMobile && sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
           style={{
-            position:"fixed", inset:0, background:"rgba(11,24,41,0.5)",
-            zIndex:299, backdropFilter:"blur(2px)",
+            position:"fixed", inset:0, background:"rgba(11,24,41,0.55)",
+            zIndex:299, backdropFilter:"blur(3px)",
           }}
         />
       )}
 
-      {/* ── Mobile sidebar drawer ── */}
+      {/* Mobile sidebar drawer */}
       {isMobile && (
         <div style={{
-          position:"fixed", left:0, top:0, bottom:0, width:260,
+          position:"fixed", left:0, top:0, bottom:0, width:280,
           background:T.white, zIndex:300,
           transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
           transition:"transform 0.28s cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: sidebarOpen ? "4px 0 24px rgba(11,24,41,0.15)" : "none",
+          boxShadow: sidebarOpen ? "6px 0 32px rgba(11,24,41,0.2)" : "none",
           display:"flex", flexDirection:"column",
         }}>
           {/* Drawer header */}
           <div style={{
-            background:`linear-gradient(130deg,${T.navy} 0%,${T.navyMid} 100%)`,
-            padding:"1.2rem 1rem 1rem", position:"relative", overflow:"hidden",
+            background:`linear-gradient(145deg,${T.navy} 0%,#1a3050 100%)`,
+            padding:"1.4rem 1.1rem 1.1rem",
+            position:"relative", overflow:"hidden",
           }}>
             <div style={{ position:"absolute", top:0, left:0, right:0, height:3,
               background:"linear-gradient(90deg,#C8923A,#E4A94A,#C8923A)" }} />
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:"0.65rem" }}>
+            {/* Large decorative circle */}
+            <div style={{ position:"absolute", bottom:-50, right:-30, width:160, height:160,
+              borderRadius:"50%", background:"radial-gradient(circle,rgba(200,146,58,0.12) 0%,transparent 70%)", pointerEvents:"none" }} />
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", position:"relative", zIndex:1 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:"0.75rem" }}>
                 <div style={{
-                  width:40, height:40, borderRadius:"50%",
+                  width:48, height:48, borderRadius:"50%",
                   background:"linear-gradient(135deg,#C8923A,#E4A94A)",
                   display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:"0.95rem", fontWeight:900, color:T.navy, fontFamily:"'Georgia',serif",
-                  border:"2px solid rgba(200,146,58,0.3)",
+                  fontSize:"1.1rem", fontWeight:900, color:T.navy,
+                  fontFamily:"'Georgia',serif",
+                  border:"2.5px solid rgba(200,146,58,0.4)",
+                  boxShadow:"0 4px 16px rgba(200,146,58,0.25)",
                 }}>
                   {initials}
                 </div>
                 <div>
-                  <div style={{ fontSize:"0.85rem", fontWeight:700, color:"#fff",
-                    whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:130 }}>
+                  <div style={{ fontSize:"0.92rem", fontWeight:800, color:"#fff",
+                    maxWidth:150, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+                    fontFamily:"'Georgia',serif" }}>
                     {name||"Your Account"}
                   </div>
-                  <div style={{ fontSize:"0.65rem", color:"rgba(255,255,255,0.45)" }}>Shop Owner</div>
+                  <div style={{ fontSize:"0.68rem", color:"rgba(255,255,255,0.45)", marginTop:2 }}>
+                    📱 {mobile||"—"}
+                  </div>
+                  <div style={{ fontSize:"0.62rem", color:T.goldLight, fontWeight:700, marginTop:3,
+                    background:"rgba(200,146,58,0.15)", border:"1px solid rgba(200,146,58,0.25)",
+                    padding:"2px 8px", borderRadius:"100px", display:"inline-block" }}>
+                    Shop Owner
+                  </div>
                 </div>
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
                 style={{ background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.15)",
-                  color:"#fff", borderRadius:"50%", width:28, height:28, cursor:"pointer",
-                  fontSize:"0.9rem", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  color:"#fff", borderRadius:"50%", width:30, height:30, cursor:"pointer",
+                  fontSize:"0.85rem", display:"flex", alignItems:"center", justifyContent:"center",
+                  flexShrink:0 }}>
                 ✕
               </button>
             </div>
           </div>
 
           {/* Nav items */}
-          <nav style={{ padding:"0.5rem 0", flex:1, overflowY:"auto" }}>
+          <nav style={{ padding:"0.6rem 0.6rem", flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:"2px" }}>
             {TABS.map(tab => {
               const isActive = activeTab === tab.key;
               return (
@@ -1427,29 +1361,31 @@ const AccountPage = () => {
                   key={tab.key}
                   onClick={() => handleTabChange(tab.key)}
                   style={{
-                    width:"100%", display:"flex", alignItems:"center", gap:"0.65rem",
-                    padding:"0.7rem 1rem", border:"none", background:"transparent",
+                    width:"100%", display:"flex", alignItems:"center", gap:"0.7rem",
+                    padding:"0.75rem 0.85rem", border:"none",
+                    background: isActive ? T.goldPale : "transparent",
                     cursor:"pointer", fontFamily:"inherit", textAlign:"left",
                     color: isActive ? T.navy : T.text2,
                     fontWeight: isActive ? 700 : 500,
-                    fontSize:"0.85rem",
-                    borderRight: isActive ? `3px solid ${T.gold}` : "3px solid transparent",
-                    backgroundColor: isActive ? T.goldPale : "transparent",
+                    fontSize:"0.88rem",
+                    borderRadius:"12px",
+                    borderLeft: isActive ? `3px solid ${T.gold}` : "3px solid transparent",
+                    transition:"all 0.15s",
                   }}
                 >
                   <div style={{
-                    width:30, height:30, borderRadius:"8px",
-                    background: isActive ? T.goldPale : "rgba(11,24,41,0.04)",
-                    border: isActive ? `1px solid ${T.goldBorder}` : "1px solid transparent",
+                    width:32, height:32, borderRadius:"9px",
+                    background: isActive ? "rgba(200,146,58,0.15)" : "rgba(11,24,41,0.05)",
                     display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
                   }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                       stroke={isActive ? T.gold : T.text3} strokeWidth="2"
                       strokeLinecap="round" strokeLinejoin="round">
                       <path d={tab.icon} />
                     </svg>
                   </div>
                   {tab.label}
+                  {isActive && <span style={{ marginLeft:"auto", color:T.gold, fontSize:"0.8rem" }}>›</span>}
                 </button>
               );
             })}
@@ -1458,13 +1394,13 @@ const AccountPage = () => {
           {/* Drawer footer */}
           <div style={{ padding:"0.75rem", borderTop:`1px solid ${T.border}` }}>
             <button onClick={handleLogout} style={{
-              width:"100%", display:"flex", alignItems:"center", gap:"0.6rem",
-              padding:"0.65rem 0.75rem", border:`1px solid rgba(220,38,38,0.2)`,
-              borderRadius:T.radiusSm, background:T.redPale,
+              width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:"0.6rem",
+              padding:"0.75rem", border:`1.5px solid rgba(220,38,38,0.25)`,
+              borderRadius:"12px", background:T.redPale,
               cursor:"pointer", fontFamily:"inherit",
-              color:T.red, fontWeight:600, fontSize:"0.82rem",
+              color:T.red, fontWeight:700, fontSize:"0.85rem",
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                 stroke={T.red} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
               </svg>
@@ -1474,49 +1410,63 @@ const AccountPage = () => {
         </div>
       )}
 
-      {/* ── Mobile top header bar ── */}
+      {/* Mobile top app bar */}
       {isMobile && (
         <div style={{
           position:"sticky", top:0, zIndex:100,
-          background:`linear-gradient(130deg,${T.navy} 0%,${T.navyMid} 100%)`,
-          borderBottom:`1px solid rgba(255,255,255,0.06)`,
+          background:`linear-gradient(130deg,${T.navy} 0%,#162438 100%)`,
+          borderBottom:`1px solid rgba(255,255,255,0.07)`,
+          boxShadow:"0 2px 16px rgba(11,24,41,0.2)",
         }}>
           <div style={{ position:"absolute", top:0, left:0, right:0, height:3,
             background:"linear-gradient(90deg,#C8923A,#E4A94A,#F4C542,#E4A94A,#C8923A)" }} />
           <div style={{
             display:"flex", alignItems:"center", justifyContent:"space-between",
-            padding:"0.9rem 1rem",
+            padding:"0 1rem", height:56,
           }}>
+            {/* Hamburger + tab label */}
             <button
               onClick={() => setSidebarOpen(true)}
-              style={{ background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.15)",
-                color:"#fff", borderRadius:T.radiusSm, padding:"7px 10px",
-                cursor:"pointer", display:"flex", alignItems:"center", gap:6,
-                fontSize:"0.78rem", fontWeight:700, fontFamily:"inherit" }}>
-              <span style={{ fontSize:"1rem" }}>☰</span>
-              <span>{TABS.find(t=>t.key===activeTab)?.label}</span>
+              style={{
+                background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.12)",
+                color:"#fff", borderRadius:"10px", padding:"0 12px", height:36,
+                cursor:"pointer", display:"flex", alignItems:"center", gap:7,
+                fontSize:"0.78rem", fontWeight:700, fontFamily:"inherit",
+              }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+              {TABS.find(t=>t.key===activeTab)?.label}
             </button>
-            <div style={{ fontSize:"1rem", fontWeight:900, color:"#fff",
-              fontFamily:"'Georgia',serif", letterSpacing:"-0.01em" }}>
+
+            {/* Wordmark */}
+            <div style={{ fontSize:"1.05rem", fontWeight:900, color:"#fff",
+              fontFamily:"'Georgia',serif", letterSpacing:"-0.01em",
+              position:"absolute", left:"50%", transform:"translateX(-50%)" }}>
               Mana<span style={{ color:T.goldLight }}>Bills</span>
             </div>
+
+            {/* Avatar */}
             <div style={{
               width:36, height:36, borderRadius:"50%",
               background:"linear-gradient(135deg,#C8923A,#E4A94A)",
               display:"flex", alignItems:"center", justifyContent:"center",
               fontSize:"0.8rem", fontWeight:900, color:T.navy,
-              border:"2px solid rgba(200,146,58,0.3)", fontFamily:"'Georgia',serif",
-            }}>
+              border:"2px solid rgba(200,146,58,0.4)",
+              fontFamily:"'Georgia',serif",
+              cursor:"pointer",
+            }} onClick={() => setSidebarOpen(true)}>
               {initials}
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Desktop: Sidebar + Content layout ── */}
+      {/* Desktop layout */}
       {!isMobile ? (
         <div style={{ display:"flex", maxWidth:1100, margin:"0 auto", padding:"1.5rem 1.25rem", gap:"1.25rem" }}>
-          {/* Desktop Sidebar */}
           <aside style={{ width:220, flexShrink:0, position:"sticky", top:80, alignSelf:"flex-start" }}>
             <div style={{
               background:T.white, border:`1px solid ${T.border}`,
@@ -1601,8 +1551,6 @@ const AccountPage = () => {
               </div>
             </div>
           </aside>
-
-          {/* Desktop main content */}
           <main style={{ flex:1, minWidth:0 }}>
             <div style={{ marginBottom:"1.25rem" }}>
               <h1 style={{ fontSize:"1.35rem", fontWeight:900, color:T.text1,
@@ -1615,8 +1563,8 @@ const AccountPage = () => {
           </main>
         </div>
       ) : (
-        /* ── Mobile: scrollable content with bottom nav ── */
-        <div style={{ padding:"1rem 1rem", paddingBottom:"90px" }}>
+        /* Mobile scrollable content */
+        <div style={{ paddingBottom: 90 }}>
           {RENDERERS[activeTab]?.()}
         </div>
       )}
@@ -1625,33 +1573,45 @@ const AccountPage = () => {
       {isMobile && (
         <div style={{
           position:"fixed", bottom:0, left:0, right:0, zIndex:200,
-          background:T.white, borderTop:`1px solid ${T.border}`,
-          display:"flex", boxShadow:"0 -4px 20px rgba(11,24,41,0.08)",
+          background:T.white,
+          borderTop:`1px solid ${T.border}`,
+          display:"flex",
+          boxShadow:"0 -4px 24px rgba(11,24,41,0.10)",
           paddingBottom:"env(safe-area-inset-bottom, 0px)",
         }}>
           {TABS.map(tab => {
             const isActive = activeTab === tab.key;
             return (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-                flex:1, padding:"8px 4px 10px",
+                flex:1, padding:"7px 2px 10px",
                 border:"none", background:"transparent",
                 cursor:"pointer", fontFamily:"inherit",
-                display:"flex", flexDirection:"column", alignItems:"center", gap:3,
+                display:"flex", flexDirection:"column", alignItems:"center", gap:4,
+                position:"relative",
               }}>
+                {/* Gold pill indicator */}
+                {isActive && (
+                  <div style={{
+                    position:"absolute", top:0, left:"50%", transform:"translateX(-50%)",
+                    width:28, height:3, borderRadius:"0 0 4px 4px",
+                    background:`linear-gradient(90deg,${T.gold},${T.goldLight})`,
+                  }} />
+                )}
                 <div style={{
-                  width:32, height:32, borderRadius:"9px",
+                  width:36, height:36, borderRadius:"11px",
                   background: isActive ? T.goldPale : "transparent",
                   display:"flex", alignItems:"center", justifyContent:"center",
-                  transition:"all 0.15s",
+                  transition:"all 0.18s",
+                  transform: isActive ? "scale(1.05)" : "scale(1)",
                 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke={isActive ? T.gold : T.text3} strokeWidth="2"
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke={isActive ? T.gold : T.text3} strokeWidth={isActive ? "2.2" : "1.8"}
                     strokeLinecap="round" strokeLinejoin="round">
                     <path d={tab.icon} />
                   </svg>
                 </div>
                 <span style={{
-                  fontSize:"0.58rem", fontWeight: isActive ? 700 : 500,
+                  fontSize:"0.6rem", fontWeight: isActive ? 800 : 500,
                   color: isActive ? T.gold : T.text3, letterSpacing:"0.01em", lineHeight:1,
                 }}>
                   {tab.label.split(" ")[0]}
@@ -1664,7 +1624,7 @@ const AccountPage = () => {
 
       <style>{`
         @keyframes toastIn {
-          from { opacity:0; transform:translateX(-50%) translateY(-8px); }
+          from { opacity:0; transform:translateX(-50%) translateY(-10px); }
           to   { opacity:1; transform:translateX(-50%) translateY(0); }
         }
         * { box-sizing: border-box; }
@@ -1673,13 +1633,12 @@ const AccountPage = () => {
   );
 };
 
-/* ── FAQ Item ── */
 const FaqItem = ({ q, a }) => {
   const [open, setOpen] = useState(false);
   return (
     <div onClick={()=>setOpen(o=>!o)} style={{
       background: T.bg, border:`1px solid ${T.border}`,
-      borderRadius: T.radiusSm, padding:"11px 13px",
+      borderRadius: "12px", padding:"12px 14px",
       cursor:"pointer", transition:"all 0.18s",
     }}
     onMouseEnter={e=>{ e.currentTarget.style.borderColor=T.borderMid; e.currentTarget.style.background=T.white; }}

@@ -425,6 +425,17 @@ const DashboardLayout = () => {
   const location     = useLocation();
   const activeModule = getActiveModule(location.pathname);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const isAccountPage = location.pathname === "/dashboard/account";
+  const hideTopbar = isAccountPage && isMobile;
+
+useEffect(() => {
+  const fn = () => setIsMobile(window.innerWidth <= 768);
+  window.addEventListener("resize", fn);
+  return () => window.removeEventListener("resize", fn);
+}, []);
+
+
   // ── FIX: removed lockedModule state + its useEffect entirely.
   //    That logic was persisting the last module to localStorage and
   //    feeding it as the "which module nav to show" signal — but it
@@ -441,7 +452,7 @@ const DashboardLayout = () => {
     <div className="dashboard-container">
       <Sidebar />
       <div className="dashboard-main">
-        <Topbar />
+        {!hideTopbar && <Topbar />}
         <div className="dashboard-content">
           <Outlet />
         </div>

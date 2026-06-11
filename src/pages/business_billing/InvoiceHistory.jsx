@@ -1324,7 +1324,7 @@ const InvoiceHistory = () => {
   const totalBilling = invoices.reduce((s,i)=>s+Number(i.total||0),0);
   const totalPaid    = invoices.reduce((s,i)=>s+Number(i.advance||0),0);
   const totalPending = invoices.reduce((s,i)=>s+Number(i.balance||0),0);
-  const paymentModes = ["All",...new Set(invoices.map(i=>i.payment).filter(Boolean))];
+  const paymentModes = ["All", "Cash", "UPI", "PhonePe", "GooglePay", "Card", "Cheque", "Credit"];
 
   return (
     <>
@@ -1368,7 +1368,14 @@ const InvoiceHistory = () => {
           />
           <div className="ih-tab-row">
             {["All","Paid","Partial","Pending"].map(s=>(
-              <button key={s} className={`ih-tab${filterStatus===s?" active":""}`} onClick={()=>setFilterStatus(s)}>{s}</button>
+              <button
+                key={s}
+                className={`ih-tab${filterStatus===s?" active":""}`}
+                onClick={() => {
+                  setFilterStatus(s);
+                  if (s === "All") setFilterPayment("All");
+                }}
+              >{s}</button>
             ))}
           </div>
           {paymentModes.length > 2 && (
