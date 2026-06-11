@@ -32,6 +32,14 @@ const todayStr = () => {
     .toString().padStart(2, "0")}/${d.getFullYear()}`;
 };
 
+const isValidMobile = (mob) => mob.replace(/\D/g, "").length === 10;
+
+const isValidGST = (gst) => {
+  if (!gst || gst.trim().length === 0) return true;
+  const gstRegex = /^[0-3][0-9][A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+  return gstRegex.test(gst.trim().toUpperCase());
+};
+
 // ─────────────────────────────────────────────────────────────
 // ★  WhatsApp auto-message sender
 //    Opens wa.me in a new tab — no extra API cost, works on
@@ -246,9 +254,15 @@ const CreateInvoice = () => {
   // ★  GENERATE INVOICE  (with WhatsApp auto-send)
   // ────────────────────────────────────────────────────────
   const handleGenerate = async () => {
-  if (!customer.name.trim())              { showToast("Enter customer name", "error"); return; }
-  if (items.every((i) => !i.name.trim())) { showToast("Add at least one item", "error"); return; }
-  if (saving) return;
+    if (!customer.name.trim()) { showToast("Enter customer name", "error"); return; }
+    if (!customer.mobile.trim() || !isValidMobile(customer.mobile)) {
+      showToast("Enter valid 10-digit mobile number", "error"); return;
+    }
+    if (customer.gst.trim() && !isValidGST(customer.gst)) {
+      showToast("Invalid GST number. Format: 29ABCDE1234F1Z5", "error"); return;
+    }
+    if (items.every((i) => !i.name.trim())) { showToast("Add at least one item", "error"); return; }
+    if (saving) return;
 
   setSaving(true);
 
@@ -289,6 +303,7 @@ const CreateInvoice = () => {
       is_gst:          applyGST,
       payment,
       date:            todayStr(),
+      
       items: items
         .filter((i) => i.name.trim())
         .map((i) => ({
@@ -438,7 +453,27 @@ const CreateInvoice = () => {
           <div style={S.card}>
             <p style={S.sectionLabel}>Customer Details</p>
             <input style={S.input} placeholder="Customer Name *" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
-            <input style={S.input} placeholder="Mobile Number (for WhatsApp)" value={customer.mobile} onChange={(e) => setCustomer({ ...customer, mobile: e.target.value })} />
+            <input
+              style={{ ...S.input, marginBottom:4,
+                borderColor: customer.mobile && !isValidMobile(customer.mobile) ? "#dc2626"
+                           : customer.mobile && isValidMobile(customer.mobile) ? "#22c55e"
+                           : undefined
+              }}
+              placeholder="Mobile Number *"
+              value={customer.mobile}
+              inputMode="numeric"
+              maxLength={10}
+              onChange={(e) => setCustomer({ ...customer, mobile: e.target.value.replace(/\D/g,"") })}
+            />
+            {!customer.mobile && (
+              <div style={{ fontSize:"0.72rem", color:"#dc2626", marginBottom:8, paddingLeft:4 }}>⚠️ Mobile number is required</div>
+            )}
+            {customer.mobile && !isValidMobile(customer.mobile) && (
+              <div style={{ fontSize:"0.72rem", color:"#dc2626", marginBottom:8, paddingLeft:4 }}>❌ Enter valid 10-digit number</div>
+            )}
+            {customer.mobile && isValidMobile(customer.mobile) && (
+              <div style={{ fontSize:"0.72rem", color:"#15803d", marginBottom:8, paddingLeft:4 }}>✓ Valid mobile number</div>
+            )}
 
             {/* ★ WhatsApp preview banner */}
             <WaBanner />
@@ -453,11 +488,21 @@ const CreateInvoice = () => {
                   </span>
                 </div>
                 <input
-                  style={{ ...S.input, marginBottom: 0 }}
+                  style={{ ...S.input, marginBottom:4,
+                    borderColor: customer.gst.trim() && !isValidGST(customer.gst) ? "#dc2626"
+                                : customer.gst.trim() && isValidGST(customer.gst) ? "#22c55e"
+                                : undefined
+                  }}
                   placeholder="Customer GST Number (optional)"
                   value={customer.gst}
-                  onChange={(e) => setCustomer({ ...customer, gst: e.target.value })}
+                  onChange={(e) => setCustomer({ ...customer, gst: e.target.value.toUpperCase() })}
                 />
+                {customer.gst.trim() && !isValidGST(customer.gst) && (
+                  <div style={{ fontSize:"0.72rem", color:"#dc2626", paddingLeft:4 }}>❌ Invalid GST — format: 29ABCDE1234F1Z5</div>
+                )}
+                {customer.gst.trim() && isValidGST(customer.gst) && (
+                  <div style={{ fontSize:"0.72rem", color:"#15803d", paddingLeft:4 }}>✓ Valid GST number</div>
+                )}
               </>
             )}            
           </div>
@@ -595,7 +640,26 @@ const CreateInvoice = () => {
 
       <div className="top-grid">
         <input placeholder="Customer Name *" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
-        <input placeholder="Mobile Number (for WhatsApp)" value={customer.mobile} onChange={(e) => setCustomer({ ...customer, mobile: e.target.value })} />
+        <div>
+          <input
+            placeholder="Mobile Number *"
+            value={customer.mobile}
+            inputMode="numeric"
+            maxLength={10}
+            style={{
+              borderColor: customer.mobile && !isValidMobile(customer.mobile) ? "#dc2626"
+                         : customer.mobile && isValidMobile(customer.mobile) ? "#22c55e"
+                         : undefined
+            }}
+            onChange={(e) => setCustomer({ ...customer, mobile: e.target.value.replace(/\D/g,"") })}
+          />
+          {customer.mobile && !isValidMobile(customer.mobile) && (
+            <div style={{ fontSize:"0.72rem", color:"#dc2626", marginTop:4 }}>❌ Enter valid 10-digit number</div>
+          )}
+          {customer.mobile && isValidMobile(customer.mobile) && (
+            <div style={{ fontSize:"0.72rem", color:"#15803d", marginTop:4 }}>✓ Valid</div>
+          )}
+        </div>
         {shopProfile?.gst_enabled && (
           <>
             <div style={{ padding: "10px 14px", background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: "8px", fontSize: "0.85rem", color: "#15803d", fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}>
@@ -604,11 +668,24 @@ const CreateInvoice = () => {
                 Shop GST: {shopProfile.gst_number || "Registered"}
               </span>
             </div>
-            <input
-              placeholder="Customer GST Number (optional)"
-              value={customer.gst}
-              onChange={(e) => setCustomer({ ...customer, gst: e.target.value })}
-            />
+            <div>
+              <input
+                placeholder="Customer GST Number (optional)"
+                value={customer.gst}
+                style={{
+                  borderColor: customer.gst.trim() && !isValidGST(customer.gst) ? "#dc2626"
+                             : customer.gst.trim() && isValidGST(customer.gst) ? "#22c55e"
+                             : undefined
+                }}
+                onChange={(e) => setCustomer({ ...customer, gst: e.target.value.toUpperCase() })}
+              />
+              {customer.gst.trim() && !isValidGST(customer.gst) && (
+                <div style={{ fontSize:"0.72rem", color:"#dc2626", marginTop:4 }}>❌ Invalid GST — format: 29ABCDE1234F1Z5</div>
+              )}
+              {customer.gst.trim() && isValidGST(customer.gst) && (
+                <div style={{ fontSize:"0.72rem", color:"#15803d", marginTop:4 }}>✓ Valid GST number</div>
+              )}
+            </div>
           </>
         )}
 

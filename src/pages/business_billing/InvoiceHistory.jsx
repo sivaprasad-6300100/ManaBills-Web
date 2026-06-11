@@ -526,7 +526,7 @@ const STYLES = `
     .pdf-modal { max-width:100%; border-radius:var(--r-lg) var(--r-lg) 0 0; max-height:95vh; }
     .pdf-modal-head { flex-direction:column; gap:10px; padding:1rem 1rem 0.75rem; }
     .pdf-modal-actions { width:100%; }
-    .pdf-action-btn { flex:1; justify-content:center; }
+    .pdf-action-btn { flex:1; justify-content:center; font-size:0.75rem; padding:8px 10px; }
     .pdf-modal-body { padding:0.85rem; }
     .pdf-doc { padding:20px 14px; }
     .pdf-header { flex-direction:column; gap:8px; }
@@ -736,6 +736,24 @@ const PdfDocument = React.forwardRef(({ invoice, shop }, ref) => {
 const PdfPreviewModal = ({ invoice, shop, onClose }) => {
   const printRef = useRef(null);
 
+  const handleDownload = () => {
+  const content = printRef.current?.innerHTML;
+  if (!content) return;
+  const html = `<!DOCTYPE html><html><head>
+    <meta charset="utf-8"/>
+    <title>Invoice ${invoice?.invoice_id}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#000;background:#fff;}@page{size:A4;margin:18mm 16mm;}.pdf-doc{padding:32px;position:relative;overflow:hidden;}.pdf-watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;}.pdf-wm-text{font-family:'Playfair Display',Georgia,serif;font-size:5.5rem;font-weight:900;color:rgba(201,150,58,0.06);transform:rotate(-30deg);white-space:nowrap;user-select:none;}.pdf-content{position:relative;z-index:1;}.pdf-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;margin-bottom:18px;border-bottom:2.5px solid #0e1b2e;}.pdf-brand-name{font-size:1.6rem;font-weight:900;font-family:'Playfair Display',Georgia,serif;color:#0e1b2e;}.pdf-brand-name span{color:#c9963a;}.pdf-brand-tag{font-size:0.65rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;}.pdf-inv-meta{text-align:right;}.pdf-inv-title{font-family:'Playfair Display',Georgia,serif;font-size:1.15rem;font-weight:800;color:#0e1b2e;}.pdf-gst-tag{display:inline-block;background:rgba(30,79,186,0.1);color:#1e4fba;font-size:0.6rem;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:100px;border:1px solid rgba(30,79,186,0.2);margin-bottom:4px;}.pdf-inv-num{font-weight:800;color:#c9963a;font-size:0.9rem;}.pdf-inv-date{font-size:0.78rem;color:#6b7280;}.pdf-shop-block{margin-bottom:16px;}.pdf-shop-name{font-weight:800;color:#0e1b2e;font-size:0.88rem;}.pdf-shop-det{font-size:0.75rem;color:#6b7280;margin-top:1px;}.pdf-info-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#f8faf9;border-radius:8px;padding:14px 16px;margin-bottom:18px;border:1px solid #e5e7eb;}.pdf-info-lbl{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:3px;}.pdf-info-val{font-weight:700;color:#111827;font-size:0.82rem;}.pdf-table{width:100%;border-collapse:collapse;margin-bottom:18px;}.pdf-table th{background:#0e1b2e;color:#fff;padding:9px 11px;text-align:left;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;}.pdf-table th:last-child{text-align:right;}.pdf-table td{padding:9px 11px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;}.pdf-table td:last-child{text-align:right;font-weight:700;}.pdf-table tbody tr:nth-child(even) td{background:#fafafa;}.pdf-totals{margin-left:auto;width:48%;margin-bottom:18px;}.pdf-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:0.8rem;border-bottom:1px solid #f1f5f9;}.pdf-total-row.grand{font-weight:900;font-size:0.95rem;color:#0e1b2e;padding-top:10px;border-top:2.5px solid #0e1b2e;border-bottom:none;}.pdf-total-row.balance-row{color:#dc2626;font-weight:800;}.pdf-total-row.paid-row{color:#15803d;font-weight:800;}.pdf-pay-block{display:flex;gap:12px;align-items:center;margin-bottom:18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;}.pdf-pay-block.unpaid{background:#fff7ed;border-color:#fed7aa;}.pdf-status-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:100px;font-size:0.72rem;font-weight:800;background:#dcfce7;color:#166534;border:1px solid rgba(21,128,61,0.3);}.pdf-status-badge.partial{background:#fef3c7;color:#92400e;}.pdf-status-badge.pending{background:#fee2e2;color:#991b1b;}.pdf-footer{border-top:1.5px solid #e5e7eb;padding-top:14px;display:flex;justify-content:space-between;align-items:flex-end;}.pdf-footer-brand{font-size:0.65rem;color:#9ca3af;}.pdf-footer-brand strong{font-family:'Playfair Display',Georgia,serif;color:#0e1b2e;font-size:0.85rem;}.pdf-footer-brand strong span{color:#c9963a;}.pdf-powered{font-size:0.6rem;color:#9ca3af;text-transform:uppercase;text-align:right;}.pdf-powered strong{color:#c9963a;}</style>
+  </head><body>${content}</body></html>`;
+  const blob = new Blob([html], { type: "text/html" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `Invoice-${invoice?.invoice_id || "download"}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
   const handlePrint = () => {
     const content = printRef.current?.innerHTML;
     if (!content) return;
@@ -751,12 +769,53 @@ const PdfPreviewModal = ({ invoice, shop, onClose }) => {
   };
 
   const handleWa = () => {
-    const mob = invoice?.customer_mobile?.replace(/\D/g,"") || "";
-    if (!mob) return;
-    const items = (invoice?.items||[]).map((it,i)=>`${i+1}. ${it.name} × ${it.qty} = ₹${(Number(it.qty)*Number(it.price)).toLocaleString("en-IN")}`).join("\n");
-    const msg = `*${shop?.shop_name||"ManaBills"}*\n━━━━━━━━━━━━━\n🧾 *Invoice: ${invoice?.invoice_id}*\n📅 ${invoice?.date}\n\n*Bill To:* ${invoice?.customer_name}\n\n*Items:*\n${items}\n\n━━━━━━━━━━━━━\n💰 *Total: ${fmt(invoice?.total)}*\n${Number(invoice?.balance||0)>0?`🔴 Balance: ${fmt(invoice?.balance)}`:"✅ FULLY PAID"}\n\n_ManaBills · manabills.in_`;
-    window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`,"_blank");
-  };
+  const mob = invoice?.customer_mobile?.replace(/\D/g,"") || "";
+  if (!mob) return;
+  const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
+  const invoiceLink = `${baseUrl}/invoice/${invoice?.invoice_id}`;
+
+  const itemLines = (invoice?.items||[])
+    .map((it,i) => `  ${i+1}. ${it.name} — ${it.qty} × ₹${Number(it.price).toLocaleString("en-IN")} = *₹${(Number(it.qty)*Number(it.price)).toLocaleString("en-IN")}*`)
+    .join("\n");
+
+  const balanceLine = Number(invoice?.balance||0) > 0
+    ? `\n⚠️ *Balance Due: ₹${Number(invoice.balance).toLocaleString("en-IN")}*`
+    : `\n✅ *Payment: Fully Cleared*`;
+
+  const discountLine = Number(invoice?.discount||0) > 0
+    ? `\n🏷️ Discount: -₹${Number(invoice.discount).toLocaleString("en-IN")}` : "";
+
+  const msg =
+`🏪 *${shop?.shop_name || "ManaBills"}*
+${shop?.mobile ? `📞 ${shop.mobile}` : ""}${shop?.address ? `\n📍 ${shop.address}` : ""}
+━━━━━━━━━━━━━━━━━━
+🧾 *TAX INVOICE*
+━━━━━━━━━━━━━━━━━━
+📋 Invoice No : *${invoice?.invoice_id}*
+📅 Date       : ${invoice?.date}
+💳 Payment    : ${invoice?.payment}
+
+👤 *Bill To*
+  Name   : ${invoice?.customer_name || "—"}
+  Mobile : ${mob}${invoice?.customer_gst ? `\n  GSTIN  : ${invoice.customer_gst}` : ""}
+
+📦 *Items*
+${itemLines}
+━━━━━━━━━━━━━━━━━━
+💰 Subtotal : ₹${Number(invoice?.subtotal||0).toLocaleString("en-IN")}${discountLine}${Number(invoice?.gst_amt||0)>0 ? `\n🧮 GST      : ₹${Number(invoice.gst_amt).toLocaleString("en-IN")}` : ""}
+💵 *Total   : ₹${Number(invoice?.total||0).toLocaleString("en-IN")}*${balanceLine}
+
+🔗 *View Invoice:*
+${invoiceLink}
+
+━━━━━━━━━━━━━━━━━━
+_Powered by ManaBills_
+_AP & Telangana's #1 Billing App_
+_manabills.com_`;
+
+  window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`,"_blank");
+};
+
 
   return (
     <div className="pdf-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -772,6 +831,10 @@ const PdfPreviewModal = ({ invoice, shop, onClose }) => {
           <div className="pdf-modal-actions">
             <button className="pdf-action-btn wa-btn" onClick={handleWa}>💬 WhatsApp</button>
             <button className="pdf-action-btn print" onClick={handlePrint}>🖨️ Print / PDF</button>
+            <button className="pdf-action-btn" onClick={handleDownload}
+              style={{background:"#2563eb",color:"#fff"}}>
+              ⬇️ Download
+            </button>
           </div>
         </div>
         <div className="pdf-modal-body">
@@ -1314,12 +1377,50 @@ const InvoiceHistory = () => {
     } catch { showToast("Failed to delete.", "error"); }
   };
 
+
   const sendWhatsApp = (inv) => {
-    const mob = inv.customer_mobile?.replace(/\D/g,"") || "";
-    if (!mob) return;
-    const msg = `*${shop?.shop_name||"ManaBills"}*\n━━━━━━━━━━━━━\n🧾 *Invoice: ${inv.invoice_id}*\n📅 ${inv.date}\n\n*Bill To:* ${inv.customer_name}\n\n💰 *Total: ${fmt(inv.total)}*\n${Number(inv.balance||0)>0?`🔴 Balance: ${fmt(inv.balance)}`:"✅ FULLY PAID"}\n💳 ${inv.payment}\n\n_ManaBills · manabills.in_`;
-    window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`,"_blank");
-  };
+  const mob = inv.customer_mobile?.replace(/\D/g,"") || "";
+  if (!mob) return;
+  const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
+  const invoiceLink = `${baseUrl}/invoice/${inv.invoice_id}`;
+
+  const balanceLine = Number(inv.balance||0) > 0
+    ? `\n⚠️ *Balance Due: ₹${Number(inv.balance).toLocaleString("en-IN")}*`
+    : `\n✅ *Payment: Fully Cleared*`;
+
+  const discountLine = Number(inv.discount||0) > 0
+    ? `\n🏷️ Discount: -₹${Number(inv.discount).toLocaleString("en-IN")}` : "";
+
+    const msg =
+`🏪 *${shop?.shop_name || "ManaBills"}*
+👤 ${shop?.owner_name || ""}
+📞 ${shop?.mobile || ""}${shop?.extra_mobile ? ` / ${shop.extra_mobile}` : ""}
+📍 ${shop?.address || ""}${shop?.timings ? `\n🕐 ${shop.timings}` : ""}${shop?.gst_enabled && shop?.gst_number ? `\n🧾 GSTIN: ${shop.gst_number}` : ""}
+━━━━━━━━━━━━━━━━━━
+🧾 *INVOICE*
+━━━━━━━━━━━━━━━━━━
+📋 Invoice No : *${inv.invoice_id}*
+📅 Date       : ${inv.date}
+💳 Payment    : ${inv.payment}
+
+👤 *Bill To:* ${inv.customer_name || "—"}
+
+💵 *Total   : ₹${Number(inv.total||0).toLocaleString("en-IN")}*${discountLine}${balanceLine}
+
+🔗 *View Full Invoice:*
+${invoiceLink}
+
+━━━━━━━━━━━━━━━━━━
+_Powered by ManaBills_
+_AP & Telangana's #1 Billing App_
+_manabills.com_`;
+
+  window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`,"_blank");
+};
+
+
+
+
 
   const totalBilling = invoices.reduce((s,i)=>s+Number(i.total||0),0);
   const totalPaid    = invoices.reduce((s,i)=>s+Number(i.advance||0),0);

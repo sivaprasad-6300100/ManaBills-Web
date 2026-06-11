@@ -709,11 +709,36 @@ const AccountPage = () => {
               <Field label="Extra Mobile">
                 <FocusInput type="tel" value={shop.extra_mobile} placeholder="Optional" maxLength={10} onChange={e=>setShop(p=>({...p,extra_mobile:e.target.value}))} />
               </Field>
-              <Field label="Shop Type">
-                <FocusSelect value={shop.shop_type} onChange={e=>setShop(p=>({...p,shop_type:e.target.value}))}>
-                  <option value="">Select business type</option>
-                  {SHOP_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+              <Field label="Shop Type" locked={shopExists}>
+                <FocusSelect
+                  value={shop.shop_type}
+                  disabled={shopExists}
+                  onChange={e => setShop(p => ({ ...p, shop_type: e.target.value }))}
+                  style={{ opacity: shopExists ? 0.6 : 1, cursor: shopExists ? "not-allowed" : "pointer" }}
+                >
+                  {shopExists ? (
+                    // Edit mode — current shop type selected, all others disabled
+                    <>
+                      <option value={shop.shop_type}>{SHOP_TYPES.find(t => t.value === shop.shop_type)?.label || shop.shop_type}</option>
+                      {SHOP_TYPES.filter(t => t.value !== shop.shop_type).map(t => (
+                        <option key={t.value} value={t.value} disabled style={{ color: "#cbd5e1" }}>
+                          {t.label} (locked)
+                        </option>
+                      ))}
+                    </>
+                  ) : (
+                    // New setup — all options freely selectable
+                    <>
+                      <option value="">Select business type</option>
+                      {SHOP_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </>
+                  )}
                 </FocusSelect>
+                {shopExists && (
+                  <span style={{ fontSize:"0.7rem", color:"#f59e0b", marginTop:4, display:"flex", alignItems:"center", gap:4 }}>
+                    🔒 Shop type cannot be changed after setup
+                  </span>
+                )}
               </Field>
               <Field label="Shop Timings">
                 <FocusInput value={shop.timings} placeholder="e.g. 9AM – 9PM, Mon–Sat" onChange={e=>setShop(p=>({...p,timings:e.target.value}))} />
