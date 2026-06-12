@@ -439,8 +439,7 @@ const GstReports = () => {
   const confirmPaid = async (monthIdx) => {
     const monthData  = reportData[monthIdx];
     const gst        = Number(monthData?.gst_collected || 0);
-    const itcC       = Number(monthData?.itc_claimed   || 0);
-    const netPayable = Math.max(0, gst - itcC);
+    const netPayable = Math.max(0, gst - openingITC); // pay from ledger balance only
 
     try {
         await authAxios.post("business/gst-mark-paid/", {
@@ -455,20 +454,21 @@ const GstReports = () => {
                 : r
         ));
 
-        // Auto carry forward leftover ITC
-        const totalITC   = itcClaimedFromStock + openingITC;
-        const used     = Math.min(gst, totalITC);   
-        const leftover = Math.max(0, totalITC - gst);
+        // ── DEBIT the ledger by amount of ITC actually used ──
+        const itcUsed = Math.min(gst, openingITC);
+        const leftover = Math.max(0, openingITC - gst);
 
-        if(leftover > 0) {
-            saveOpeningITC(leftover, selectedYear).then(() => {
-              setOpeningITCInput(leftover.toString());
-              setCarryForwardITC(leftover);
-              showToast(`₹${fmt(leftover)} ITC carried forward to next month ✓`);
-            });
+        if (itcUsed > 0) {
+            await saveOpeningITC(leftover, selectedYear);
+            setOpeningITCInput(leftover.toString());
+        }
+
+        if (leftover > 0) {
+            setCarryForwardITC(leftover);
+            showToast(`₹${fmt(itcUsed)} ITC used. ₹${fmt(leftover)} carried forward ✓`);
         } else {
             setCarryForwardITC(0);
-            showToast(`${MONTH_FULL[monthIdx]} GST marked as paid ✓`);
+            showToast(`${MONTH_FULL[monthIdx]} GST marked as paid ✓ (₹${fmt(itcUsed)} ITC used)`);
         }
 
         setPayingMonth(null);
