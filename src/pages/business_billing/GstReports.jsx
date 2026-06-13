@@ -1,6 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { authAxios } from "../../services/api";
 import { getShopProfile } from "../../services/businessService";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 // import { getGstReports } from "../../services/businessService";
 
 // ─── MOCK DATA (replace with real API calls) ──────────────────
@@ -284,6 +286,34 @@ const ProofUpload = ({ onUpload, existing }) => {
   );
 };
 
+
+const GSTChart = ({ reportData, chartType }) => {
+  const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const data = reportData.map((r, i) => ({
+    month: MONTH_SHORT[i],
+    "GST Collected": Number(r.gst_collected || 0),
+    "ITC Available": Number(r.itc_eligible || 0),
+    "Net Payable":   Math.max(0, Number(r.gst_collected||0) - Number(r.itc_eligible||0)),
+  }));
+  const fmtY = (v) => v >= 1e5 ? `₹${(v/1e5).toFixed(1)}L` : v >= 1e3 ? `₹${(v/1e3).toFixed(0)}K` : `₹${v}`;
+  const ChartComp  = chartType === "line" ? LineChart : BarChart;
+  const SeriesComp = chartType === "line" ? Line : Bar;
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <ChartComp data={data} margin={{top:4,right:8,left:0,bottom:0}}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#f0f2f7" vertical={false}/>
+        <XAxis dataKey="month" tick={{fontSize:12,fill:"#7b8494"}} axisLine={false} tickLine={false}/>
+        <YAxis tickFormatter={fmtY} tick={{fontSize:11,fill:"#7b8494"}} axisLine={false} tickLine={false} width={60}/>
+        <Tooltip formatter={(v,n) => [`₹${Number(v).toLocaleString("en-IN",{minimumFractionDigits:2})}`, n]}/>
+        <Legend wrapperStyle={{fontSize:"12px",paddingTop:"12px"}}/>
+        <SeriesComp dataKey="GST Collected" fill="#3b82f6" stroke="#3b82f6" radius={chartType==="bar"?[4,4,0,0]:0} strokeWidth={2} dot={false}/>
+        <SeriesComp dataKey="ITC Available" fill="#10b981" stroke="#10b981" radius={chartType==="bar"?[4,4,0,0]:0} strokeWidth={2} dot={false} strokeDasharray={chartType==="line"?"5 4":undefined}/>
+        <SeriesComp dataKey="Net Payable"   fill="#ef4444" stroke="#ef4444" radius={chartType==="bar"?[4,4,0,0]:0} strokeWidth={2} dot={false} strokeDasharray={chartType==="line"?"2 3":undefined}/>
+      </ChartComp>
+    </ResponsiveContainer>
+  );
+};
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────
 const GstReports = () => {
   const [reportData,   setReportData]   = useState([]);
@@ -306,6 +336,16 @@ const GstReports = () => {
   const [openingITCHistory, setOpeningITCHistory] = useState([]);
   const [b2bMonth, setB2bMonth] = useState("all");
   const [b2cMonth, setB2cMonth] = useState("all");
+  const [chartType, setChartType] = useState("bar");
+  const [b2bInvoices,     setB2bInvoices]     = useState([]);
+  const [b2cInvoices,     setB2cInvoices]     = useState([]);
+  const [b2bLoadMonth,    setB2bLoadMonth]    = useState(String(new Date().getMonth() + 1));
+  const [b2cLoadMonth,    setB2cLoadMonth]    = useState(String(new Date().getMonth() + 1));
+  const [b2bLoadYear,     setB2bLoadYear]     = useState(new Date().getFullYear());
+  const [b2cLoadYear,     setB2cLoadYear]     = useState(new Date().getFullYear());
+  const [b2bLoading,      setB2bLoading]      = useState(false);
+  const [b2cLoading,      setB2cLoading]      = useState(false);
+  const navigate = useNavigate();
 
 
 
@@ -382,6 +422,46 @@ const GstReports = () => {
     showToast(`History entry deleted`);
   };
 
+  const loadInvoiceList = async (type) => {
+  const month = type === "b2b" ? b2bLoadMonth : b2cLoadMonth;
+  const year  = type === "b2b" ? b2bLoadYear  : b2cLoadYear;
+  const setLoading = type === "b2b" ? setB2bLoading : setB2cLoading;
+  const setData    = type === "b2b" ? setB2bInvoices : setB2cInvoices;
+
+  setLoading(true);
+  try {
+    const params = { type, year };
+    if (month !== "all") params.month = month;
+    const res = await authAxios.get("business/invoices/", { params });
+    let list = Array.isArray(res.data) ? res.data : [];
+
+    // Safety filter: only keep correct type (B2B has GST, B2C doesn't)
+    list = list.filter(inv => {
+      const hasGst = !!(inv.customer_gst && inv.customer_gst.trim());
+      return type === "b2b" ? hasGst : !hasGst;
+    });
+
+    // Safety filter: only keep invoices matching selected month & year
+    // invoice.date is in DD/MM/YYYY format
+    list = list.filter(inv => {
+      if (!inv.date) return false;
+      const parts = inv.date.split("/");
+      if (parts.length !== 3) return true; // can't parse, keep it
+      const invMonth = Number(parts[1]);
+      const invYear  = Number(parts[2]);
+      if (invYear !== Number(year)) return false;
+      if (month !== "all" && invMonth !== Number(month)) return false;
+      return true;
+    });
+
+    setData(list);
+  } catch {
+    showToast("Failed to load invoices", "error");
+  } finally {
+    setLoading(false);
+  }
+};
+
   const loadData = async (isRefresh = false) => {
   if (isRefresh) setRefreshing(true); else setLoading(true);
   try {
@@ -429,6 +509,14 @@ const GstReports = () => {
     loadOpeningITC(selectedYear);
   },[selectedYear, view]);
 
+  useEffect(() => {
+  if (activeTab === "b2b") loadInvoiceList("b2b");
+  }, [activeTab, b2bLoadMonth, b2bLoadYear]);
+
+  useEffect(() => {
+    if (activeTab === "b2c") loadInvoiceList("b2c");
+  }, [activeTab, b2cLoadMonth, b2cLoadYear]);
+
   const showToast = (msg, type="success") => {
     setToast({msg,type});
     setTimeout(()=>setToast(null), 3000);
@@ -460,7 +548,7 @@ const GstReports = () => {
 
         if (itcUsed > 0) {
             await saveOpeningITC(leftover, selectedYear);
-            setOpeningITCInput(leftover.toString());
+            setOpeningITCInput("");
         }
 
         if (leftover > 0) {
@@ -709,6 +797,146 @@ const GstReports = () => {
   const netGstPayable = Math.max(0, totals.gst - totalITCAvailable);
 
 
+  const renderInvoiceList = (type) => {
+  const isB2B      = type === "b2b";
+  const color      = isB2B ? "#8b5cf6" : "#f59e0b";
+  const invoices   = isB2B ? b2bInvoices : b2cInvoices;
+  const loadMonth  = isB2B ? b2bLoadMonth : b2cLoadMonth;
+  const setMonth   = isB2B ? setB2bLoadMonth : setB2cLoadMonth;
+  const loadYear   = isB2B ? b2bLoadYear : b2cLoadYear;
+  const setYear    = isB2B ? setB2bLoadYear : setB2cLoadYear;
+  const isLoading  = isB2B ? b2bLoading : b2cLoading;
+
+  const totalAmount = invoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const totalGst    = invoices.reduce((s, i) => s + Number(i.gst_amt || 0), 0);
+
+  return (
+    <div className="sec fade-up">
+      {/* Header row */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:"10px",marginBottom:"16px"}}>
+        <div className="sec-title" style={{marginBottom:0}}>
+          <span className="dot" style={{background:color}}/>
+          {isB2B ? "🏢 B2B Invoices" : "🛒 B2C Invoices"}
+          <span className="badge" style={{background:isB2B?"#f5f3ff":"#fffbeb",color:isB2B?"#8b5cf6":"#d97706",border:`1px solid ${isB2B?"#e9d5ff":"#fde68a"}`,marginLeft:"6px"}}>
+            {invoices.length} invoices
+          </span>
+        </div>
+
+        {/* Month + Year dropdowns */}
+        <div style={{display:"flex",gap:"8px",flexWrap:"wrap",alignItems:"center"}}>
+          <select
+            className="yr-sel"
+            value={loadMonth}
+            onChange={e => setMonth(e.target.value)}
+          >
+            <option value="all">All Months</option>
+            {MONTH_FULL.map((m, i) => (
+              <option key={i} value={String(i + 1)}>{m}</option>
+            ))}
+          </select>
+          <select
+            className="yr-sel"
+            value={loadYear}
+            onChange={e => setYear(Number(e.target.value))}
+          >
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Summary chips */}
+      <div className="chips" style={{marginBottom:"14px"}}>
+        <div className="chip">Total: <b>₹{fmt(totalAmount)}</b></div>
+        <div className="chip">GST: <b style={{color:"#10b981"}}>₹{fmt(totalGst)}</b></div>
+        <div className="chip">Count: <b style={{color}}>{invoices.length}</b></div>
+      </div>
+
+      {/* Table */}
+      <div className="tbl-wrap">
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th style={{textAlign:"left"}}>#</th>
+              <th style={{textAlign:"left"}}>Invoice ID</th>
+              <th style={{textAlign:"left"}}>Customer Name</th>
+              <th>Total</th>
+              <th>GST</th>
+              <th style={{textAlign:"center"}}>View</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={6} style={{textAlign:"center",padding:"40px",color:"#a0a8b8"}}>⏳ Loading…</td></tr>
+            ) : invoices.length === 0 ? (
+              <tr><td colSpan={6} style={{textAlign:"center",padding:"40px",color:"#a0a8b8"}}>
+                No {isB2B?"B2B":"B2C"} invoices found for this period
+              </td></tr>
+            ) : invoices.map((inv, i) => (
+              <tr key={inv.id}>
+                <td style={{textAlign:"left",color:"#a0a8b8",fontSize:"0.75rem"}}>{i+1}</td>
+                <td style={{textAlign:"left"}}>
+                  <span style={{fontWeight:700,color:"#1a1d23",fontSize:"0.82rem"}}>{inv.invoice_id}</span>
+                  <div style={{fontSize:"0.68rem",color:"#a0a8b8",marginTop:"2px"}}>{inv.date}</div>
+                </td>
+                <td style={{textAlign:"left"}}>
+                  <span style={{fontWeight:600,color:"#1a1d23"}}>{inv.customer_name || "—"}</span>
+                  {isB2B && inv.customer_gst && (
+                    <div style={{fontSize:"0.68rem",color:"#6366f1",marginTop:"2px"}}>GSTIN: {inv.customer_gst}</div>
+                  )}
+                  {inv.customer_mobile && (
+                    <div style={{fontSize:"0.68rem",color:"#a0a8b8"}}>{inv.customer_mobile}</div>
+                  )}
+                </td>
+                <td style={{color:"#1a1d23",fontWeight:700}}>₹{fmt(inv.total)}</td>
+                <td style={{color:"#10b981",fontWeight:600}}>
+                  {Number(inv.gst_amt||0) > 0 ? `₹${fmt(inv.gst_amt)}` : "—"}
+                </td>
+                <td style={{textAlign:"center"}}>
+                  <button
+                    onClick={() => window.open(`/invoice/${inv.invoice_id}${isB2B ? "" : "?owner=1"}`, "_blank")}
+                    style={{
+                      padding:"5px 12px",
+                      background: isB2B ? "#f5f3ff" : "#fffbeb",
+                      color: isB2B ? "#8b5cf6" : "#d97706",
+                      border: `1px solid ${isB2B?"#e9d5ff":"#fde68a"}`,
+                      borderRadius:"8px",
+                      fontSize:"0.72rem",
+                      fontWeight:700,
+                      cursor:"pointer",
+                      fontFamily:"inherit",
+                      transition:"all .15s",
+                    }}
+                    onMouseEnter={e => e.target.style.opacity="0.8"}
+                    onMouseLeave={e => e.target.style.opacity="1"}
+                  >
+                    View →
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          {invoices.length > 0 && (
+            <tfoot>
+              <tr>
+                <td colSpan={3}>Total ({invoices.length} invoices)</td>
+                <td>₹{fmt(totalAmount)}</td>
+                <td style={{color:"#10b981"}}>₹{fmt(totalGst)}</td>
+                <td/>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+
+      <p style={{fontSize:"0.68rem",color:"#a0a8b8",marginTop:"12px",lineHeight:1.7}}>
+        ℹ️ {isB2B
+          ? "B2B = invoices with customer GSTIN. These go in GSTR-1 Table 4."
+          : "B2C = invoices without customer GSTIN. These go in GSTR-1 Table 7/8."}
+      </p>
+    </div>
+  );
+};
+
 
 
   // ── Monthly table (B2B / B2C) ─────────────────────────────────
@@ -818,7 +1046,7 @@ const GstReports = () => {
                       {empty ? "—" : r.gst_paid ? (
                         <span className="pay-btn paid">✓ Paid {r.gst_paid_date ? `· ${fmtDate(r.gst_paid_date)}` : ""}</span>
                       ) : (
-                        <button className="pay-btn unpaid" onClick={()=>setPayingMonth(i)}>Mark Paid</button>
+                        <span className="badge" style={{background:"#fef2f2",color:"#ef4444",border:"1px solid #fecaca"}}>Unpaid</span>
                       )}
                     </td>
                   </tr>
@@ -845,10 +1073,6 @@ const GstReports = () => {
       </div>
     );
   };
-
-
-
-
 
   // ── ITC TAB ─────────────────────────────────────────────────── 
 
@@ -1198,10 +1422,13 @@ const GstReports = () => {
                       )}
                     </td>
                     <td style={{textAlign:"center"}}>
-                      {!empty && !r.gst_paid && (
+                      {!empty && !r.gst_paid && i !== curMonth && (
                         <button className="pay-btn unpaid" onClick={()=>setPayingMonth(i)}>Mark as Paid</button>
                       )}
-                      {!empty && r.gst_paid && <span style={{color:"#a0a8b8",fontSize:"0.72rem"}}>—</span>}
+                      {(!empty && r.gst_paid) || (!empty && !r.gst_paid && i === curMonth) ? (
+                        <span style={{color:"#a0a8b8",fontSize:"0.72rem"}}>—</span>
+                      ) : null}
+                      {empty && <span style={{color:"#a0a8b8",fontSize:"0.72rem"}}>—</span>}
                     </td>
                   </tr>
                 );
@@ -1247,6 +1474,7 @@ const GstReports = () => {
         <StatCard icon="🏢" label="B2B Invoices"    value={totals.b2b.toLocaleString("en-IN")} sub={`${totals.invoices>0?((totals.b2b/totals.invoices)*100).toFixed(0):0}% of total`} color="#8b5cf6" bg="#f5f3ff"/>
         <StatCard icon="🛒" label="B2C Invoices"    value={totals.b2c.toLocaleString("en-IN")} sub={`${totals.invoices>0?((totals.b2c/totals.invoices)*100).toFixed(0):0}% of total`} color="#f59e0b" bg="#fffbeb"/>
         <StatCard icon="🏛️" label="GST Collected"   value={fmtK(totals.gst)} sub={`₹${fmt(totals.gst)}`} color="#10b981" bg="#ecfdf5"/>
+        <StatCard icon="📅" label="This Month GST"  value={fmtK(Number(reportData[curMonth]?.gst_collected || 0))}sub={`${MONTH_FULL[curMonth]} ${selectedYear}`}color="#f59e0b"bg="#fffbeb"/>
         <StatCard icon="💚" label="ITC Available" value={fmtK(totalITCAvailable)} sub={`Stock ITC + Opening ITC`} color="#10b981" bg="#ecfdf5"/>
         <StatCard icon="💰" label="Net GST Payable" value={fmtK(netGstPayable)} sub={`After ITC set-off`} color="#ef4444" bg="#fef2f2"/>
         <StatCard icon="✅" label="Paid Months"     value={`${totals.paidMonths}/12`} sub={`${12-totals.paidMonths} pending`} color="#10b981" bg="#ecfdf5"/>
@@ -1337,47 +1565,20 @@ const GstReports = () => {
 
       {/* Monthly GST grid */}
       <div className="sec fade-up">
-        <div className="sec-title"><span className="dot" style={{background:"#10b981"}}/>Monthly Overview — {selectedYear}</div>
-        <div className="month-grid">
-          {MONTH_LABELS.map((m,i)=>{
-            const r      = reportData[i]||{};
-            const gst    = Number(r.gst_collected||0);
-            const itcE   = Number(r.itc_eligible||0);
-            const net    = Math.max(0,gst-itcE);
-            const inv    = r.invoice_count||0;
-            const isNow  = i===curMonth;
-            const hasData= inv>0;
-            return (
-              <div key={m} className={`month-cell ${isNow?"now":""}`} style={{opacity:hasData?1:0.45}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"7px"}}>
-                  <span style={{fontSize:"0.72rem",fontWeight:700,color:"#1a1d23"}}>{m}</span>
-                  <div style={{display:"flex",gap:"4px",alignItems:"center"}}>
-                    {isNow && <span style={{fontSize:"0.5rem",background:"#3b82f6",color:"#fff",padding:"1px 5px",borderRadius:"100px",fontWeight:700}}>NOW</span>}
-                    {hasData && r.gst_paid && <span style={{fontSize:"0.5rem",background:"#10b981",color:"#fff",padding:"1px 5px",borderRadius:"100px",fontWeight:700}}>PAID</span>}
-                    {hasData && !r.gst_paid && <span style={{fontSize:"0.5rem",background:"#fef2f2",color:"#ef4444",padding:"1px 5px",borderRadius:"100px",fontWeight:700,border:"1px solid #fecaca"}}>DUE</span>}
-                  </div>
-                </div>
-                <div style={{fontSize:"0.92rem",fontWeight:800,color:hasData?"#10b981":"#c4c9d4",marginBottom:"2px"}}>
-                  {hasData?fmtK(gst):"—"}
-                </div>
-                {hasData && (
-                  <>
-                    <div style={{fontSize:"0.62rem",color:"#3b82f6"}}>ITC: {fmtK(itcE)}</div>
-                    <div style={{fontSize:"0.62rem",color:net>0?"#ef4444":"#10b981",fontWeight:700}}>Net: {fmtK(net)}</div>
-                    <div style={{fontSize:"0.6rem",color:"#a0a8b8",marginTop:"2px"}}>{inv} inv · B2B {r.b2b_count||0} · B2C {r.b2c_count||0}</div>
-                    {!r.gst_paid && (
-                      <button className="pay-btn unpaid" style={{marginTop:"6px",width:"100%",fontSize:"0.64rem",padding:"4px 0"}}
-                        onClick={()=>setPayingMonth(i)}>
-                        Mark Paid
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
+          <div className="sec-title" style={{marginBottom:0}}>
+            <span className="dot" style={{background:"#3b82f6"}}/>Monthly GST Overview — {selectedYear}
+          </div>
+          <div style={{display:"flex",gap:"8px"}}>
+            <select className="yr-sel" value={chartType} onChange={e=>setChartType(e.target.value)}>
+              <option value="bar">Bar</option>
+              <option value="line">Line</option>
+            </select>
+          </div>
         </div>
+        <GSTChart reportData={reportData} chartType={chartType} selectedYear={selectedYear}/>
       </div>
+  
     </>
   );
 
@@ -1520,8 +1721,18 @@ const GstReports = () => {
           ) : (
             <>
               {activeTab==="summary"  && renderSummary()}
-              {activeTab==="b2b"      && renderInvoiceTable("b2b")}
-              {activeTab==="b2c"      && renderInvoiceTable("b2c")}
+              {activeTab==="b2b" && (
+                <>
+                  {renderInvoiceTable("b2b")}
+                  {renderInvoiceList("b2b")}
+                </>
+              )}
+              {activeTab==="b2c" && (
+                <>
+                  {renderInvoiceTable("b2c")}
+                  {renderInvoiceList("b2c")}
+                </>
+              )}
               {activeTab==="itc"      && renderITC()}
               {activeTab==="payments" && renderPayments()}
             </>

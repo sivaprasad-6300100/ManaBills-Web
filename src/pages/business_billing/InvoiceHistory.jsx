@@ -603,8 +603,8 @@ const PdfDocument = React.forwardRef(({ invoice, shop }, ref) => {
             <div className="pdf-brand-tag">AP & Telangana's Billing Platform</div>
           </div>
           <div className="pdf-inv-meta">
-            {invoice?.is_gst && <div className="pdf-gst-tag">GST Invoice</div>}
-            <div className="pdf-inv-title">{invoice?.is_gst ? "TAX INVOICE" : "INVOICE"}</div>
+            {invoice?.is_gst && invoice?.customer_gst && <div className="pdf-gst-tag">GST Invoice</div>}
+            <div className="pdf-inv-title">{invoice?.is_gst && invoice?.customer_gst ? "TAX INVOICE" : "INVOICE"}</div>
             <div className="pdf-inv-num"># {invoice?.invoice_id}</div>
             <div className="pdf-inv-date">Date: {invoice?.date}</div>
           </div>
@@ -665,7 +665,7 @@ const PdfDocument = React.forwardRef(({ invoice, shop }, ref) => {
 
         <div className="pdf-totals">
           <div className="pdf-total-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
-          {invoice?.is_gst && (() => {
+          {invoice?.is_gst && invoice?.customer_gst && (() => {
             const gstGroups = {};
             (invoice.items || []).forEach(item => {
               const rate = Number(item.gst_rate || 0);
@@ -1233,7 +1233,7 @@ const InvoiceRow = ({ inv, idx, onPreview, onEdit, onSendWa, onMarkPaid, onDelet
   return (
     <tr>
       <td style={{color:"var(--muted)",fontSize:"0.78rem"}}>{idx+1}</td>
-      <td><div className="ih-inv-id">{inv.invoice_id||"—"}{inv.is_gst&&<span className="ih-gst-badge">GST</span>}</div></td>
+      <td><div className="ih-inv-id">{inv.invoice_id||"—"}{inv.is_gst && inv.customer_gst && <span className="ih-gst-badge">GST</span>}</div></td>
       <td><div className="ih-customer-name">{inv.customer_name||"—"}</div>{inv.customer_mobile&&<span className="ih-customer-mobile">{inv.customer_mobile}</span>}</td>
       <td style={{fontSize:"0.8rem",color:"var(--muted)"}}>{inv.date||"—"}</td>
       <td style={{fontSize:"0.82rem"}}>{inv.payment||"—"}</td>
@@ -1244,7 +1244,7 @@ const InvoiceRow = ({ inv, idx, onPreview, onEdit, onSendWa, onMarkPaid, onDelet
       <td className="ih-actions-cell m-card">
         <div className="m-card-top">
           <div>
-            <span className="ih-inv-id" style={{fontSize:"0.85rem"}}>{inv.invoice_id||"—"}{inv.is_gst&&<span className="ih-gst-badge">GST</span>}</span>
+            <span className="ih-inv-id" style={{fontSize:"0.85rem"}}>{inv.invoice_id||"—"}{inv.is_gst && inv.customer_gst && <span className="ih-gst-badge">GST</span>}</span>
             <span style={{fontSize:"0.72rem",color:"var(--muted)",marginLeft:6}}>{inv.date}</span>
           </div>
           <span className={`ih-badge ${badgeCls(inv.status)}`}>{badgeIcon(inv.status)} {inv.status||"Pending"}</span>

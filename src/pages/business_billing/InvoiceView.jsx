@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 
 const fetchPublicInvoice = async (invoiceId) => {
   const BASE = (process.env.REACT_APP_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
@@ -12,7 +12,7 @@ const fmt       = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
 const badgeCls  = (s) => ({ paid:"paid", partial:"partial" }[(s||"").toLowerCase()] || "pending");
 const badgeIcon = (s) => ({ paid:"✓", partial:"⚡" }[(s||"").toLowerCase()] || "⏳");
 
-const PdfDocument = React.forwardRef(({ invoice }, ref) => {
+const PdfDocument = React.forwardRef(({ invoice , isOwnerView }, ref) => {
   const items    = invoice?.items  || [];
   const status   = invoice?.status || "Pending";
   const balance  = Number(invoice?.balance  || 0);
@@ -35,8 +35,8 @@ const PdfDocument = React.forwardRef(({ invoice }, ref) => {
             <div className="pdf-brand-tag">AP & Telangana's Billing Platform</div>
           </div>
           <div className="pdf-inv-meta">
-            {invoice?.is_gst && <div className="pdf-gst-tag">GST Invoice</div>}
-            <div className="pdf-inv-title">{invoice?.is_gst ? "TAX INVOICE" : "INVOICE"}</div>
+            {invoice?.is_gst && (invoice?.customer_gst || isOwnerView) && <div className="pdf-gst-tag">GST Invoice</div>}
+            <div className="pdf-inv-title">{invoice?.is_gst && (invoice?.customer_gst || isOwnerView) ? "TAX INVOICE" : "INVOICE"}</div>
             <div className="pdf-inv-num"># {invoice?.invoice_id}</div>
             <div className="pdf-inv-date">Date: {invoice?.date}</div>
           </div>
@@ -44,7 +44,7 @@ const PdfDocument = React.forwardRef(({ invoice }, ref) => {
 
 
 
-        {invoice?.shop_name && (
+        {(invoice?.shop_name || invoice?.shop_owner || invoice?.shop_address || invoice?.shop_gst) && (
           <div className="pdf-shop-block">
             <div className="pdf-shop-name">{invoice.shop_name}</div>
             {invoice.shop_owner   && <div className="pdf-shop-det">👤 {invoice.shop_owner}</div>}
@@ -102,7 +102,7 @@ const PdfDocument = React.forwardRef(({ invoice }, ref) => {
 
         <div className="pdf-totals">
           <div className="pdf-total-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
-          {invoice?.is_gst && (() => {
+          {invoice?.is_gst && (invoice?.customer_gst || isOwnerView) && (() => {
             const gstGroups = {};
             (invoice.items || []).forEach(item => {
               const rate = Number(item.gst_rate || 0);
@@ -162,6 +162,8 @@ const PdfDocument = React.forwardRef(({ invoice }, ref) => {
 
 const InvoiceView = () => {
   const { invoiceId }         = useParams();
+  const location               = useLocation();
+  const isOwnerView            = new URLSearchParams(location.search).get("owner") === "1";
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
@@ -224,7 +226,7 @@ const InvoiceView = () => {
         </div>
         <div style={{maxWidth:"700px",margin:"28px auto 0",padding:"0 14px"}}>
           <div ref={printRef}>
-            <PdfDocument invoice={invoice} />
+            <PdfDocument invoice={invoice} isOwnerView={isOwnerView} />
           </div>
         </div>
         <div style={{maxWidth:"700px",margin:"16px auto 0",padding:"0 14px",display:"flex",alignItems:"center",gap:"12px",flexWrap:"wrap"}} className="no-print">

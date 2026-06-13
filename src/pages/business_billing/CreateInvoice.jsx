@@ -197,7 +197,7 @@ const CreateInvoice = () => {
   // ── Calculations ──────────────────────────────────────────
   const subtotal = items.reduce((s, i) => s + Number(i.qty) * Number(i.price), 0);
   // GST only applies when shop has GST AND customer has entered their GST number
-  const applyGST = isGST && customer.gst.trim().length > 0;
+  const applyGST = isGST;
   const gstAmt = applyGST
   ? Math.round(items.reduce((s, i) =>
       s + Number(i.qty) * Number(i.price) * Number(i.gst_rate || 0) / 100, 0))
