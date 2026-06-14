@@ -865,11 +865,34 @@ const generatePDF = (type = "b2b") => {
 <body style="padding:28px 32px;max-width:1100px;margin:0 auto">
 
   <!-- Print button -->
-  <div class="no-print" style="text-align:right;margin-bottom:16px">
+
+  <div class="no-print" style="text-align:right;margin-bottom:16px;display:flex;gap:10px;justify-content:flex-end">
     <button onclick="window.print()" style="padding:10px 24px;background:${color};color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
       🖨️ Print / Save PDF
     </button>
+    <button onclick="downloadPDF()" style="padding:10px 24px;background:#1a1d23;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+      ↓ Download PDF
+    </button>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+  async function downloadPDF() {
+    const btn = document.querySelector('[onclick="downloadPDF()"]');
+    btn.textContent = "Generating…";
+    btn.disabled = true;
+    const { jsPDF } = window.jspdf;
+    const canvas = await html2canvas(document.body, { scale: 2, useCORS: true });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = (canvas.height * pdfW) / canvas.width;
+    pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+    pdf.save("ManaBills_GST_${type.toUpperCase()}_${monthLabel.replace(/ /g, "_")}.pdf");
+    btn.textContent = "↓ Download PDF";
+    btn.disabled = false;
+  }
+  </script>
 
   <!-- Header band -->
   <div style="background:${color};border-radius:12px 12px 0 0;padding:20px 28px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start">
@@ -1012,11 +1035,34 @@ const generateITCPDF = () => {
 </head>
 <body style="padding:28px 32px;max-width:1100px;margin:0 auto">
 
-  <div class="no-print" style="text-align:right;margin-bottom:16px">
+
+<div class="no-print" style="text-align:right;margin-bottom:16px;display:flex;gap:10px;justify-content:flex-end">
     <button onclick="window.print()" style="padding:10px 24px;background:${color};color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
       🖨️ Print / Save PDF
     </button>
+    <button onclick="downloadPDF()" style="padding:10px 24px;background:#1a1d23;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+      ↓ Download PDF
+    </button>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+  async function downloadPDF() {
+    const btn = document.querySelector('[onclick="downloadPDF()"]');
+    btn.textContent = "Generating…";
+    btn.disabled = true;
+    const { jsPDF } = window.jspdf;
+    const canvas = await html2canvas(document.body, { scale: 2, useCORS: true });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = (canvas.height * pdfW) / canvas.width;
+    pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+    pdf.save("ManaBills_ITC_${selectedYear}.pdf");
+    btn.textContent = "↓ Download PDF";
+    btn.disabled = false;
+  }
+  </script>
 
   <div style="background:${color};border-radius:12px 12px 0 0;padding:20px 28px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start">
     <div>
