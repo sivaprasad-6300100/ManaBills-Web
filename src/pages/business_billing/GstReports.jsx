@@ -346,6 +346,7 @@ const GstReports = () => {
   const [b2bLoading,      setB2bLoading]      = useState(false);
   const [b2cLoading,      setB2cLoading]      = useState(false);
   const navigate = useNavigate();
+  const [shopProfile, setShopProfile] = useState(null);
 
 
 
@@ -462,47 +463,51 @@ const GstReports = () => {
   }
 };
 
-  const loadData = async (isRefresh = false) => {
+const loadData = async (isRefresh = false) => {
   if (isRefresh) setRefreshing(true); else setLoading(true);
   try {
-    const [rpt, itc] = await Promise.all([
+    const [rpt, itc, shop] = await Promise.all([
       authAxios.get("business/gst-reports/", { params: { year: selectedYear, view } }).then(r => r.data),
       authAxios.get("business/products/").then(r => r.data).then(products =>
         products
           .filter(p => Number(p.purchase_price) > 0)
-          .map(p => ({
-            item:           p.name,
-            category:       p.category || "General",
-            qty:            Number(p.qty) || 0,
-            unit:           p.unit || "nos",
-            purchase_value: Number(p.purchase_price) || 0,
-            itc_rate:       Number(p.gst_rate) || 0,
-            itc_amount:     Number(p.purchase_gst) > 0
-                              ? Number(p.purchase_gst)
-                              : (Number(p.purchase_price) * Number(p.gst_rate)) / 100,
-            status: p.supplier_gstin ? "eligible" : "pending",
-            proof: null,
-          }))
+          .map(p => {
+            const qty = Number(p.qty) || 0;
+            const unitPrice = Number(p.purchase_price) || 0;
+            const totalPurchase = unitPrice * qty;
+            const gstRate = Number(p.gst_rate) || 0;
+            const fallbackItc = (totalPurchase * gstRate) / 100;
+            return {
+              item: p.name,
+              category: p.category || "General",
+              qty,
+              unit: p.unit || "nos",
+              purchase_value: totalPurchase,
+              itc_rate: gstRate,
+              itc_amount: Number(p.purchase_gst) > 0 ? Number(p.purchase_gst) : fallbackItc,
+              supplier_gstin: p.supplier_gstin || "", 
+              status: p.supplier_gstin ? "eligible" : "pending",
+              proof: null,
+            };
+          })
           .filter(p => p.itc_amount > 0)
       ),
+      getShopProfile().catch(() => null),
     ]);
     setReportData(Array.isArray(rpt) ? rpt : []);
     setItcStock(Array.isArray(itc) ? itc : []);
+    setShopProfile(shop || null);
     if (isRefresh) showToast("Data refreshed ✓");
   } catch {
     showToast("Failed to load data", "error");
   } finally {
     setLoading(false); setRefreshing(false);
   }
-};                              
-  
-   
+};  
   
   
   
-  
-  
-  
+    
 
   useEffect(()=>{ 
     loadData(); 
@@ -673,120 +678,440 @@ const GstReports = () => {
 
   const curMonth = new Date().getMonth();
 
-  // ── Export CSV ────────────────────────────────────────────────
-  const exportCSV = (type="all") => {
-    let header, rows, filename;
-    if(type==="itc") {
-      header = ["Item","Category","Qty","Unit","Purchase Value","ITC Rate %","ITC Amount","Status","Proof"];
-      rows = itcStock.map(r=>[r.item,r.category,r.qty,r.unit,r.purchase_value,r.itc_rate,r.itc_amount,r.status,r.proof||"—"]);
-      filename = `ITC_Stock_${selectedYear}.csv`;
-    } else if(type === "b2b" || type === "b2c") {
-      const activeMonth = type === "b2b" ? b2bMonth : b2cMonth;
-      const countKey    = type === "b2b" ? "b2b_count" : "b2c_count";
+  // ── Export CSV ──────────────────────────────────────
 
-      // Respect month filter
-      const exportRows = activeMonth === "all"
-        ? reportData.map((r, i) => ({ ...r, _idx: i }))
-        : reportData.map((r, i) => ({ ...r, _idx: i })).filter((_, i) => i === Number(activeMonth));
+  const exportCSV = (type = "all") => {
+  let header, rows, filename;
 
-      const periodLabel = activeMonth === "all"
-        ? `Full Year ${selectedYear}`
-        : `${MONTH_FULL[Number(activeMonth)]} ${selectedYear}`;
+  if (type === "itc") {
+    header = ["Item","Category","Qty","Unit","Purchase Value","ITC Rate %","ITC Amount","Status","Proof"];
+    rows = itcStock.map(r => [r.item, r.category, r.qty, r.unit, r.purchase_value, r.itc_rate, r.itc_amount, r.status, r.proof || "—"]);
+    filename = `ITC_Stock_${selectedYear}.csv`;
+    const allRows = [header, ...rows];
+    const csv = allRows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+    showToast("ITC CSV exported ✓");
+    return;
+  }
 
-      const shopName = "ManaBills GST Report";
-      const typeLabel = type === "b2b" ? "B2B (Business to Business)" : "B2C (Business to Consumer)";
+  if (type === "b2b" || type === "b2c") {
+    const isB2B     = type === "b2b";
+    const invoices  = isB2B ? b2bInvoices : b2cInvoices;
+    const loadMonth = isB2B ? b2bLoadMonth : b2cLoadMonth;
+    const loadYear  = isB2B ? b2bLoadYear  : b2cLoadYear;
+    const typeLabel = isB2B ? "B2B (Business to Business)" : "B2C (Business to Consumer)";
 
-      // Professional header block (metadata rows)
-      const meta = [
-        [`${shopName}`],
-        [`Report Type: ${typeLabel}`],
-        [`Period: ${periodLabel}`],
-        [`Generated On: ${new Date().toLocaleDateString("en-IN", { day:"2-digit", month:"long", year:"numeric" })}`],
-        [`Generated At: ${new Date().toLocaleTimeString("en-IN")}`],
-        [], // blank row separator
-        // Summary row
-        [`SUMMARY`],
-        [`Total ${type.toUpperCase()} Invoices`, exportRows.reduce((s,r)=>s+(r[countKey]||0),0)],
-        [`Total GST Collected (₹)`, exportRows.reduce((s,r)=>s+Number(r.gst_collected||0),0).toFixed(2)],
-        [`Total ITC Eligible (₹)`,  exportRows.reduce((s,r)=>s+Number(r.itc_eligible||0),0).toFixed(2)],
-        [`Net GST Payable (₹)`,     Math.max(0, exportRows.reduce((s,r)=>s+Number(r.gst_collected||0),0) - exportRows.reduce((s,r)=>s+Number(r.itc_eligible||0),0)).toFixed(2)],
-        [`Months Paid`,             `${exportRows.filter(r=>r.gst_paid).length} / ${exportRows.length}`],
-        [], // blank row separator
-        // Column headers
-        [
-          "Sr No",
-          "Month",
-          "Year",
-          `${type.toUpperCase()} Invoice Count`,
-          "Total Invoices",
-          "Taxable Value (₹)",
-          "GST Collected (₹)",
-          "CGST (₹)",
-          "SGST (₹)",
-          "ITC Eligible (₹)",
-          "Net GST Payable (₹)",
-          "GSTR-1 Due Date",
-          "Payment Status",
-          "Paid Date",
-        ],
+    const monthLabel = loadMonth === "all"
+      ? `Full Year ${loadYear}`
+      : `${MONTH_FULL[Number(loadMonth) - 1]} ${loadYear}`;
+
+    const totalAmount  = invoices.reduce((s, i) => s + Number(i.total   || 0), 0);
+    const totalGst     = invoices.reduce((s, i) => s + Number(i.gst_amt || 0), 0);
+    const totalTaxable = invoices.reduce((s, i) => s + (Number(i.total || 0) - Number(i.gst_amt || 0)), 0);
+
+    const meta = [
+      [`ManaBills GST Report`],
+      [`Report Type: ${typeLabel}`],
+      [`Period: ${monthLabel}`],
+      [`Generated On: ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`],
+      [`Generated At: ${new Date().toLocaleTimeString("en-IN")}`],
+      [],
+      [`SUMMARY`],
+      [`Total ${type.toUpperCase()} Invoices`, invoices.length],
+      [`Total Taxable Value (₹)`, totalTaxable.toFixed(2)],
+      [`Total GST Collected (₹)`, totalGst.toFixed(2)],
+      [`Total Invoice Value (₹)`, totalAmount.toFixed(2)],
+      [],
+      [
+        "Sr No",
+        "Invoice ID",
+        "Date",
+        "Customer Name",
+        "Customer Mobile",
+        ...(isB2B ? ["Customer GSTIN"] : []),
+        "Taxable Value (₹)",
+        "CGST (₹)",
+        "SGST (₹)",
+        "Total GST (₹)",
+        "Invoice Total (₹)",
+      ],
+    ];
+
+    const rows = invoices.map((inv, idx) => {
+      const gst     = Number(inv.gst_amt || 0);
+      const total   = Number(inv.total   || 0);
+      const taxable = total - gst;
+      const half    = (gst / 2).toFixed(2);
+      return [
+        idx + 1,
+        inv.invoice_id,
+        inv.date,
+        inv.customer_name   || "—",
+        inv.customer_mobile || "—",
+        ...(isB2B ? [inv.customer_gst || "—"] : []),
+        taxable.toFixed(2),
+        half,
+        half,
+        gst.toFixed(2),
+        total.toFixed(2),
       ];
+    });
 
-      rows = exportRows.map((r, si) => {
-        const gst  = Number(r.gst_collected || 0);
-        const itcE = Number(r.itc_eligible  || 0);
-        const net  = Math.max(0, gst - itcE);
-        const half = (gst / 2).toFixed(2);
-        return [
-          si + 1,
-          MONTH_FULL[r._idx],
-          selectedYear,
-          r[countKey] || 0,
-          r.invoice_count || 0,
-          Number(r.taxable_value || 0).toFixed(2),
-          gst.toFixed(2),
-          half,           // CGST = half
-          half,           // SGST = half (intra-state assumed)
-          itcE.toFixed(2),
-          net.toFixed(2),
-          GST_FILING_DATES[r._idx + 1] || "—",
-          r.gst_paid ? "PAID" : "UNPAID",
-          r.gst_paid_date ? new Date(r.gst_paid_date).toLocaleDateString("en-IN", {day:"2-digit",month:"short",year:"numeric"}) : "—",
-        ];
-      });
+    const blankCols = isB2B ? ["", "", "", "", ""] : ["", "", "", ""];
+    const footer = [
+      `TOTAL (${invoices.length} invoices)`,
+      ...blankCols,
+      totalTaxable.toFixed(2),
+      (totalGst / 2).toFixed(2),
+      (totalGst / 2).toFixed(2),
+      totalGst.toFixed(2),
+      totalAmount.toFixed(2),
+    ];
 
-      // Combine meta + data rows
-      const allRows = [...meta, ...rows];
-      const csv = allRows.map(row => row.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
-      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }); // BOM for Excel
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href = url;
-      a.download = `ManaBills_GST_${type.toUpperCase()}_${periodLabel.replace(/ /g,"_")}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast(`${type.toUpperCase()} CSV exported ✓`);
-      return; // early return, skip bottom generic export
-
-      
-    } else {
-      header = ["Month","Total Invoices","B2B","B2C","Taxable (₹)","GST (₹)","Total (₹)","ITC Eligible (₹)","ITC Claimed (₹)","GST Paid","Paid Date"];
-      rows = reportData.map((r,i)=>[
-        MONTH_FULL[i], r.invoice_count||0, r.b2b_count||0, r.b2c_count||0,
-        Number(r.taxable_value||0).toFixed(2), Number(r.gst_collected||0).toFixed(2),
-        Number(r.total_value||0).toFixed(2), Number(r.itc_eligible||0).toFixed(2),
-        Number(r.itc_claimed||0).toFixed(2), r.gst_paid?"Yes":"No", r.gst_paid_date||"—",
-      ]);
-      filename = `GST_${type}_${selectedYear}.csv`;
-    }
-    const allRows = header ? [header, ...rows] : rows;
-    const csv  = allRows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const allRows = [...meta, ...rows, [], footer];
+    const csv  = allRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
-    a.href=url; a.download=filename; a.click();
+    a.href = url;
+    a.download = `ManaBills_GST_${type.toUpperCase()}_${monthLabel.replace(/ /g, "_")}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
-    showToast("CSV exported ✓");
-  };
+    showToast(`${type.toUpperCase()} CSV exported ✓`);
+    return;
+  }
+
+  // Default: full year summary
+  header = ["Month","Total Invoices","B2B","B2C","Taxable (₹)","GST (₹)","Total (₹)","ITC Eligible (₹)","ITC Claimed (₹)","GST Paid","Paid Date"];
+  rows = reportData.map((r, i) => [
+    MONTH_FULL[i], r.invoice_count || 0, r.b2b_count || 0, r.b2c_count || 0,
+    Number(r.taxable_value || 0).toFixed(2), Number(r.gst_collected || 0).toFixed(2),
+    Number(r.total_value || 0).toFixed(2), Number(r.itc_eligible || 0).toFixed(2),
+    Number(r.itc_claimed || 0).toFixed(2), r.gst_paid ? "Yes" : "No", r.gst_paid_date || "—",
+  ]);
+  filename = `GST_Summary_${selectedYear}.csv`;
+
+  const allRows = [header, ...rows];
+  const csv  = allRows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  showToast("CSV exported ✓");
+};
+
+
+const generatePDF = (type = "b2b") => {
+  const isB2B    = type === "b2b";
+  const invoices = isB2B ? b2bInvoices : b2cInvoices;
+  const loadMonth = isB2B ? b2bLoadMonth : b2cLoadMonth;
+  const loadYear  = isB2B ? b2bLoadYear  : b2cLoadYear;
+  const typeLabel = isB2B ? "B2B (Business to Business)" : "B2C (Business to Consumer)";
+  const color     = isB2B ? "#8b5cf6" : "#f59e0b";
+  const colorLight = isB2B ? "#f5f3ff" : "#fffbeb";
+
+  const monthLabel = loadMonth === "all"
+    ? `Full Year ${loadYear}`
+    : `${MONTH_FULL[Number(loadMonth) - 1]} ${loadYear}`;
+
+  const totalAmount  = invoices.reduce((s, i) => s + Number(i.total   || 0), 0);
+  const totalGst     = invoices.reduce((s, i) => s + Number(i.gst_amt || 0), 0);
+  const totalTaxable = invoices.reduce((s, i) => s + (Number(i.total || 0) - Number(i.gst_amt || 0)), 0);
+
+  const shop = shopProfile || {};
+
+  const rows = invoices.map((inv, idx) => {
+    const gst     = Number(inv.gst_amt || 0);
+    const total   = Number(inv.total   || 0);
+    const taxable = total - gst;
+    const half    = gst / 2;
+    const gstinCol = isB2B ? `<td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:center;color:#6366f1">${inv.customer_gst || "—"}</td>` : "";
+    return `
+      <tr style="background:${idx % 2 === 0 ? "#fff" : "#fafafa"}">
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:center;color:#7b8494">${idx + 1}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;font-weight:700;color:#1a1d23">${inv.invoice_id || "—"}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;color:#4a5568">${inv.date || "—"}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;color:#1a1d23">${inv.customer_name || "—"}</td>
+        ${gstinCol}
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:right;color:#4a5568">₹${fmt(taxable)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:right;color:#4a5568">₹${fmt(half)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:right;color:#4a5568">₹${fmt(half)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:right;color:#10b981;font-weight:700">₹${fmt(gst)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:right;font-weight:800;color:#1a1d23">₹${fmt(total)}</td>
+      </tr>`;
+  }).join("");
+
+  const gstinHeader = isB2B ? `<th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:center">Customer GSTIN</th>` : "";
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>ManaBills GST ${type.toUpperCase()} Report — ${monthLabel}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1d23; background: #fff; font-size: 13px; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .no-print { display: none !important; }
+      @page { margin: 14mm 12mm; size: A4 landscape; }
+    }
+  </style>
+</head>
+<body style="padding:28px 32px;max-width:1100px;margin:0 auto">
+
+  <!-- Print button -->
+  <div class="no-print" style="text-align:right;margin-bottom:16px">
+    <button onclick="window.print()" style="padding:10px 24px;background:${color};color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+      🖨️ Print / Save PDF
+    </button>
+  </div>
+
+  <!-- Header band -->
+  <div style="background:${color};border-radius:12px 12px 0 0;padding:20px 28px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">ManaBills GST Report</div>
+      <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">${typeLabel}</div>
+      <div style="font-size:13px;opacity:.9;margin-top:4px">Period: ${monthLabel}</div>
+    </div>
+    <div style="text-align:right;font-size:11px;opacity:.85;line-height:1.8">
+      <div>Generated: ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}</div>
+      <div>${new Date().toLocaleTimeString("en-IN")}</div>
+    </div>
+  </div>
+
+  <!-- Shop Details -->
+  <div style="background:${colorLight};border:1px solid ${isB2B ? "#e9d5ff" : "#fde68a"};border-top:none;border-radius:0;padding:16px 28px;display:flex;gap:40px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8494;margin-bottom:3px">Shop Name</div>
+      <div style="font-size:14px;font-weight:800;color:#1a1d23">${shop.shop_name || shop.name || "—"}</div>
+    </div>
+    ${shop.gstin ? `<div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8494;margin-bottom:3px">GSTIN</div>
+      <div style="font-size:13px;font-weight:700;color:#1a1d23;font-family:monospace">${shop.gstin}</div>
+    </div>` : ""}
+    ${shop.phone || shop.mobile ? `<div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8494;margin-bottom:3px">Phone</div>
+      <div style="font-size:13px;font-weight:600;color:#1a1d23">${shop.phone || shop.mobile}</div>
+    </div>` : ""}
+    ${shop.address ? `<div style="flex:1;min-width:180px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8494;margin-bottom:3px">Address</div>
+      <div style="font-size:12px;color:#4a5568;line-height:1.5">${shop.address}</div>
+    </div>` : ""}
+  </div>
+
+  <!-- Summary cards -->
+  <div style="display:flex;gap:0;border:1px solid #e8eaf0;border-top:none;border-radius:0 0 12px 12px;overflow:hidden;margin-bottom:24px">
+    ${[
+      { label: "Total Invoices", value: invoices.length, color: color },
+      { label: "Taxable Value",  value: `₹${fmt(totalTaxable)}`, color: "#4a5568" },
+      { label: "GST Collected",  value: `₹${fmt(totalGst)}`,     color: "#10b981" },
+      { label: "CGST",           value: `₹${fmt(totalGst / 2)}`,  color: "#3b82f6" },
+      { label: "SGST",           value: `₹${fmt(totalGst / 2)}`,  color: "#3b82f6" },
+      { label: "Invoice Total",  value: `₹${fmt(totalAmount)}`,   color: "#1a1d23" },
+    ].map((c, i, arr) => `
+      <div style="flex:1;padding:14px 16px;background:#fff;border-right:${i < arr.length - 1 ? "1px solid #e8eaf0" : "none"}">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8494;margin-bottom:5px">${c.label}</div>
+        <div style="font-size:16px;font-weight:800;color:${c.color}">${c.value}</div>
+      </div>`).join("")}
+  </div>
+
+  <!-- Invoice table -->
+  <div style="border:1px solid #e8eaf0;border-radius:10px;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:center">#</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:left">Invoice ID</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:left">Date</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:left">Customer</th>
+          ${gstinHeader}
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:right">Taxable</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:right">CGST</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:right">SGST</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:right">Total GST</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:right">Invoice Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${invoices.length === 0
+          ? `<tr><td colspan="${isB2B ? 10 : 9}" style="text-align:center;padding:40px;color:#a0a8b8;font-size:13px">No ${type.toUpperCase()} invoices for this period</td></tr>`
+          : rows}
+      </tbody>
+      <tfoot>
+        <tr style="background:#f9fafc">
+          <td colspan="${isB2B ? 5 : 4}" style="padding:11px 10px;font-weight:800;font-size:12px;color:#1a1d23;border-top:2px solid #e8eaf0">
+            TOTAL — ${invoices.length} invoice${invoices.length !== 1 ? "s" : ""}
+          </td>
+          <td style="padding:11px 10px;text-align:right;font-weight:800;font-size:12px;color:#4a5568;border-top:2px solid #e8eaf0">₹${fmt(totalTaxable)}</td>
+          <td style="padding:11px 10px;text-align:right;font-weight:800;font-size:12px;color:#3b82f6;border-top:2px solid #e8eaf0">₹${fmt(totalGst / 2)}</td>
+          <td style="padding:11px 10px;text-align:right;font-weight:800;font-size:12px;color:#3b82f6;border-top:2px solid #e8eaf0">₹${fmt(totalGst / 2)}</td>
+          <td style="padding:11px 10px;text-align:right;font-weight:800;font-size:12px;color:#10b981;border-top:2px solid #e8eaf0">₹${fmt(totalGst)}</td>
+          <td style="padding:11px 10px;text-align:right;font-weight:800;font-size:13px;color:#1a1d23;border-top:2px solid #e8eaf0">₹${fmt(totalAmount)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Footer note -->
+  <div style="margin-top:18px;font-size:10px;color:#a0a8b8;line-height:1.8;border-top:1px solid #e8eaf0;padding-top:12px">
+    * CGST/SGST split assumes intra-state (50/50). For inter-state transactions, full amount is IGST. 
+    ${isB2B ? "B2B invoices go in GSTR-1 Table 4." : "B2C invoices go in GSTR-1 Table 7/8."}
+    Consult your CA before final filing. Generated by ManaBills.
+  </div>
+
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if (!win) { showToast("Allow popups to generate PDF", "error"); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  showToast(`${type.toUpperCase()} PDF ready — click Print / Save PDF`);
+};
+
+const generateITCPDF = () => {
+  const shop = shopProfile || {};
+  const color = "#10b981";
+  const colorLight = "#ecfdf5";
+
+  const rows = itcStock.map((r, idx) => `
+    <tr style="background:${idx % 2 === 0 ? "#fff" : "#fafafa"}">
+      <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:center;color:#7b8494">${idx + 1}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;font-weight:700;color:#1a1d23">${r.item}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;color:#4a5568">${r.category}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:right;color:#4a5568">${r.qty} ${r.unit}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:right;color:#4a5568">₹${fmt(r.purchase_value)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:right;color:${r.itc_rate>0?"#10b981":"#ef4444"}">${r.itc_rate}%</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:right;font-weight:800;color:#3b82f6">₹${fmt(r.itc_amount)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:center;color:#4a5568">${r.status}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #f0f2f7;font-size:11px;text-align:center;color:#4a5568">${r.proof || "—"}</td>
+    </tr>`).join("");
+
+  const totalPurchase = itcStock.reduce((s, r) => s + r.purchase_value, 0);
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>ManaBills ITC Report — ${selectedYear}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1d23; background: #fff; font-size: 13px; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .no-print { display: none !important; }
+      @page { margin: 14mm 12mm; size: A4 landscape; }
+    }
+  </style>
+</head>
+<body style="padding:28px 32px;max-width:1100px;margin:0 auto">
+
+  <div class="no-print" style="text-align:right;margin-bottom:16px">
+    <button onclick="window.print()" style="padding:10px 24px;background:${color};color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+      🖨️ Print / Save PDF
+    </button>
+  </div>
+
+  <div style="background:${color};border-radius:12px 12px 0 0;padding:20px 28px;color:#fff;display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">ManaBills ITC Report</div>
+      <div style="font-size:22px;font-weight:800;letter-spacing:-.02em">ITC from Stock / Purchases</div>
+      <div style="font-size:13px;opacity:.9;margin-top:4px">Year: ${selectedYear}</div>
+    </div>
+    <div style="text-align:right;font-size:11px;opacity:.85;line-height:1.8">
+      <div>Generated: ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}</div>
+      <div>${new Date().toLocaleTimeString("en-IN")}</div>
+    </div>
+  </div>
+
+  <div style="background:${colorLight};border:1px solid #a7f3d0;border-top:none;border-radius:0;padding:16px 28px;display:flex;gap:40px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8494;margin-bottom:3px">Shop Name</div>
+      <div style="font-size:14px;font-weight:800;color:#1a1d23">${shop.shop_name || shop.name || "—"}</div>
+    </div>
+    ${shop.gstin ? `<div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8494;margin-bottom:3px">GSTIN</div>
+      <div style="font-size:13px;font-weight:700;color:#1a1d23;font-family:monospace">${shop.gstin}</div>
+    </div>` : ""}
+    ${shop.phone || shop.mobile ? `<div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8494;margin-bottom:3px">Phone</div>
+      <div style="font-size:13px;font-weight:600;color:#1a1d23">${shop.phone || shop.mobile}</div>
+    </div>` : ""}
+    ${shop.address ? `<div style="flex:1;min-width:180px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8494;margin-bottom:3px">Address</div>
+      <div style="font-size:12px;color:#4a5568;line-height:1.5">${shop.address}</div>
+    </div>` : ""}
+  </div>
+
+  <div style="display:flex;gap:0;border:1px solid #e8eaf0;border-top:none;border-radius:0 0 12px 12px;overflow:hidden;margin-bottom:24px">
+    ${[
+      { label: "Total Items", value: itcStock.length, color: color },
+      { label: "Total Purchase Value", value: `₹${fmt(totalPurchase)}`, color: "#4a5568" },
+      { label: "Total ITC (Stock)", value: `₹${fmt(itcClaimedFromStock)}`, color: "#3b82f6" },
+      { label: "Opening / Manual ITC", value: `₹${fmt(openingITC)}`, color: "#6366f1" },
+      { label: "Total ITC Available", value: `₹${fmt(totalITCAvailable)}`, color: "#10b981" },
+    ].map((c, i, arr) => `
+      <div style="flex:1;padding:14px 16px;background:#fff;border-right:${i < arr.length - 1 ? "1px solid #e8eaf0" : "none"}">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7b8494;margin-bottom:5px">${c.label}</div>
+        <div style="font-size:16px;font-weight:800;color:${c.color}">${c.value}</div>
+      </div>`).join("")}
+  </div>
+
+  <div style="border:1px solid #e8eaf0;border-radius:10px;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:center">#</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:left">Item</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:left">Category</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:right">Qty</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:right">Purchase Value</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:right">ITC Rate</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:right">ITC Amount</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:center">Status</th>
+          <th style="padding:9px 10px;background:#f9fafc;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7b8494;border-bottom:2px solid #e8eaf0;text-align:center">Proof</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itcStock.length === 0
+          ? `<tr><td colspan="9" style="text-align:center;padding:40px;color:#a0a8b8;font-size:13px">No ITC stock entries found</td></tr>`
+          : rows}
+      </tbody>
+      <tfoot>
+        <tr style="background:#f9fafc">
+          <td colspan="4" style="padding:11px 10px;font-weight:800;font-size:12px;color:#1a1d23;border-top:2px solid #e8eaf0">
+            TOTAL — ${itcStock.length} item${itcStock.length !== 1 ? "s" : ""}
+          </td>
+          <td style="padding:11px 10px;text-align:right;font-weight:800;font-size:12px;color:#4a5568;border-top:2px solid #e8eaf0">₹${fmt(totalPurchase)}</td>
+          <td style="border-top:2px solid #e8eaf0"></td>
+          <td style="padding:11px 10px;text-align:right;font-weight:800;font-size:13px;color:#3b82f6;border-top:2px solid #e8eaf0">₹${fmt(itcClaimedFromStock)}</td>
+          <td colspan="2" style="border-top:2px solid #e8eaf0"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div style="margin-top:18px;font-size:10px;color:#a0a8b8;line-height:1.8;border-top:1px solid #e8eaf0;padding-top:12px">
+    * Stock ITC = pulled from Products (purchase_gst field, or Purchase Price × GST Rate). Opening/Manual ITC is added separately to total available ITC.
+    Net GST Payable = GST Collected − Total ITC Available. Consult your CA before final filing. Generated by ManaBills.
+  </div>
+
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if (!win) { showToast("Allow popups to generate PDF", "error"); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  showToast("ITC PDF ready — click Print / Save PDF");
+};
 
   // ── Net GST Payable (after ITC) ───────────────────────────────
 
@@ -841,6 +1166,14 @@ const GstReports = () => {
           >
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
+          {/* <button className="exp-btn" onClick={() => exportCSV(type)}>↓ CSV</button> */}
+          <button
+            className="exp-btn"
+            style={{borderColor: isB2B ? "#8b5cf6" : "#f59e0b", color: isB2B ? "#8b5cf6" : "#d97706"}}
+            onClick={() => generatePDF(type)}
+          >
+            🖨️CSV PDF
+          </button>
         </div>
       </div>
 
@@ -990,7 +1323,13 @@ const GstReports = () => {
               ))}
             </select>
           </div>
-          <button className="exp-btn" onClick={()=>exportCSV(type)}>↓ Export CSV</button>
+          <button
+                className="exp-btn"
+                style={{borderColor: isB2B ? "#8b5cf6" : "#f59e0b", color: isB2B ? "#8b5cf6" : "#d97706"}}
+                onClick={() => generatePDF(type)}
+              >
+                🖨️CSV PDF
+          </button>
         </div>
 
         {/* Summary chips — update based on filtered */}
@@ -1252,7 +1591,7 @@ const GstReports = () => {
             ITC from Stock / Purchases
           </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <button className="exp-btn" onClick={() => exportCSV("itc")}>↓ CSV</button>
+            <button className="exp-btn" style={{borderColor:"#10b981",color:"#10b981"}} onClick={generateITCPDF}>🖨️CSV PDF</button>
             <button className="itc-add-btn" onClick={() => setShowITCForm(v => !v)}>+ Add Entry</button>
           </div>
         </div>
@@ -1284,25 +1623,34 @@ const GstReports = () => {
           <table className="tbl">
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Category</th>
+                <th>s.no</th>
+                <th>Item </th>
                 <th style={{ textAlign: "left" }}>Qty</th>
                 <th>Purchase Value</th>
                 <th>GST Rate</th>
+                <th style={{ textAlign: "left" }}>Supplier GSTIN</th>  
                 <th>ITC Amount</th>
                 <th style={{ textAlign: "center" }}>Proof</th>
               </tr>
             </thead>
             <tbody>
               {itcStock.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: "center", padding: "30px", color: "#a0a8b8" }}>No stock entries with GST found</td></tr>
+                <tr><td colSpan={8} style={{ textAlign: "center", padding: "30px", color: "#a0a8b8" }}>No stock entries with GST found</td></tr>
               ) : itcStock.map((r, i) => (
                 <tr key={i}>
+                  <td style={{ textAlign: "left", color: "#a0a8b8", fontWeight: 600 }}>{i + 1}</td>
                   <td>{r.item}</td>
-                  <td style={{ textAlign: "left", color: "#7b8494", fontSize: "0.75rem" }}>{r.category}</td>
+                  {/* <td style={{ textAlign: "left", color: "#7b8494", fontSize: "0.75rem" }}>{r.category}</td> */}
                   <td style={{ textAlign: "left", color: "#4a5568" }}>{r.qty} {r.unit}</td>
                   <td>₹{fmt(r.purchase_value)}</td>
                   <td style={{ color: r.itc_rate > 0 ? "#10b981" : "#ef4444" }}>{r.itc_rate}%</td>
+                  <td style={{ textAlign: "left", fontSize: "0.72rem", 
+                    color: r.supplier_gstin ? "#6366f1" : "#a0a8b8", 
+                    fontWeight: r.supplier_gstin ? 700 : 400,
+                    fontFamily: "monospace" }}>
+                    {r.supplier_gstin || "—"}
+                  </td>
+
                   <td style={{ color: r.itc_amount > 0 ? "#3b82f6" : "#a0a8b8", fontWeight: 700 }}>
                     {r.itc_amount > 0 ? `₹${fmt(r.itc_amount)}` : "—"}
                   </td>
@@ -1324,6 +1672,7 @@ const GstReports = () => {
             </tbody>
             <tfoot>
               <tr>
+                <td/>
                 <td>Total ({itcStock.length} items)</td>
                 <td /><td />
                 <td>₹{fmt(itcStock.reduce((s, r) => s + r.purchase_value, 0))}</td>
@@ -1662,22 +2011,7 @@ const GstReports = () => {
                 {totals.paidMonths > 0 && <span style={{marginLeft:"8px",color:"#10b981",fontWeight:700}}>· {totals.paidMonths} months paid</span>}
                 {totals.dueAmount > 0  && <span style={{marginLeft:"8px",color:"#ef4444",fontWeight:700}}>· ₹{fmtK(totals.dueAmount)} due</span>}
               </p>
-            </div>
-            <div style={{display:"flex",gap:"8px",flexWrap:"wrap",alignItems:"center"}}>
-              <select className="yr-sel" value={selectedYear} onChange={e=>setSelectedYear(Number(e.target.value))}>
-                {years.map(y=><option key={y} value={y}>{y}</option>)}
-              </select>
-              <div className="period-wrap">
-                <button className={`period-btn ${view==="monthly"?"active":""}`}   onClick={()=>setView("monthly")}>Monthly</button>
-                <button className={`period-btn ${view==="quarterly"?"active":""}`} onClick={()=>setView("quarterly")}>Quarterly</button>
-              </div>
-              <button className={`ref-btn ${refreshing?"spin":""}`} onClick={()=>loadData(true)} title="Refresh data">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                </svg>
-              </button>
-              {!isMobile && <button className="exp-btn" onClick={()=>exportCSV("all")}>↓ CSV</button>}
-            </div>
+            </div>         
           </div>
 
           {/* Tabs */}
