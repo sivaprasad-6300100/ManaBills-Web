@@ -534,9 +534,9 @@ const STYLES = `
   #recaptcha-container { position:fixed; bottom:20px; right:20px; z-index:9999; }
 `;
 
-if (typeof document !== "undefined" && !document.getElementById("__cv_v7")) {
+if (typeof document !== "undefined" && !document.getElementById("__cv_v8")) {
   const el = document.createElement("style");
-  el.id = "__cv_v7";
+  el.id = "__cv_v8";
   el.textContent = STYLES;
   document.head.appendChild(el);
 }
