@@ -968,6 +968,9 @@ export default function CustomerView({
   const [payStatus,    setPayStatus]    = useState(null);
   const [paymentId,    setPaymentId]    = useState(null);
 
+  // Preload Razorpay script immediately on mount
+  useEffect(() => { loadRazorpayScript(); }, []);
+
   const stockRef = useRef(stockItems);
   useEffect(() => { stockRef.current = stockItems; }, [stockItems]);
 
@@ -1155,6 +1158,7 @@ export default function CustomerView({
     if (!cartItems.length) { showToast("Cart is empty", "error"); return; }
 
     setPlacing(true);
+    showToast("Processing your order…", "info");
     const orderPayload = {
       customer_name:   customer.name,
       customer_mobile: customer.mobile,
