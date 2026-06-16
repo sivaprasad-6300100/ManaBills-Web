@@ -1558,30 +1558,8 @@ export default function CustomerView({
                     </div>
                   </div>
 
-                  {/* Payment method */}
-                  <div className="cv-pay-method-wrap">
-                    <span className="cv-pay-method-lbl">Pay {fmt(advAmt)} via</span>
-                    <div className="cv-pay-methods">
-                      <button className={`cv-pay-method-card${payMethod === "razorpay" ? " selected" : ""}`} onClick={() => setPayMethod("razorpay")}>
-                        {payMethod === "razorpay" && <span className="cv-pay-method-badge">✓ Selected</span>}
-                        <span className="cv-pay-method-ico">💳</span>
-                        <span className="cv-pay-method-title">Razorpay</span>
-                        <span className="cv-pay-method-sub">UPI, Cards, Net Banking</span>
-                      </button>
-                      <button className={`cv-pay-method-card${payMethod === "cash" ? " selected-cash" : ""}`} onClick={() => setPayMethod("cash")}>
-                        {payMethod === "cash" && <span className="cv-pay-method-badge">✓ Selected</span>}
-                        <span className="cv-pay-method-ico">💵</span>
-                        <span className="cv-pay-method-title">Cash at Shop</span>
-                        <span className="cv-pay-method-sub">Pay when you collect</span>
-                      </button>
-                    </div>
-                    {payMethod === "razorpay" && (
-                      <div style={{ marginTop:8, padding:"8px 12px", background:"#EFF6FF", borderRadius:10, border:"1px solid #BFDBFE", fontSize:11, color:"#1E40AF", fontWeight:500 }}>
-                        🔒 Secured by Razorpay · UPI · Cards · Net Banking · Wallets
-                      </div>
-                    )}
-                  </div>
-
+                  {/* Payment method */}      
+                  
                   <button className="cv-btn cv-btn-primary" onClick={() => setCheckStep(1)}>
                     Review & Confirm →
                   </button>
@@ -1596,12 +1574,6 @@ export default function CustomerView({
                     <div className="cv-cust-row"><span style={{ color:"var(--ink3)" }}>Name</span><span style={{ fontWeight:700 }}>{customer.name}</span></div>
                     <div className="cv-cust-row"><span style={{ color:"var(--ink3)" }}>Mobile</span><span style={{ fontWeight:700 }}>+91 {customer.mobile}</span></div>
                     <div className="cv-cust-row"><span style={{ color:"var(--ink3)" }}>Items</span><span style={{ fontWeight:700 }}>{cartCount} item{cartCount !== 1 ? "s" : ""}</span></div>
-                    <div className="cv-cust-row">
-                      <span style={{ color:"var(--ink3)" }}>Payment via</span>
-                      <span style={{ fontWeight:700, color: payMethod === "razorpay" ? "var(--rzp)" : "var(--green)" }}>
-                        {payMethod === "razorpay" ? "💳 Razorpay" : "💵 Cash at Shop"}
-                      </span>
-                    </div>
                   </div>
 
                   <div className="cv-pay-card">
@@ -1611,9 +1583,7 @@ export default function CustomerView({
                     </div>
                     <div className="cv-pay-row adv">
                       <div>
-                        <div style={{ fontWeight:700, color:"var(--green)" }}>
-                          {payMethod === "razorpay" ? "💳 Paying via Razorpay" : "✓ Paying Now (Cash)"}
-                        </div>
+                        <div style={{ fontWeight:700, color:"var(--green)" }}>💳 Paying via Razorpay</div>
                         <div style={{ fontSize:11, color:"var(--ink3)", marginTop:2 }}>{advPct}% advance</div>
                       </div>
                       <span style={{ fontFamily:"'Sora',sans-serif", fontWeight:800, fontSize:17, color:"var(--green)" }}>{fmt(advAmt)}</span>
@@ -1633,24 +1603,12 @@ export default function CustomerView({
                       </div>
                     )}
                   </div>
-
-                  {payMethod === "razorpay" ? (
-                    <>
-                      <button className="cv-rzp-btn" onClick={handlePlaceOrder} disabled={placing}>
-                        {placing
-                          ? <><div className="cv-spin-white" />Processing…</>
-                          : <><span>💳</span>Place & Pay {fmt(advAmt)}<span className="cv-rzp-badge">Razorpay</span></>}
-                      </button>
-                      <div style={{ textAlign:"center", fontSize:11, color:"var(--ink3)", margin:"10px 0 4px" }}>🔒 Secured by Razorpay · 256-bit SSL</div>
-                    </>
-                  ) : (
-                    <button className="cv-btn cv-btn-primary" onClick={handlePlaceOrder} disabled={placing}>
-                      {placing
-                        ? <><div className="cv-spin-white" />Placing Order…</>
-                        : advAmt > 0 ? `✅ Confirm Order (Pay ${fmt(advAmt)} at shop)` : "✅ Confirm Order"}
-                    </button>
-                  )}
-
+                  <button className="cv-btn cv-btn-primary" onClick={handlePlaceOrder} disabled={placing}>
+                    {placing
+                      ? <><div className="cv-spin-white" />Placing Order…</>
+                      : `✅ Confirm Order (Pay ${fmt(advAmt)} via Razorpay)`}
+                  </button>
+                                                                                                                                                              
                   <button className="cv-btn cv-btn-outline" onClick={() => setCheckStep(0)} disabled={placing}>← Edit Order</button>
                 </>
               )}
