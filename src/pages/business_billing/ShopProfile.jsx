@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
+import { SubscriptionContext } from "../../context/SubscriptionContext";
 import {
   getShopProfile,
   saveShopProfile,
@@ -7,6 +8,8 @@ import {
 } from "../../services/businessService";
 import { useShop } from "../../context/ShopContext";
 import useAuth from "../../hooks/useAuth";
+
+
 
 const defaultShop = {
   shop_name:    "",
@@ -64,13 +67,16 @@ const ShopProfile = () => {
   const [showCustomShopType, setShowCustomShopType] = useState(false);
   const [customShopUnits,    setCustomShopUnits]    = useState([]);
   const [showCustomPicker,   setShowCustomPicker]   = useState(false);
+  const { accessToken } = useAuth();
+  const { subscriptions } = useContext(SubscriptionContext);
+  const isBasicPlan = subscriptions?.["business"]?.plan_key === "business_basic";
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const { accessToken } = useAuth();
+ 
 
 
   useEffect(() => {
@@ -115,7 +121,7 @@ const ShopProfile = () => {
       showToast("Please fill all required fields (marked with *)", "error");
       return;
     }
-    if (shop.gst_enabled && !shop.gst_number.trim()) {
+    if (!isBasicPlan && shop.gst_enabled && !shop.gst_number.trim()) {
       showToast("GST Number is required when GST is enabled", "error");
       return;
     }
@@ -129,8 +135,8 @@ const ShopProfile = () => {
         address:      shop.address,
         shop_type:    shop.shop_type,
         timings:      shop.timings,
-        gst_enabled:  shop.gst_enabled,
-        gst_number:   shop.gst_number,
+        gst_enabled:  isBasicPlan ? false : shop.gst_enabled,   // ← force off
+        gst_number:   isBasicPlan ? ""    : shop.gst_number,    // ← force empty
         logo_url:     shop.logo_url || "",
       };
       const data = await saveShopProfile(payload);
@@ -564,9 +570,11 @@ const ShopProfile = () => {
                     </div>
                   </div>
                   <div className="sp-hero-actions">
-                    <span className={`sp-gst-chip ${display.gstEnabled ? "on" : "off"}`}>
-                      {display.gstEnabled ? "GST On" : "GST Off"}
-                    </span>
+                    {!isBasicPlan && (
+                      <span className={`sp-gst-chip ${display.gstEnabled ? "on" : "off"}`}>
+                        {display.gstEnabled ? "GST On" : "GST Off"}
+                      </span>
+                    )}
                     <button className="sp-btn-edit" onClick={() => setIsEditing(true)}>Edit Profile</button>
                     <button className="sp-btn-reset" onClick={clearProfile}>Reset</button>
                   </div>
@@ -588,12 +596,14 @@ const ShopProfile = () => {
                     {display.extraMobile || "Not set"}
                   </div>
                 </div>
-                <div className="sp-detail-cell">
-                  <div className="sp-detail-lbl">GST Number</div>
-                  <div className={`sp-detail-val ${display.gstEnabled && display.gstNumber ? "" : "empty"}`}>
-                    {display.gstEnabled ? (display.gstNumber || "Not set") : "N/A"}
+                {!isBasicPlan && (
+                  <div className="sp-detail-cell">
+                    <div className="sp-detail-lbl">GST Number</div>
+                    <div className={`sp-detail-val ${display.gstEnabled && display.gstNumber ? "" : "empty"}`}>
+                      {display.gstEnabled ? (display.gstNumber || "Not set") : "N/A"}
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="sp-detail-cell full">
                   <div className="sp-detail-lbl">Address</div>
                   <div className="sp-detail-val normal">{display.address}</div>
@@ -863,46 +873,48 @@ const ShopProfile = () => {
 
                 </div>
 
-                {/* ─── SEPARATOR ─── */}
-                <hr className="sp-sep" />
-
-                {/* ─── GST SECTION ─── */}
-                <span className="sp-section-label optional">○ GST &amp; Tax — Optional</span>
-
-                <div className="sp-gst-box">
-                  <div className="sp-gst-row">
-                    <label className="sp-toggle">
-                      <input
-                        type="checkbox"
-                        name="gst_enabled"
-                        checked={shop.gst_enabled}
-                        onChange={handleChange}
-                      />
-                      <span className="sp-toggle-track"></span>
-                    </label>
-                    <div className="sp-gst-text">
-                      <h4>Enable GST Billing</h4>
-                      <p>Turn on to include GST on your invoices and bills</p>
-                    </div>
-                  </div>
-                  {shop.gst_enabled && (
-                    <div className="sp-gst-number">
-                      <div className="sp-field">
-                        <label>GST Number</label>
-                        <input
-                          type="text"
-                          name="gst_number"
-                          placeholder="e.g. 29ABCDE1234F1Z5"
-                          value={shop.gst_number}
-                          onChange={handleChange}
-                          className={shop.gst_number ? "has-value" : ""}
-                        />
+                {/* ─── GST SECTION — hidden for Basic plan ─── */}
+                  {!isBasicPlan && (
+                    <>
+                      <hr className="sp-sep" />
+                  
+                      <span className="sp-section-label optional">○ GST &amp; Tax — Optional</span>
+                  
+                      <div className="sp-gst-box">
+                        <div className="sp-gst-row">
+                          <label className="sp-toggle">
+                            <input
+                              type="checkbox"
+                              name="gst_enabled"
+                              checked={shop.gst_enabled}
+                              onChange={handleChange}
+                            />
+                            <span className="sp-toggle-track"></span>
+                          </label>
+                          <div className="sp-gst-text">
+                            <h4>Enable GST Billing</h4>
+                            <p>Turn on to include GST on your invoices and bills</p>
+                          </div>
+                        </div>
+                        {shop.gst_enabled && (
+                          <div className="sp-gst-number">
+                            <div className="sp-field">
+                              <label>GST Number</label>
+                              <input
+                                type="text"
+                                name="gst_number"
+                                placeholder="e.g. 29ABCDE1234F1Z5"
+                                value={shop.gst_number}
+                                onChange={handleChange}
+                                className={shop.gst_number ? "has-value" : ""}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
-
-              </div>
 
               {/* Form Actions */}
               <div className="sp-form-actions">

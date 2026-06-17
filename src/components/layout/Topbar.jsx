@@ -99,7 +99,7 @@ const usePlanExpiry = (subscriptions) => {
 
     // Skip cancelled / expired subs
     // FIXED
-  if (sub.status && sub.status !== "active" && sub.status !== "FREE_TRIAL") return;
+  if (!sub.status || sub.status !== "active") return;
 
     // ── Resolve expires_at from real backend fields ──────────────────────
     // Backend serializer returns snake_case: expires_at
@@ -182,7 +182,7 @@ const getActivePlans = (subscriptions) => {
   if (!subscriptions) return [];
   return Object.entries(subscriptions)
     // FIXED
-    .filter(([, sub]) => sub && typeof sub === "object" && (sub.status === "active" || sub.status === "FREE_TRIAL"))
+    .filter(([, sub]) => sub && typeof sub === "object" && sub.status === "active")
     .map(([moduleKey, sub]) => ({
       moduleKey,
       planKey:   sub.plan_key   || "",
@@ -381,6 +381,13 @@ const NotificationPanel = (props) => {
   );
 };
 
+const getPlanTier = (planKey = "") => {
+  if (planKey === "free_trial")          return "Trial";
+  if (planKey.includes("pro"))           return "Pro";
+  if (planKey.includes("basic"))         return "Basic";
+  return "";
+};
+
 // ─────────────────────────────────────────────
 // MAIN TOPBAR
 // ─────────────────────────────────────────────
@@ -447,6 +454,9 @@ const Topbar = () => {
   // ── Build active plans list for dropdown (plain function, no hook) ──────────
   const activePlans = getActivePlans(subscriptions);
 
+  const businessSub = subscriptions?.["business"];
+  const isBasicPlan = businessSub?.plan_key === "business_basic";
+
   const pushNotif = useCallback((type, title, message, data = {}) => {
   setNotifications((prev) => [createNotification(type, title, message, data), ...prev]);
 }, []);
@@ -495,7 +505,7 @@ useEffect(() => {
     if (subLoading || !subscriptions || !Object.keys(subscriptions).length) return;
 
     Object.entries(subscriptions).forEach(([moduleKey, sub]) => {
-      if (!sub || (sub.status !== "active" && sub.status !== "FREE_TRIAL")) return;
+      if (!sub || sub.status !== "active") return;
 
       // Call backend check endpoint to get fresh days_left / hours_left
       authAxios
@@ -673,17 +683,33 @@ useEffect(() => {
                       onMouseEnter={(e) => e.currentTarget.style.background="rgba(14,27,46,0.07)"}
                       onMouseLeave={(e) => e.currentTarget.style.background="rgba(14,27,46,0.03)"}>
                       <div>
-                        <div style={{ fontSize:"0.75rem", fontWeight:700, color:"#0e1b2e" }}>
+                        <div style={{ fontSize:"0.75rem", fontWeight:700, color:"#0e1b2e", display:"flex", alignItems:"center", gap:"5px" }}>
                           {planLabels[plan.moduleKey] || plan.moduleKey}
+                          {getPlanTier(plan.planKey) && (
+                            <span style={{
+                              fontSize:"0.60rem", fontWeight:700, padding:"1px 5px", borderRadius:"4px",
+                              background: plan.planKey?.includes("pro")   ? "#eef2ff"
+                                        : plan.planKey === "free_trial"    ? "#ecfdf5"
+                                        : "#f1f5f9",
+                              color:      plan.planKey?.includes("pro")   ? "#6366f1"
+                                        : plan.planKey === "free_trial"    ? "#10b981"
+                                        : "#64748b",
+                            }}>
+                              {getPlanTier(plan.planKey)}
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize:"0.68rem", color:"#6b7280" }}>
-                          {plan.duration}
+                          {plan.duration === "FREE_TRIAL" ? "5-day trial" : plan.duration}
                           {plan.daysLeft !== null && (
                             <span style={{ marginLeft:"4px", color: plan.daysLeft <= 3 ? "#dc2626" : plan.daysLeft <= 7 ? "#d97706" : "#10b981", fontWeight:600 }}>
                               · {plan.daysLeft}d left
                             </span>
                           )}
-                        </div>
+                        </div>                    
+
+                        
+                        
                       </div>
                       <div style={{ textAlign:"right" }}>
                         <div style={{ fontSize:"0.65rem", color:"#9ca3af" }}>Expires</div>
@@ -715,7 +741,7 @@ useEffect(() => {
               {/* Shop details */}
               {shop && (
                 <div style={{ padding:"8px 16px", borderBottom:"1px solid rgba(14,27,46,0.08)", display:"flex", flexDirection:"column", gap:"3px" }}>
-                  {shopDetails.gstNumber && <div style={{ fontSize:"0.70rem", color:"#6b7280" }}>GST: <span style={{ color:"#0e1b2e", fontWeight:600 }}>{shopDetails.gstNumber}</span></div>}
+                  {!isBasicPlan && shopDetails.gstNumber && <div style={{ fontSize:"0.70rem", color:"#6b7280" }}>GST: <span style={{ color:"#0e1b2e", fontWeight:600 }}>{shopDetails.gstNumber}</span></div>}
                   {shopDetails.mobile2   && <div style={{ fontSize:"0.70rem", color:"#6b7280" }}>Alt: <span style={{ color:"#0e1b2e" }}>{shopDetails.mobile2}</span></div>}
                   {shopDetails.address   && <div style={{ fontSize:"0.68rem", color:"#9ca3af", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{shopDetails.address}</div>}
                 </div>
