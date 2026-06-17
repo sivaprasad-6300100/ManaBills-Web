@@ -78,9 +78,10 @@ const extractScannerIdFromUrl = () => {
 
 // ─── API helpers ──────────────────────────────────────────────
 const publicFetch = async (url, options = {}) => {
-  const base = (typeof window !== "undefined" && window.__API_BASE__)
+
+  const base = ((typeof window !== "undefined" && window.__API_BASE__)
     || process.env.REACT_APP_API_BASE
-    || "/api";
+    || "/api").replace(/\/+$/, "");
   const fullUrl = url.startsWith("http") ? url : `${base}/${url.replace(/^\//, "")}`;
   const res = await fetch(fullUrl, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
