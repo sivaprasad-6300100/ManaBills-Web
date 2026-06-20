@@ -700,7 +700,13 @@ useEffect(() => {
                           )}
                         </div>
                         <div style={{ fontSize:"0.68rem", color:"#6b7280" }}>
-                          {plan.duration === "FREE_TRIAL" ? "5-day trial" : plan.duration}
+                          {plan.duration === "FREE_TRIAL" ? "5-day trial"
+                            : plan.duration === "1 Month"  ? "1 Month"
+                            : plan.duration === "6 Months" ? "6 Months"
+                            : plan.duration === "1 Year"   ? "1 Year"
+                            : plan.planKey.includes("basic") || plan.planKey.includes("pro")
+                              ? plan.duration
+                              : "Active Plan"}
                           {plan.daysLeft !== null && (
                             <span style={{ marginLeft:"4px", color: plan.daysLeft <= 3 ? "#dc2626" : plan.daysLeft <= 7 ? "#d97706" : "#10b981", fontWeight:600 }}>
                               · {plan.daysLeft}d left

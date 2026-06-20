@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Outlet, NavLink, useLocation } from "react-router-dom";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { SubscriptionContext } from "../../context/SubscriptionContext"; // ← ADD THIS
@@ -130,6 +130,91 @@ const getActiveModule = (pathname) => {
   if (pathname.startsWith("/dashboard/construction")) return "construction";
   if (pathname.startsWith("/dashboard/custom"))       return "custom";
   return null;
+};
+const SubscriptionBanner = ({ subscriptions, activeModule, navigate }) => {
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) return null;
+  if (!activeModule) return null;
+
+  const sub = subscriptions?.[activeModule];
+  const isActive = sub?.is_active === true;
+  if (isActive) return null;
+
+  const wasExpired = sub && sub.status === "expired";
+  const moduleLabels = {
+    "business":     "Business Billing",
+    "home-expense": "Home Expenses",
+    "construction": "Construction",
+    "custom":       "Custom",
+  };
+  const label = moduleLabels[activeModule] || activeModule;
+
+  return (
+    <>
+      <style>{`
+        @keyframes banner-slide {
+          from { opacity: 0; transform: translateY(-10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .sub-banner {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 10px; padding: 10px 18px; flex-wrap: wrap;
+          background: ${wasExpired ? "linear-gradient(90deg,#fef2f2,#fff7f7)" : "linear-gradient(90deg,#fffbeb,#fffdf5)"};
+          border-bottom: 1.5px solid ${wasExpired ? "rgba(239,68,68,0.2)" : "rgba(245,158,11,0.25)"};
+          animation: banner-slide 0.3s ease; position: relative; z-index: 100;
+        }
+        .sub-banner-left { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+        .sub-banner-icon {
+          width:32px; height:32px; border-radius:8px; font-size:16px;
+          background:${wasExpired ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.12)"};
+          display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .sub-banner-title { font-size:0.80rem; font-weight:700; color:${wasExpired ? "#dc2626" : "#92400e"}; line-height:1.3; }
+        .sub-banner-sub   { font-size:0.70rem; font-weight:500; margin-top:1px; color:${wasExpired ? "#ef4444" : "#b45309"}; }
+        .sub-banner-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+        .sub-banner-btn {
+          padding:6px 14px; border-radius:8px; font-size:0.75rem; font-weight:700;
+          cursor:pointer; border:none; font-family:inherit; transition:all 0.15s; white-space:nowrap;
+        }
+        .sub-banner-btn.primary {
+          background:${wasExpired ? "#dc2626" : "#d97706"}; color:#fff;
+          box-shadow:0 2px 8px ${wasExpired ? "rgba(220,38,38,0.3)" : "rgba(217,119,6,0.3)"};
+        }
+        .sub-banner-btn.primary:hover { opacity:0.88; transform:translateY(-1px); }
+        .sub-banner-dismiss {
+          background:none; border:none; cursor:pointer; color:#9ca3af;
+          font-size:16px; padding:2px 4px; line-height:1; flex-shrink:0; transition:color 0.15s;
+        }
+        .sub-banner-dismiss:hover { color:#6b7280; }
+        @media (max-width:480px) {
+          .sub-banner { padding:9px 14px; }
+          .sub-banner-btn.primary { padding:5px 12px; font-size:0.72rem; }
+        }
+      `}</style>
+      <div className="sub-banner">
+        <div className="sub-banner-left">
+          <div className="sub-banner-icon">{wasExpired ? "⏰" : "🔒"}</div>
+          <div>
+            <div className="sub-banner-title">
+              {wasExpired ? `Your ${label} plan has expired` : `Subscribe to access ${label}`}
+            </div>
+            <div className="sub-banner-sub">
+              {wasExpired
+                ? "Renew your plan to continue using all features without interruption."
+                : "Get full access to invoices, stock, customers and more."}
+            </div>
+          </div>
+        </div>
+        <div className="sub-banner-actions">
+          <button className="sub-banner-btn primary" onClick={() => navigate("/subscription")}>
+            {wasExpired ? "Renew Now →" : "View Plans →"}
+          </button>
+          <button className="sub-banner-dismiss" onClick={() => setDismissed(true)} title="Dismiss">×</button>
+        </div>
+      </div>
+    </>
+  );
 };
 
 /* ════════════════════════════════════════
@@ -424,7 +509,8 @@ const subscribedModule = (() => {
 const DashboardLayout = () => {
   const location     = useLocation();
   const activeModule = getActiveModule(location.pathname);
-
+  const navigate     = useNavigate();   
+  const { subscriptions } = useContext(SubscriptionContext);  
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const isAccountPage = location.pathname === "/dashboard/account";
   const hideTopbar = isAccountPage && isMobile;
@@ -453,6 +539,12 @@ useEffect(() => {
       <Sidebar />
       <div className="dashboard-main">
         {!hideTopbar && <Topbar />}
+        {!hideTopbar && (
+          <SubscriptionBanner
+            subscriptions={subscriptions}
+            activeModule={activeModule}
+            navigate={navigate}
+          />)}
         <div className="dashboard-content">
           <Outlet />
         </div>

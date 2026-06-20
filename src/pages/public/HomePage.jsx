@@ -3,8 +3,8 @@ import { publicAxios } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import '../../styles/global/publicHomePage.css';
-import { auth } from "../../services/firebase";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+// import { auth } from "../../services/firebase";
+// import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 
 /* ─── STATIC DATA ─── */
 const TRUST_BADGES = [
@@ -489,6 +489,7 @@ export default function HomePage() {
   };
 
   /* ── FIREBASE OTP — SEND ── */
+
   const handleSendSignupOtp = async () => {
     if (!/^\d{10}$/.test(signupData.mobile_number)) {
       setMessage({ text: "Enter valid 10-digit mobile number!", type: "error" });
@@ -497,35 +498,18 @@ export default function HomePage() {
     setOtpLoading(true);
     setMessage({ text: "", type: "" });
     try {
-      if (window.signupRecaptcha) {
-        try { window.signupRecaptcha.clear(); } catch (e) {}
-        window.signupRecaptcha = null;
-      }
-      window.signupRecaptcha = new RecaptchaVerifier(
-        auth,
-        "signup-recaptcha-container",
-        { size: "invisible" }
-      );
-      const result = await signInWithPhoneNumber(
-        auth,
-        "+91" + signupData.mobile_number,
-        window.signupRecaptcha
-      );
-      setOtpConfirm(result);
+      await publicAxios.post("auth/send-signup-otp/", {
+        mobile_number: signupData.mobile_number,
+      });
       setOtpSent(true);
       setMessage({ text: "OTP sent to +91 " + signupData.mobile_number + " ✅", type: "success" });
     } catch (err) {
-      console.error("OTP Error:", err);
-      setMessage({ text: "Failed to send OTP. Try again!", type: "error" });
-      if (window.signupRecaptcha) {
-        try { window.signupRecaptcha.clear(); } catch (e) {}
-        window.signupRecaptcha = null;
-      }
+      const msg = err?.response?.data?.error || "Failed to send OTP. Try again!";
+      setMessage({ text: msg, type: "error" });
     }
     setOtpLoading(false);
   };
 
-  /* ── FIREBASE OTP — VERIFY ── */
   const handleVerifySignupOtp = async () => {
     if (signupOtp.length !== 6) {
       setMessage({ text: "Enter valid 6-digit OTP!", type: "error" });
@@ -534,16 +518,20 @@ export default function HomePage() {
     setOtpLoading(true);
     setMessage({ text: "", type: "" });
     try {
-      await otpConfirm.confirm(signupOtp);
+      await publicAxios.post("auth/verify-signup-otp/", {
+        mobile_number: signupData.mobile_number,
+        otp: signupOtp,
+      });
       setOtpVerified(true);
       setSignupStep(2);
       setMessage({ text: "Phone verified! ✅ Now complete your profile.", type: "success" });
     } catch (err) {
-      console.error("Verify Error:", err);
-      setMessage({ text: "Wrong OTP! Please try again.", type: "error" });
+      const msg = err?.response?.data?.error || "Wrong OTP! Please try again.";
+      setMessage({ text: msg, type: "error" });
     }
     setOtpLoading(false);
   };
+
 
   /* ── LOGIN SUBMIT ── */
   const handleLoginSubmit = async (e) => {
@@ -1120,7 +1108,7 @@ export default function HomePage() {
                       )}
 
                       {/* Hidden recaptcha */}
-                      <div id="signup-recaptcha-container"></div>
+                      {/* <div id="signup-recaptcha-container"></div> */}
 
                       {/* Show next button only after verified */}
                       {otpVerified && (
@@ -1505,8 +1493,14 @@ export default function HomePage() {
       `}</style>
 
 
-      {/* Legal Modal */}
+
+       {/* Legal Modal */}
       {legalPage && <LegalModal pageKey={legalPage} onClose={() => setLegalPage(null)} />}
+
+      
+      
+
+
     </div>
   );
 }

@@ -19,27 +19,6 @@ import React, {
 } from "react";
 import { authAxios } from "../../services/api";
 
-// ─── Firebase imports ─────────────────────────────────────────
-import { initializeApp, getApps } from "firebase/app";
-import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  onAuthStateChanged,
-} from "firebase/auth";
-
-// ─── Firebase init ────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey:            process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain:        process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId:         process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket:     process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_ID,
-  appId:             process.env.REACT_APP_FIREBASE_APP_ID,
-};
-
-const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const firebaseAuth = getAuth(firebaseApp);
 
 // ─── Constants ────────────────────────────────────────────────
 const TOAST_MS      = 3500;
@@ -548,17 +527,17 @@ if (typeof document !== "undefined" && !document.getElementById("__cv_v8")) {
 const OTP_LENGTH = 6;
 const OTP_TIMER  = 60; // seconds
 
-function CustomerLogin({ onLogin }) {
-  const [phase,       setPhase]       = useState("name");   // "name" | "phone" | "otp"
-  const [nameInput,   setNameInput]   = useState("");
+function CustomerLogin({ onLogin, scannerId }) {
+  const [phase,       setPhase]       = useState("phone");  // "phone" | "otp" | "name"
   const [phone,       setPhone]       = useState("");
   const [otp,         setOtp]         = useState(["", "", "", "", "", ""]);
+  const [nameInput,   setNameInput]   = useState("");
   const [sending,     setSending]     = useState(false);
   const [verifying,   setVerifying]   = useState(false);
+  const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState("");
   const [timer,       setTimer]       = useState(OTP_TIMER);
   const [canResend,   setCanResend]   = useState(false);
-  const confirmRef    = useRef(null);
   const timerRef      = useRef(null);
   const otpRefs       = useRef([]);
 
@@ -575,41 +554,17 @@ function CustomerLogin({ onLogin }) {
 
   useEffect(() => () => clearInterval(timerRef.current), []);
 
-  const initRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(firebaseAuth, "recaptcha-container", {
-        size: "invisible",
-        callback: () => {},
-      });
-    }
-  };
-
   const handleSendOtp = async () => {
     const cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.length !== 10) { setError("Enter a valid 10-digit mobile number"); return; }
     setError(""); setSending(true);
     try {
-      initRecaptcha();
-      const fullPhone = `+91${cleanPhone}`;
-      const result = await signInWithPhoneNumber(firebaseAuth, fullPhone, window.recaptchaVerifier);
-      confirmRef.current = result;
+      await publicPost(`public/shop/${scannerId}/send-otp/`, { mobile_number: cleanPhone });
       setPhase("otp");
       startTimer();
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err) {
-      console.error("OTP send error:", err);
-      setError(
-        err.code === "auth/too-many-requests"
-          ? "Too many attempts. Please try again later."
-          : err.code === "auth/invalid-phone-number"
-          ? "Invalid phone number. Include country code."
-          : "Could not send OTP. Check your number and try again."
-      );
-      // reset recaptcha on error
-      if (window.recaptchaVerifier) {
-        try { window.recaptchaVerifier.clear(); } catch {}
-        window.recaptchaVerifier = null;
-      }
+      setError(err?.data?.error || "Could not send OTP. Check your number and try again.");
     } finally {
       setSending(false);
     }
@@ -617,13 +572,8 @@ function CustomerLogin({ onLogin }) {
 
   const handleResend = async () => {
     if (!canResend) return;
-    // Reset OTP boxes
     setOtp(["", "", "", "", "", ""]);
     setError("");
-    if (window.recaptchaVerifier) {
-      try { window.recaptchaVerifier.clear(); } catch {}
-      window.recaptchaVerifier = null;
-    }
     await handleSendOtp();
   };
 
@@ -633,13 +583,8 @@ function CustomerLogin({ onLogin }) {
     next[idx]   = digit;
     setOtp(next);
     setError("");
-    if (digit && idx < OTP_LENGTH - 1) {
-      otpRefs.current[idx + 1]?.focus();
-    }
-    // Auto-verify when all filled
-    if (next.every((d) => d !== "") && digit) {
-      handleVerify(next.join(""));
-    }
+    if (digit && idx < OTP_LENGTH - 1) otpRefs.current[idx + 1]?.focus();
+    if (next.every((d) => d !== "") && digit) handleVerify(next.join(""));
   };
 
   const handleOtpKeyDown = (idx, e) => {
@@ -664,21 +609,23 @@ function CustomerLogin({ onLogin }) {
   };
 
   const handleVerify = async (code) => {
-    if (!confirmRef.current) return;
+    const cleanPhone = phone.replace(/\D/g, "");
     setVerifying(true); setError("");
     try {
-      await confirmRef.current.confirm(code);
-      const cleanPhone = phone.replace(/\D/g, "");
-      const session = { name: nameInput.trim(), mobile: cleanPhone, verified: true };
-      saveSession(session);
-      onLogin(session);
+      const res = await publicPost(`public/shop/${scannerId}/verify-otp/`, {
+        mobile_number: cleanPhone, otp: code,
+      });
+      if (res.name) {
+        // Returning customer at this shop — log straight in, no name prompt.
+        const session = { name: res.name, mobile: cleanPhone, verified: true };
+        saveSession(session);
+        onLogin(session);
+      } else {
+        // First time at this shop — ask once.
+        setPhase("name");
+      }
     } catch (err) {
-      console.error("OTP verify error:", err);
-      setError(
-        err.code === "auth/invalid-verification-code"
-          ? "Incorrect OTP. Please try again."
-          : "Verification failed. Try resending OTP."
-      );
+      setError(err?.data?.error || "Incorrect OTP. Please try again.");
       setOtp(["", "", "", "", "", ""]);
       setTimeout(() => otpRefs.current[0]?.focus(), 50);
     } finally {
@@ -686,9 +633,26 @@ function CustomerLogin({ onLogin }) {
     }
   };
 
+  const handleSaveName = async () => {
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (nameInput.trim().length < 2) { setError("Please enter your name"); return; }
+    setSaving(true); setError("");
+    try {
+      await publicPost(`public/shop/${scannerId}/save-customer-name/`, {
+        mobile_number: cleanPhone, name: nameInput.trim(),
+      });
+      const session = { name: nameInput.trim(), mobile: cleanPhone, verified: true };
+      saveSession(session);
+      onLogin(session);
+    } catch (err) {
+      setError(err?.data?.error || "Could not save your name. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="cv-login-root">
-      <div id="recaptcha-container" />
       <div className="cv-login-bg-orb a" />
       <div className="cv-login-bg-orb b" />
       <div className="cv-login-grid" />
@@ -702,50 +666,11 @@ function CustomerLogin({ onLogin }) {
           <span className="cv-login-tagline">Digital Shop · Quick Order</span>
         </div>
 
-        {/* ── PHASE: name ── */}
-        {phase === "name" && (
-          <>
-            <div className="cv-login-title">Welcome! 👋</div>
-            <div className="cv-login-sub">Enter your name to get started</div>
-
-            <div className="cv-login-field">
-              <label className="cv-login-lbl">Your Name</label>
-              <div className="cv-login-inp-wrap">
-                <span className="cv-login-inp-ico">👤</span>
-                <input
-                  className="cv-login-inp"
-                  type="text"
-                  placeholder="Full name"
-                  value={nameInput}
-                  onChange={(e) => { setNameInput(sanitizeName(e.target.value)); setError(""); }}
-                  onKeyDown={(e) => { if (e.key === "Enter" && nameInput.trim().length >= 2) setPhase("phone"); }}
-                  autoComplete="name"
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            {error && <div style={{ fontSize:12, color:"#FCA5A5", marginBottom:10, paddingLeft:2 }}>{error}</div>}
-
-            <button
-              className="cv-login-btn"
-              disabled={nameInput.trim().length < 2}
-              onClick={() => setPhase("phone")}
-            >
-              Continue →
-            </button>
-            <div className="cv-login-secure">🔒 Your info stays private · No spam</div>
-          </>
-        )}
-
         {/* ── PHASE: phone ── */}
         {phase === "phone" && (
           <>
-            <button className="cv-login-back-btn" onClick={() => setPhase("name")}>← Back</button>
-            <div className="cv-login-title">Verify Mobile 📱</div>
-            <div className="cv-login-sub">
-              Hello <strong style={{ color:"#fff" }}>{nameInput}</strong>! We'll send an OTP to confirm
-            </div>
+            <div className="cv-login-title">Welcome! 👋</div>
+            <div className="cv-login-sub">Enter your mobile number to continue</div>
 
             <div className="cv-login-field">
               <label className="cv-login-lbl">Mobile Number</label>
@@ -775,7 +700,7 @@ function CustomerLogin({ onLogin }) {
             >
               {sending ? <><div className="cv-spin-white" />Sending OTP…</> : "📤 Send OTP"}
             </button>
-            <div className="cv-login-secure">🔒 OTP powered by Firebase Auth</div>
+            <div className="cv-login-secure">🔒 Your info stays private · No spam</div>
           </>
         )}
 
@@ -824,13 +749,53 @@ function CustomerLogin({ onLogin }) {
               </div>
             )}
 
-            <div className="cv-login-secure">✅ 6-digit OTP · Auto-detects on supported devices</div>
+            <div className="cv-login-secure">✅ 6-digit OTP</div>
+          </>
+        )}
+
+        {/* ── PHASE: name (first-time customers at this shop only) ── */}
+        {phase === "name" && (
+          <>
+            <div className="cv-login-title">Almost there! 👋</div>
+            <div className="cv-login-sub">First time here — what should we call you?</div>
+
+            <div className="cv-login-field">
+              <label className="cv-login-lbl">Your Name</label>
+              <div className="cv-login-inp-wrap">
+                <span className="cv-login-inp-ico">👤</span>
+                <input
+                  className="cv-login-inp"
+                  type="text"
+                  placeholder="Full name"
+                  value={nameInput}
+                  onChange={(e) => { setNameInput(sanitizeName(e.target.value)); setError(""); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && nameInput.trim().length >= 2) handleSaveName(); }}
+                  autoComplete="name"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {error && <div style={{ fontSize:12, color:"#FCA5A5", marginBottom:10, paddingLeft:2 }}>{error}</div>}
+
+            <button
+              className="cv-login-btn"
+              disabled={nameInput.trim().length < 2 || saving}
+              onClick={handleSaveName}
+            >
+              {saving ? <><div className="cv-spin-white" />Saving…</> : "Continue →"}
+            </button>
+            <div className="cv-login-secure">🔒 We'll remember you next time you visit this shop</div>
           </>
         )}
       </div>
     </div>
   );
 }
+
+
+
+
 
 // ══════════════════════════════════════════════════════════════
 //   SUBCOMPONENTS
@@ -1205,7 +1170,6 @@ export default function CustomerView({
 
   const handleLogout = () => {
     clearSession();
-    try { firebaseAuth.signOut(); } catch {}
     setCustomer(null);
     clearCart();
     setModal(null);

@@ -839,7 +839,8 @@ export default function ShopQROrder() {
   const shopPdfRef     = useRef(null);
   const customerPdfRef = useRef(null);
 
-  const qrUrl = scannerId ? `https://www.manabills.com/shop/${scannerId}` : "";
+  const FRONTEND_BASE = process.env.REACT_APP_BASE_URL || "http://localhost:3000";
+  const qrUrl = scannerId ? `${FRONTEND_BASE}/shop/${scannerId}` : "";
 
   // ── Toast helper ──────────────────────────────────────────
   const toast$ = useCallback((msg, type = "success") => {
