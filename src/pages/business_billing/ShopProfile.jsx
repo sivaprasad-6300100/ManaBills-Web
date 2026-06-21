@@ -71,6 +71,7 @@ const ShopProfile = () => {
   const { subscriptions } = useContext(SubscriptionContext);
   const isBasicPlan = subscriptions?.["business"]?.plan_key === "business_basic";
 
+
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);

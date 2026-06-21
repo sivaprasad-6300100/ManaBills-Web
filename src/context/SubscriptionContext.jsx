@@ -4,7 +4,6 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { authAxios } from "../services/api";
@@ -19,24 +18,12 @@ export const SubscriptionProvider = ({ children }) => {
   const [loading, setLoading]             = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const skipNextFetch     = useRef(false);
-  const isExplicitRefresh = useRef(false);
-
   useEffect(() => {
     if (!accessToken) {
       setSubscriptions({});
       setLoading(false);
       return;
     }
-
-    if (skipNextFetch.current && !isExplicitRefresh.current) {
-      skipNextFetch.current = false;
-      setLoading(false);
-      return;
-    }
-
-    skipNextFetch.current     = false;
-    isExplicitRefresh.current = false;
 
     let cancelled = false;
     setLoading(true);
@@ -68,26 +55,14 @@ export const SubscriptionProvider = ({ children }) => {
     return () => { cancelled = true; };
   }, [accessToken, sessionVersion, refreshTrigger]);
 
-  const subscribe = useCallback((moduleKey, data) => {
-    setSubscriptions((prev) => {
-      const updated = { ...prev, [moduleKey]: data };
-      localStorage.setItem("subscriptions", JSON.stringify(updated));
-      return updated;
-    });
-
-    skipNextFetch.current = true;
-
-    authAxios
-      .post("subscriptions/activate/", {
-        module:   moduleKey,
-        plan:     data.plan,
-        duration: data.duration,
-      })
-      .catch(() => {});
+  // Called right after a successful /activate/ or /free-trial/ call.
+  // Does NOT hit the backend again — it just pulls the real, fresh
+  // subscription record so local state always matches the database.
+  const subscribe = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   const refreshSubscriptions = useCallback(() => {
-    isExplicitRefresh.current = true;
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
