@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { SubscriptionContext } from "../../context/SubscriptionContext";
 import {
   getShopProfile,
@@ -76,6 +77,10 @@ const ShopProfile = () => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
+
+  const location = useLocation();
+  const { isFirstSetup, paymentSuccess, planName, duration } = location.state || {};
+  const [showBanner, setShowBanner] = useState(isFirstSetup || paymentSuccess || false);
 
  
 
@@ -515,7 +520,46 @@ const ShopProfile = () => {
           cursor: pointer; font-family: 'Sora', sans-serif;
           transition: background 0.18s;
         }
-        .sp-btn-secondary:hover { background: #e2e8f0; }
+          /* ── Welcome / Success Banner ── */
+        .sp-welcome-banner {
+          max-width: 700px;
+          margin: 0 auto 18px;
+          background: linear-gradient(135deg, #0d47a1, #1976d2);
+          color: #fff;
+          border-radius: 16px;
+          padding: 16px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          box-shadow: 0 6px 24px rgba(13,71,161,0.25);
+          animation: toastIn 0.3s ease forwards;
+        }
+        .sp-welcome-banner-text h3 {
+          font-size: 0.95rem;
+          font-weight: 700;
+          margin-bottom: 3px;
+        }
+        .sp-welcome-banner-text p {
+          font-size: 0.78rem;
+          opacity: 0.85;
+          font-weight: 400;
+        }
+        .sp-welcome-banner-close {
+          background: rgba(255,255,255,0.15);
+          border: none;
+          color: #fff;
+          width: 26px; height: 26px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 0.85rem;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .sp-welcome-banner-close:hover { background: rgba(255,255,255,0.25); }
+                .sp-btn-secondary:hover { background: #e2e8f0; }
 
         /* Warning / hint pills */
         .sp-hint {
@@ -546,6 +590,26 @@ const ShopProfile = () => {
 
         {/* Toast */}
         {toast && <div className={`sp-toast ${toast.type}`}>{toast.msg}</div>}
+
+
+        {showBanner && (
+            <div className="sp-welcome-banner">
+              <div className="sp-welcome-banner-text">
+                {paymentSuccess ? (
+                  <>
+                    <h3>🎉 {planName} Activated!</h3>
+                    <p>Your {duration} plan is now active. Let's set up your shop details below.</p>
+                  </>
+                ) : (
+                  <>
+                    <h3>👋 Welcome to ManaBills!</h3>
+                    <p>Your free trial is active. Let's set up your shop details to get started.</p>
+                  </>
+                )}
+              </div>
+              <button className="sp-welcome-banner-close" onClick={() => setShowBanner(false)}>✕</button>
+            </div>
+          )}
 
         {/* Page Header */}
         <div className="sp-page-header">

@@ -96,6 +96,7 @@ export default function CheckoutSubscription() {
   const { subscribe } = useContext(SubscriptionContext);
 
   const planKey = location.state?.planKey;
+  const isFirstSetup = location.state?.isFirstSetup || false; // ← NEW
   const plan    = ALL_PLANS[planKey];
 
   const [selected,    setSelected]    = useState(plan ? plan.durations[0] : null);
@@ -221,6 +222,7 @@ navigate(PLAN_TO_PROFILE[planKey] || plan.dashboard, {
     paymentId:      response.razorpay_payment_id,
     planName:       plan.name,
     duration:       selected.label,
+    isFirstSetup,
   },
 });
     },
