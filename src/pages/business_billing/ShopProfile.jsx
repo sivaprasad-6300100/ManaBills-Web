@@ -71,6 +71,7 @@ const ShopProfile = () => {
   const { accessToken } = useAuth();
   const { subscriptions } = useContext(SubscriptionContext);
   const isBasicPlan = subscriptions?.["business"]?.plan_key === "business_basic";
+  const isFreeTrial = !subscriptions?.["business"] || subscriptions?.["business"]?.plan_key === "free_trial";
 
 
   const showToast = (msg, type = "success") => {
@@ -141,8 +142,8 @@ const ShopProfile = () => {
         address:      shop.address,
         shop_type:    shop.shop_type,
         timings:      shop.timings,
-        gst_enabled:  isBasicPlan ? false : shop.gst_enabled,   // ← force off
-        gst_number:   isBasicPlan ? ""    : shop.gst_number,    // ← force empty
+        gst_enabled:  (isBasicPlan || isFreeTrial) ? false : shop.gst_enabled,   // ← force off
+        gst_number:   (isBasicPlan || isFreeTrial) ? ""    : shop.gst_number,    // ← force empty
         logo_url:     shop.logo_url || "",
       };
       const data = await saveShopProfile(payload);
@@ -635,7 +636,7 @@ const ShopProfile = () => {
                     </div>
                   </div>
                   <div className="sp-hero-actions">
-                    {!isBasicPlan && (
+                    {!isBasicPlan && !isFreeTrial && (
                       <span className={`sp-gst-chip ${display.gstEnabled ? "on" : "off"}`}>
                         {display.gstEnabled ? "GST On" : "GST Off"}
                       </span>
@@ -661,7 +662,7 @@ const ShopProfile = () => {
                     {display.extraMobile || "Not set"}
                   </div>
                 </div>
-                {!isBasicPlan && (
+                {!isBasicPlan && !isFreeTrial && (
                   <div className="sp-detail-cell">
                     <div className="sp-detail-lbl">GST Number</div>
                     <div className={`sp-detail-val ${display.gstEnabled && display.gstNumber ? "" : "empty"}`}>
@@ -939,7 +940,7 @@ const ShopProfile = () => {
                 </div>
 
                 {/* ─── GST SECTION — hidden for Basic plan ─── */}
-                  {!isBasicPlan && (
+                  {!isBasicPlan && !isFreeTrial && (
                     <>
                       <hr className="sp-sep" />
                   

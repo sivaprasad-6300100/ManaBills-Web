@@ -5,8 +5,15 @@ import { activateFreeTrial } from "../../services/subscriptionService";
 
 const BusinessSubscription = () => {
   const navigate = useNavigate();
-  const { subscribe, refreshSubscriptions } = useContext(SubscriptionContext);
+  const { subscribe, refreshSubscriptions, subscriptions } = useContext(SubscriptionContext);
+  const businessSub = subscriptions?.["business"];
+  const trialAlreadyUsed = !!(
+    businessSub?.plan_key === "free_trial" ||
+    businessSub?.status === "expired" ||
+    businessSub?.status === "active"
+  );
   const [trialLoading, setTrialLoading] = useState(false);
+
 
   // ── Free Trial handler — hits backend, gives real 5-day subscription ──
   const handleFreeTrial = async () => {
@@ -103,9 +110,12 @@ const BusinessSubscription = () => {
     },
   ];
 
+  const visiblePlans = trialAlreadyUsed ? plans.filter((p) => p.key !== "free") : plans;
+
+
   return (
     <div className="subscription-wrapper">
-      {plans.map((plan) => (
+      {visiblePlans.map((plan) => (
         <div
           key={plan.key}
           className={`plan-card ${plan.highlight ? "highlight" : ""}`}
