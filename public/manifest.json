@@ -1,6 +1,7 @@
 {
   "short_name": "ManaBills",
   "name": "ManaBills – GST Billing App",
+  "description": "GST billing and invoicing app for small shop owners across Andhra Pradesh and Telangana — create invoices, manage inventory, and track GST easily.",
   "icons": [
     {
       "src": "ManaBillsLogo.jpeg",
