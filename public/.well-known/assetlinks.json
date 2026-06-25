@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.manabills.twa",
+        "sha256_cert_fingerprints": ["08:DE:0D:1A:42:4A:79:D1:38:04:51:CB:CA:EA:AE:4B:66:17:5D:CD:A9:24:5F:70:AE:07:F3:E9:70:8D:4A:51"]
+      }
+    }]
