@@ -5,16 +5,28 @@
   "id": "/",
   "icons": [
     {
-      "src": "ManaBillsLogo.jpeg",
+      "src": "ManaBillsLogo192.png",
       "sizes": "192x192",
-      "type": "image/jpeg",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "ManaBillsLogo.jpeg",
+      "src": "ManaBillsLogo512.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "ManaBillsLogo192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "ManaBillsLogo512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",
@@ -25,19 +37,5 @@
   "orientation": "portrait",
   "categories": ["business", "finance", "productivity"],
   "lang": "en",
-  "dir": "ltr",
-  "screenshots": [
-    {
-      "src": "/screenshots/desktop.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshots/mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ]
+  "dir": "ltr"
 }
