@@ -455,7 +455,15 @@ const Topbar = () => {
   const activePlans = getActivePlans(subscriptions);
 
   const businessSub = subscriptions?.["business"];
+
+
   const isBasicPlan = businessSub?.plan_key === "business_basic";
+
+  const currentPlanLabel = 
+    businessSub?.plan_key === "free_trial"    ? "Free Trial" :
+    businessSub?.plan_key === "business_basic" ? "Basic" :
+    businessSub?.plan_key === "business_pro"   ? "Pro" :
+    null;
 
   const pushNotif = useCallback((type, title, message, data = {}) => {
   setNotifications((prev) => [createNotification(type, title, message, data), ...prev]);
@@ -604,6 +612,24 @@ useEffect(() => {
 
          {/* Date & Time */}
         <DateTimeChip />
+
+        {currentPlanLabel && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "3px 10px", height: 28, borderRadius: 8,
+            background: businessSub?.plan_key === "business_pro" ? "#eef2ff" :
+                        businessSub?.plan_key === "free_trial"   ? "#ecfdf5" : "#f1f5f9",
+            border: "1px solid rgba(14,27,46,0.1)",
+            fontSize: 11, fontWeight: 700,
+            color: businessSub?.plan_key === "business_pro" ? "#6366f1" :
+                    businessSub?.plan_key === "free_trial"   ? "#10b981" : "#64748b",
+            cursor: "pointer",
+          }}
+            onClick={() => navigate("/subscription")}
+          >
+            🏷️ {currentPlanLabel}
+          </div>
+        )}
 
 
 

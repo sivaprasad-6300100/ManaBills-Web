@@ -18,6 +18,33 @@ const ALL_PLANS = {
   custom_pro:        { name: "Custom Pro",        dashboard: "/dashboard/custom",       durations: [{ label: "1 Year", price: 4999, fee: 15, save: 989,  perday: "₹13.7/day" }, { label: "6 Months", price: 2499, fee: 10, save: 495, perday: "₹13.7/day" }, { label: "1 Month", price: 499, fee: 5, save: 0, perday: "₹16.6/day" }] },
 };
 
+
+
+
+
+// After ALL_PLANS object, add this:
+
+const PLAN_TIER = {
+  business_basic:     1,
+  business_pro:       2,
+  home_basic:         1,
+  home_pro:           2,
+  construction_basic: 1,
+  construction_pro:   2,
+  custom_basic:       1,
+  custom_pro:         2,
+};
+
+const PLAN_TO_MODULE = {
+  business_basic:     "business",
+  business_pro:       "business",
+  home_basic:         "home-expense",
+  home_pro:           "home-expense",
+  construction_basic: "construction",
+  construction_pro:   "construction",
+  custom_basic:       "custom",
+  custom_pro:         "custom",
+};
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -93,7 +120,7 @@ const loadRazorpayScript = () =>
 export default function CheckoutSubscription() {
   const navigate      = useNavigate();
   const location      = useLocation();
-  const { subscribe } = useContext(SubscriptionContext);
+  const { subscribe, subscriptions } = useContext(SubscriptionContext);
 
   const planKey = location.state?.planKey;
   const isFirstSetup = location.state?.isFirstSetup || false; // ← NEW
@@ -138,6 +165,30 @@ export default function CheckoutSubscription() {
   // RENDER
 
   const handlePayment = async () => {
+
+  // ── SAME-PLAN BLOCK CHECK ──────────────────────────────────
+  const moduleKey = PLAN_TO_MODULE[planKey] || planKey.split("_")[0];
+  const currentSub = subscriptions?.[moduleKey];
+
+  if (currentSub?.status === "active") {
+    // Calculate days left from expires_at
+    const expiresAt = currentSub?.expires_at
+      ? new Date(currentSub.expires_at)
+      : null;
+    const daysLeft = expiresAt
+      ? Math.ceil((expiresAt - new Date()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    const daysMsg = daysLeft > 0 ? ` Expires in ${daysLeft} day${daysLeft > 1 ? "s" : ""}.` : "";
+    alert(`Your ${plan.name} plan is still active.${daysMsg} You can renew after it expires.`);
+    return; // 🚫 Block payment
+  }
+
+  // ── UPGRADE: allow immediately (Basic → Pro) ───────────────
+  // No blocking needed — just falls through to Razorpay below
+  // ──────────────────────────────────────────────────────────
+
+  // ... rest of your existing handlePayment code unchanged
   if (!scriptReady) {
     alert("Payment gateway is still loading. Please try again in a moment.");
     return;
