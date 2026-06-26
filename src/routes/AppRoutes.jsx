@@ -78,6 +78,8 @@ import "../styles/global/public.css";
 import "../styles/global/account.css";
 import InvoiceView from "../pages/business_billing/InvoiceView";
 
+import PrivacyPolicy from "../pages/PrivacyPolicy";
+
 
 
 const AppRoutes = () => {
@@ -87,6 +89,8 @@ const AppRoutes = () => {
       <Route path="/" element={<HomePage />} />
           <Route path="/shop/:scannerId" element={<CustomerView />} />
           <Route path="/invoice/:invoiceId" element={ < InvoiceView/>}  />
+
+          <Route path="/privacy" element={<PrivacyPolicy />} />
 
       {/* this is AppRoute.jsx file */}
 
