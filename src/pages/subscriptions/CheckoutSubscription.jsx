@@ -170,7 +170,7 @@ export default function CheckoutSubscription() {
   const moduleKey = PLAN_TO_MODULE[planKey] || planKey.split("_")[0];
   const currentSub = subscriptions?.[moduleKey];
 
-  if (currentSub?.status === "active") {
+  if (currentSub?.status === "active" && currentSub?.plan_key === planKey) {
     // Calculate days left from expires_at
     const expiresAt = currentSub?.expires_at
       ? new Date(currentSub.expires_at)
