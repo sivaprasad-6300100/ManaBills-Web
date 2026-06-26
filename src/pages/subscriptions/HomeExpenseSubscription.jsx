@@ -42,7 +42,7 @@ const HomeExpenseSubscription = () => {
         "Category-wise expense tracking",
         "Budget planning with alerts",
         "Monthly PDF report",
-        "Cloud backup",
+        "Privacy and Security",
         "Expense reminders",
       ],
       action: () =>

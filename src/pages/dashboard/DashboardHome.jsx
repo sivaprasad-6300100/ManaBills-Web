@@ -157,7 +157,7 @@ const PreSubscriptionView = ({ greet, displayName, navigate }) => {
     "Family expense tracker built-in",
     "Construction project cost manager",
     "WhatsApp invoice sharing",
-    "Cloud backup — never lose data",
+    "Store Your Data With Privacy and Security",
   ];
 
   return (
@@ -216,7 +216,7 @@ const PreSubscriptionView = ({ greet, displayName, navigate }) => {
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg, #c9963a, #e8a020, #f4c542, #e8a020, #c9963a)", borderRadius: "24px 24px 0 0" }} />
 
         <div style={{ position: "absolute", top: "14px", right: "18px", display: "flex", gap: "8px" }}>
-          {["GST Ready", "Cloud Backup", "Offline Works"].map((chip, i) => (
+          {["GST Ready", "Secure Storage", "Offline Works"].map((chip, i) => (
             <div
               key={chip}
               className="presub-float-chip"

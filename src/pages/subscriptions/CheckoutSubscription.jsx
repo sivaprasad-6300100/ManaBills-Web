@@ -390,7 +390,7 @@ navigate(PLAN_TO_PROFILE[planKey] || plan.dashboard, {
 
           {/* Trust pills */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {[["🔒","SSL Secure"], ["↩️","Cancel anytime"], ["📞","24/7 Support"], ["🇮🇳","GST Invoice"], ["☁️","Cloud Backup"]].map(([icon, label]) => (
+            {[["🔒","SSL Secure"], ["↩️","Cancel anytime"], ["📞","24/7 Support"], ["🇮🇳","GST Invoice"], ["☁️","Secure and Privacy"]].map(([icon, label]) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#374151", background: "#fff", border: "1px solid rgba(14,27,46,0.08)", borderRadius: 100, padding: "5px 10px", boxShadow: "0 1px 4px rgba(14,27,46,0.04)" }}>
                 <span>{icon}</span> {label}
               </div>

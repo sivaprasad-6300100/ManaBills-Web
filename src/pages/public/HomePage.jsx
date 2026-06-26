@@ -12,7 +12,7 @@ const TRUST_BADGES = [
   { icon: "📄", label: "GST Compliant" },
   { icon: "🇮🇳", label: "Made in India" },
   { icon: "⚡", label: "Works Offline" },
-  { icon: "☁️", label: "Cloud Backup" },
+  { icon: "☁️", label: "Secure Privacy" },
   { icon: "📱", label: "Mobile Ready" },
 ];
 
@@ -35,7 +35,7 @@ const FEATURES = [
 const BEFORE_AFTER = [
   { before: "Notebook or Excel billing",           after: "Digital GST invoices in 30 seconds" },
   { before: "Manual tax calculations",             after: "Auto GST, totals & discounts" },
-  { before: "Lost receipts & forgotten payments",  after: "Cloud backup, never lose a bill" },
+  { before: "Lost receipts & forgotten payments",  after: "We Storage Your Data, never lose a bill" },
   { before: "Hours of end-month accounting",       after: "One-click monthly reports" },
   { before: "Chasing customers for payment",       after: "Auto WhatsApp payment reminders" },
   { before: "No idea where money is going",        after: "Real-time expense dashboard" },

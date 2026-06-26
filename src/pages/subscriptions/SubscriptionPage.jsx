@@ -250,7 +250,7 @@ export default function SubscriptionPage() {
       {/* Footer note */}
       <div style={{ textAlign: "center", marginTop: 32, padding: "0 20px" }}>
         <p style={{ fontSize: 12.5, color: "#9ca3af", fontWeight: 500 }}>
-          🔒 All plans include <strong style={{ color: "#374151" }}>SSL security</strong> · <strong style={{ color: "#374151" }}>Cloud backup</strong> · <strong style={{ color: "#374151" }}>24/7 support</strong> · Cancel anytime without penalty
+          🔒 All plans include <strong style={{ color: "#374151" }}>SSL security</strong> · <strong style={{ color: "#374151" }}>Privacy</strong> · <strong style={{ color: "#374151" }}>24/7 support</strong> · Cancel anytime without penalty
         </p>
       </div>
 
