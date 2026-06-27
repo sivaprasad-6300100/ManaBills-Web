@@ -317,11 +317,14 @@ const CreateInvoice = () => {
         })),
     };
 
-    await createInvoice(payload);
+
+    const savedInvoice = await createInvoice(payload);
+    const publicToken = savedInvoice?.public_token || invoiceId;
     
     refetch();
 
     showToast(`✅ Invoice ${invoiceId} saved!`);
+
 
     authAxios.get("business/invoices/next-id/")
       .then(r => setInvoiceId(r.data.invoice_id))
@@ -329,7 +332,7 @@ const CreateInvoice = () => {
 
     // ★ Now redirect the already-open window to WhatsApp
     if (waWindow && !waWindow.closed) {
-      const invoiceUrl = `${process.env.REACT_APP_BASE_URL}/invoice/${invoiceId}`;
+      const invoiceUrl = `${process.env.REACT_APP_BASE_URL}/invoice/${publicToken}`;
       const cleaned    = customer.mobile.replace(/\D/g, "").replace(/^91/, "").slice(-10);
       const waNumber   = `91${cleaned}`;
 
