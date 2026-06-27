@@ -772,7 +772,7 @@ const PdfPreviewModal = ({ invoice, shop, onClose }) => {
   const mob = invoice?.customer_mobile?.replace(/\D/g,"") || "";
   if (!mob) return;
   const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
-  const invoiceLink = `${baseUrl}/invoice/${invoice?.invoice_id}`;
+  const invoiceLink = `${baseUrl}/invoice/${invoice?.public_token || invoice?.invoice_id}`;
 
   const itemLines = (invoice?.items||[])
     .map((it,i) => `  ${i+1}. ${it.name} — ${it.qty} × ₹${Number(it.price).toLocaleString("en-IN")} = *₹${(Number(it.qty)*Number(it.price)).toLocaleString("en-IN")}*`)
@@ -1382,7 +1382,7 @@ const InvoiceHistory = () => {
   const mob = inv.customer_mobile?.replace(/\D/g,"") || "";
   if (!mob) return;
   const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
-  const invoiceLink = `${baseUrl}/invoice/${inv.invoice_id}`;
+  const invoiceLink = `${baseUrl}/invoice/${inv.public_token || inv.invoice_id}`;
 
   const balanceLine = Number(inv.balance||0) > 0
     ? `\n⚠️ *Balance Due: ₹${Number(inv.balance).toLocaleString("en-IN")}*`
