@@ -1,4 +1,4 @@
-const CACHE = "manabills-v2";
+const CACHE = "manabills-v3";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
@@ -27,8 +27,25 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+// Helper: identify API requests that must NEVER be cached
+// (these are user-specific and must always hit the network with the current JWT)
+function isApiRequest(url) {
+  return (
+    url.includes("/api/") ||
+    url.includes("api.manabills.com")
+  );
+}
+
 self.addEventListener("fetch", (e) => {
   const { request } = e;
+  const url = request.url;
+
+  // Never intercept API requests — always go straight to network.
+  // This ensures the current logged-in user's JWT and fresh data are used,
+  // and prevents stale cached responses from a previous account/session.
+  if (isApiRequest(url)) {
+    return; // let the browser handle it normally (no caching, no interception)
+  }
 
   // Navigation requests: try network, fall back to cached index.html (works offline)
   if (request.mode === "navigate") {
@@ -38,14 +55,13 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Static assets: cache-first, fall back to network
+  // Static assets only: cache-first, fall back to network
   if (request.method === "GET") {
     e.respondWith(
       caches.match(request).then((cached) => {
         return (
           cached ||
           fetch(request).then((response) => {
-            // Cache successful responses for next time
             if (response.ok) {
               const responseClone = response.clone();
               caches.open(CACHE).then((cache) => cache.put(request, responseClone));
