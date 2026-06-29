@@ -371,7 +371,9 @@ const AccountPage = () => {
   const [savingLogin, setSavingLogin] = useState(false);
   const [loginEditing, setLoginEditing] = useState(false);
 
-  const [shop, setShop] = useState({ shop_name:"", owner_name:"", mobile:"", extra_mobile:"", address:"", shop_type:"", timings:"", gst_enabled:false, gst_number:"" });
+  const [shop, setShop] = useState({ shop_name:"", owner_name:"", mobile:"", extra_mobile:"", address:"", shop_type:"", timings:"", gst_enabled:false, gst_number:"", logo_url:"" });
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState("");
   const [shopLoading, setShopLoading] = useState(true);
   const [shopSaving, setShopSaving] = useState(false);
   const [shopEditing, setShopEditing] = useState(false);
@@ -404,7 +406,8 @@ const AccountPage = () => {
     if (!accessToken) { setShopLoading(false); return; }
     getShopProfile()
       .then(data => {
-        setShop({ shop_name:data.shop_name||"", owner_name:data.owner_name||"", mobile:data.mobile||"", extra_mobile:data.extra_mobile||"", address:data.address||"", shop_type:data.shop_type||"", timings:data.timings||"", gst_enabled:data.gst_enabled||false, gst_number:data.gst_number||"" });
+        setShop({ shop_name:data.shop_name||"", owner_name:data.owner_name||"", mobile:data.mobile||"", extra_mobile:data.extra_mobile||"", address:data.address||"", shop_type:data.shop_type||"", timings:data.timings||"", gst_enabled:data.gst_enabled||false, gst_number:data.gst_number||"", logo_url:data.logo_url||"" });
+        setLogoPreview(data.logo_url||"");
         setShopExists(true); setShopEditing(false);
       })
       .catch(() => { setShopExists(false); setShopEditing(true); })
@@ -424,16 +427,27 @@ const AccountPage = () => {
     } finally { setSavingLogin(false); }
   };
 
+
   const handleShopSave = async () => {
-    if (!shop.shop_name.trim()||!shop.owner_name.trim()||!shop.mobile.trim()||!shop.address.trim())
-      return showToast("Shop Name, Owner Name, Mobile & Address are required","error");
-    setShopSaving(true);
-    try {
-      await saveShopProfile(shop);
-      setShopExists(true); setShopEditing(false); showToast("Shop profile saved ✓");
-    } catch { showToast("Failed to save shop profile","error"); }
-    finally { setShopSaving(false); }
-  };
+      if (!shop.shop_name.trim()||!shop.owner_name.trim()||!shop.mobile.trim()||!shop.address.trim())
+        return showToast("Shop Name, Owner Name, Mobile & Address are required","error");
+      setShopSaving(true);
+      try {
+        let logoUrl = shop.logo_url || "";
+        if (logoFile) {
+          const { uploadShopLogo } = await import("../../services/businessService");
+          const formData = new FormData();
+          formData.append("logo", logoFile);
+          const res = await uploadShopLogo(formData);
+          logoUrl = res.logo_url;
+        }
+        await saveShopProfile({ ...shop, logo_url: logoUrl });
+        setShop(p => ({ ...p, logo_url: logoUrl }));
+        setLogoFile(null);
+        setShopExists(true); setShopEditing(false); showToast("Shop profile saved ✓");
+      } catch { showToast("Failed to save shop profile","error"); }
+      finally { setShopSaving(false); }
+    };
 
   const handlePasswordChange = async () => {
     if (!oldPass||!newPass) return showToast("Fill all password fields","error");
@@ -651,11 +665,13 @@ const AccountPage = () => {
               borderRadius:T.radiusSm, padding:"13px 15px", marginBottom:"1rem",
               display:"flex", alignItems:"center", gap:"11px",
             }}>
-              <div style={{ width:42, height:42, borderRadius:"10px",
-                background:"rgba(200,146,58,0.12)",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:"1.25rem", flexShrink:0 }}>
-                🏪
+              <div style={{ width:42, height:42, borderRadius:"10px", overflow:"hidden",
+                background:"rgba(200,146,58,0.12)", flexShrink:0,
+                display:"flex", alignItems:"center", justifyContent:"center", fontSize:"1.25rem" }}>
+                {shop.logo_url
+                  ? <img src={shop.logo_url} alt="logo" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                  : "🏪"
+                }
               </div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:"0.98rem", fontWeight:800, color:T.text1,
@@ -681,6 +697,7 @@ const AccountPage = () => {
               <Tile icon="📞" label="Extra Mobile" value={shop.extra_mobile||"—"} isMobile={isMobile} />
               <Tile icon="🧾" label="GST Number"   value={shop.gst_enabled?(shop.gst_number||"Not added"):"N/A"} isMobile={isMobile} />
               <div style={{ gridColumn:"1/-1" }}>
+
                 <Tile icon="📍" label="Address" value={shop.address} isMobile={isMobile} />
               </div>
             </div>
@@ -744,6 +761,41 @@ const AccountPage = () => {
                 <FocusInput value={shop.timings} placeholder="e.g. 9AM – 9PM, Mon–Sat" onChange={e=>setShop(p=>({...p,timings:e.target.value}))} />
               </Field>
               <div style={{ gridColumn:"1/-1" }}>
+                <Field label="Shop Logo">
+                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                    {(logoPreview || shop.logo_url) && (
+                      <img
+                        src={logoPreview || shop.logo_url}
+                        alt="logo"
+                        style={{ width:56, height:56, borderRadius:10, objectFit:"cover",
+                          border:`1.5px solid ${T.border}` }}
+                      />
+                    )}
+                    <label style={{
+                      padding:"9px 16px", background:T.bg,
+                      border:`1.5px dashed ${T.borderMid}`,
+                      borderRadius:T.radiusSm, cursor:"pointer",
+                      fontSize:"0.8rem", fontWeight:600, color:T.text2,
+                    }}>
+                      {logoPreview || shop.logo_url ? "Change Logo" : "Upload Logo"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display:"none" }}
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          setLogoFile(file);
+                          setLogoPreview(URL.createObjectURL(file));
+                        }}
+                      />
+                    </label>
+                    {(logoPreview || shop.logo_url) && (
+                      <span style={{ fontSize:"0.72rem", color:T.green, fontWeight:600 }}>✓ Logo ready</span>
+                    )}
+                  </div>
+                </Field>
+
                 <Field label="Address *">
                   <textarea
                     value={shop.address}

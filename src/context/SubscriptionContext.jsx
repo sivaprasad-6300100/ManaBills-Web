@@ -22,6 +22,7 @@ export const SubscriptionProvider = ({ children }) => {
     if (!accessToken) {
       setSubscriptions({});
       setLoading(false);
+      localStorage.removeItem("subscriptions"); // ← ADD THIS
       return;
     }
 
@@ -38,16 +39,22 @@ export const SubscriptionProvider = ({ children }) => {
         if (!cancelled) {
           setSubscriptions(subMap);
           localStorage.setItem("subscriptions", JSON.stringify(subMap));
+          localStorage.setItem("subscriptions", JSON.stringify(subMap));
+          if (Object.keys(subMap).length > 0) {
+            localStorage.setItem("mb_has_sub_history", "1"); // ← ADD THIS
+          }
         }
       })
-      .catch(() => {
-        if (!cancelled) {
-          try {
-            const saved = localStorage.getItem("subscriptions");
-            if (saved) setSubscriptions(JSON.parse(saved));
-          } catch {}
-        }
-      })
+
+
+      // AFTER — only use localStorage as fallback if accessToken exists
+// AND clear stale cache on logout
+        .catch(() => {
+          if (!cancelled) {
+            // Only use cache as fallback, never as initial truth
+            setSubscriptions({});  // show nothing on error — safer
+          }
+        })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });

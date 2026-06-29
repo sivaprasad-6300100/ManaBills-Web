@@ -13,21 +13,21 @@ const useSubscription = () => {
    *   2. Optimistic paid  → { is_active: true, plan: "basic", duration: "1 Month" }
    *   3. Optimistic trial → { status: "FREE_TRIAL", is_active: true, expiresAt: <ms> }
    */
+
+
+
   const hasAccess = (module) => {
-    const sub = subscriptions[module];
-    if (!sub) return false;
+  const sub = subscriptions[module];
+  if (!sub) return false;   // never subscribed at all → block
 
-    // Must be explicitly active
-    if (sub.is_active !== true) return false;
+  // Allow access if currently active OR previously active but now expired.
+  // "No record at all" is the only case that should be blocked.
+  const wasEverActive = sub.is_active === true || sub.status === "expired";
+  if (!wasEverActive) return false;
 
-    // Check JS-timestamp expiry (optimistic free trial)
-    if (sub.expiresAt && Date.now() > sub.expiresAt) return false;
+  return true;
+};
 
-    // Check ISO-string expiry (server response)
-    if (sub.expires_at && new Date(sub.expires_at) < new Date()) return false;
-
-    return true;
-  };
 
   // Check if user is on a specific plan
   const hasPlan = (module, planKey) => {

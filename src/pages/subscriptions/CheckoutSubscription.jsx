@@ -129,6 +129,7 @@ export default function CheckoutSubscription() {
   const [selected,    setSelected]    = useState(plan ? plan.durations[0] : null);
   const [loading,     setLoading]     = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
+  const [blockModal, setBlockModal] = useState(null);
 
   // Redirect if plan key is invalid
   useEffect(() => {
@@ -171,7 +172,6 @@ export default function CheckoutSubscription() {
   const currentSub = subscriptions?.[moduleKey];
 
   if (currentSub?.status === "active" && currentSub?.plan_key === planKey) {
-    // Calculate days left from expires_at
     const expiresAt = currentSub?.expires_at
       ? new Date(currentSub.expires_at)
       : null;
@@ -179,8 +179,13 @@ export default function CheckoutSubscription() {
       ? Math.ceil((expiresAt - new Date()) / (1000 * 60 * 60 * 24))
       : null;
 
-    const daysMsg = daysLeft > 0 ? ` Expires in ${daysLeft} day${daysLeft > 1 ? "s" : ""}.` : "";
-    alert(`Your ${plan.name} plan is still active.${daysMsg} You can renew after it expires.`);
+    setBlockModal({
+      planName: plan.name,
+      daysLeft,
+      expiryDate: expiresAt
+        ? expiresAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
+        : null,
+    });
     return; // 🚫 Block payment
   }
 
@@ -557,6 +562,87 @@ navigate(PLAN_TO_PROFILE[planKey] || plan.dashboard, {
           }
         }
       `}</style>
+      {/* 👇 PASTE THE MODAL HERE 👇 */}
+      {blockModal && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(14,27,46,0.45)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            padding: 20,
+          }}
+          onClick={() => setBlockModal(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 420,
+              background: "rgba(255,255,255,0.85)",
+              backdropFilter: "blur(20px) saturate(180%)",
+              WebkitBackdropFilter: "blur(20px) saturate(180%)",
+              border: "1px solid rgba(255,255,255,0.6)",
+              borderRadius: 22,
+              boxShadow: "0 20px 60px rgba(14,27,46,0.35), 0 0 0 1px rgba(201,150,58,0.15)",
+              overflow: "hidden",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+          >
+            <div style={{ height: 3, background: "linear-gradient(90deg,#c9963a,#f4c542,#c9963a)" }} />
+            <div style={{ padding: "30px 28px 26px" }}>
+              <div
+                style={{
+                  width: 52, height: 52, borderRadius: 16,
+                  background: "linear-gradient(135deg,rgba(201,150,58,0.18),rgba(201,150,58,0.08))",
+                  border: "1px solid rgba(201,150,58,0.25)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 24, marginBottom: 16,
+                }}
+              >
+                ✦
+              </div>
+
+              <h2
+                style={{
+                  fontFamily: "'Playfair Display', Georgia, serif",
+                  fontSize: "1.25rem", fontWeight: 800, color: "#0e1b2e",
+                  margin: "0 0 8px", letterSpacing: "-0.01em",
+                }}
+              >
+                Subscription Already Active
+              </h2>
+
+              <p style={{ fontSize: 13.5, color: "#4b5563", lineHeight: 1.6, margin: "0 0 20px" }}>
+                You're currently subscribed to the <strong style={{ color: "#0e1b2e" }}>{blockModal.planName}</strong> plan.
+                {blockModal.daysLeft > 0
+                  ? <> It remains active for the next <strong style={{ color: "#c9963a" }}>{blockModal.daysLeft} day{blockModal.daysLeft > 1 ? "s" : ""}</strong>.</>
+                  : null}
+                {" "}You'll be able to renew or switch plans once it expires
+                {blockModal.expiryDate ? <> on <strong style={{ color: "#0e1b2e" }}>{blockModal.expiryDate}</strong></> : ""}.
+              </p>
+
+              <button
+                onClick={() => setBlockModal(null)}
+                style={{
+                  width: "100%", padding: "13px 0", borderRadius: 12,
+                  border: "none", cursor: "pointer",
+                  background: "linear-gradient(135deg,#0e1b2e,#1a2d47)",
+                  color: "#fff", fontSize: 13.5, fontWeight: 700,
+                  letterSpacing: "0.01em",
+                  boxShadow: "0 6px 20px rgba(14,27,46,0.25)",
+                }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 👆 END MODAL 👆 */}
+
     </div>
   );
 }
+  
+

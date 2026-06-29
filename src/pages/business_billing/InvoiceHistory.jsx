@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useContext } from "react";
 import {
   getInvoices,
   getInvoiceDetail,
@@ -10,6 +10,8 @@ import {
   createCustomer,
 } from "../../services/businessService";
 import { authAxios } from "../../services/api";
+import { SubscriptionContext } from "../../context/SubscriptionContext";
+
 
 /* ═══════════════════════════════════════════════
    AUTO-SYNC: push invoice customers → Customers DB
@@ -1228,7 +1230,7 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
 /* ═══════════════════════════════════════════════
    MOBILE INVOICE CARD ROW
 ═══════════════════════════════════════════════ */
-const InvoiceRow = ({ inv, idx, onPreview, onEdit, onSendWa, onMarkPaid, onDelete, confirmDel, onConfirmDel, onCancelDel }) => {
+const InvoiceRow = ({ inv, idx, isExpired, onPreview, onEdit, onSendWa, onMarkPaid, onDelete, confirmDel, onConfirmDel, onCancelDel }) => {
   const balance = Number(inv.balance || 0);
   return (
     <tr>
@@ -1263,9 +1265,9 @@ const InvoiceRow = ({ inv, idx, onPreview, onEdit, onSendWa, onMarkPaid, onDelet
           </div>
         </div>
         <div className="ih-actions">
-          <button className="ih-btn pdf"  onClick={()=>onPreview(inv)}>📄 View</button>
-          <button className="ih-btn edit" onClick={()=>onEdit(inv)}>✏️ Edit</button>
-          <button className="ih-btn wa"   onClick={()=>onSendWa(inv)} disabled={!inv.customer_mobile}>💬 WA</button>
+          <button className="ih-btn pdf"  onClick={()=>onPreview(inv)} disabled={isExpired} title={isExpired?"Renew plan to view":""}>{isExpired?"🔒 View":"📄 View"}</button>
+          <button className="ih-btn edit" onClick={()=>onEdit(inv)} disabled={isExpired} title={isExpired?"Renew plan to edit":""}>{isExpired?"🔒 Edit":"✏️ Edit"}</button>
+          <button className="ih-btn wa"   onClick={()=>onSendWa(inv)} disabled={isExpired || !inv.customer_mobile} title={isExpired?"Renew plan to share":""}>{isExpired?"🔒 WA":"💬 WA"}</button>
           {inv.status!=="Paid"&&<button className="ih-btn paid" onClick={()=>onMarkPaid(inv.id)}>✓ Paid</button>}
           {confirmDel===inv.id
             ? <><button className="ih-btn del" onClick={()=>onDelete(inv.id)}>Confirm</button><button className="ih-btn" style={{background:"var(--bg)",border:"1.5px solid var(--border2)",color:"var(--muted)"}} onClick={onCancelDel}>Cancel</button></>
@@ -1292,6 +1294,9 @@ const InvoiceHistory = () => {
   const [previewInvoice, setPreviewInvoice] = useState(null);
   const [confirmDel,     setConfirmDel]     = useState(null);
   const [loadingEdit,    setLoadingEdit]    = useState(false);
+
+  const { subscriptions } = useContext(SubscriptionContext);
+  const isExpired = subscriptions?.["business"]?.status === "expired";
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -1329,6 +1334,10 @@ const InvoiceHistory = () => {
   }, [search, filterStatus, filterPayment, loadData]);
 
   const handleOpenEdit = async (inv) => {
+    if (isExpired) {
+      showToast("Renew your plan to edit invoices.", "error");
+      return;
+    }
     setLoadingEdit(true);
     showToast("Loading invoice details…", "info");
     try {
@@ -1343,14 +1352,18 @@ const InvoiceHistory = () => {
   };
 
   const handleOpenPreview = async (inv) => {
-    try {
-      const detail = await authAxios.get(`business/invoices/${inv.id}/`).then(r=>r.data);
-      const items  = detail.items || detail.invoice_items || [];
-      setPreviewInvoice({ ...detail, items });
-    } catch {
-      setPreviewInvoice(inv);
-    }
-  };
+      if (isExpired) {
+        showToast("Renew your plan to view invoices.", "error");
+        return;
+      }
+      try {
+        const detail = await authAxios.get(`business/invoices/${inv.id}/`).then(r=>r.data);
+        const items  = detail.items || detail.invoice_items || [];
+        setPreviewInvoice({ ...detail, items });
+      } catch {
+        setPreviewInvoice(inv);
+      }
+    };
 
   const handleEditSaved = (updated) => {
     setInvoices(prev => prev.map(i => i.id === updated.id ? { ...i, ...updated } : i));
@@ -1377,10 +1390,13 @@ const InvoiceHistory = () => {
     } catch { showToast("Failed to delete.", "error"); }
   };
 
-
   const sendWhatsApp = (inv) => {
-  const mob = inv.customer_mobile?.replace(/\D/g,"") || "";
-  if (!mob) return;
+      if (isExpired) {
+        showToast("Renew your plan to share invoices.", "error");
+        return;
+      }
+      const mob = inv.customer_mobile?.replace(/\D/g,"") || "";
+      if (!mob) return;
   const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
   const invoiceLink = `${baseUrl}/invoice/${inv.public_token || inv.invoice_id}`;
 
@@ -1515,6 +1531,7 @@ _manabills.com_`;
                       key={inv.id}
                       inv={inv}
                       idx={i}
+                      isExpired={isExpired}
                       onPreview={handleOpenPreview}
                       onEdit={handleOpenEdit}
                       onSendWa={sendWhatsApp}

@@ -511,6 +511,7 @@ const DashboardLayout = () => {
   const activeModule = getActiveModule(location.pathname);
   const navigate     = useNavigate();   
   const { subscriptions } = useContext(SubscriptionContext);  
+  
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const isAccountPage = location.pathname === "/dashboard/account";
   const hideTopbar = isAccountPage && isMobile;

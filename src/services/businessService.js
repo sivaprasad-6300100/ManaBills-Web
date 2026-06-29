@@ -141,6 +141,13 @@ export const getGstReports = async (year, view = "monthly") => {
 export const updateInvoiceItems = (id, data) =>
   authAxios.patch(`${BASE}invoices/${id}/`, data).then((r) => r.data);
 
+export const uploadShopLogo = async (formData) => {
+  const res = await authAxios.post(`${BASE}shop-profile/logo/`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data; // expects { logo_url: "..." }
+};
+
 /* ── Jobs ────────────────────────────────────────────────── */
 export const getJobs   = () => authAxios.get(`${BASE}jobs/`).then(r => r.data);
 export const createJob = (data) => authAxios.post(`${BASE}jobs/`, data).then(r => r.data);

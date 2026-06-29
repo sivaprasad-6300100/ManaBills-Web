@@ -32,7 +32,8 @@ self.addEventListener("activate", (e) => {
 function isApiRequest(url) {
   return (
     url.includes("/api/") ||
-    url.includes("api.manabills.com")
+    url.includes("api.manabills.com") ||
+    url.includes("/media/")
   );
 }
 

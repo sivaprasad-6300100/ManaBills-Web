@@ -8,6 +8,7 @@ import {
 } from "../../services/businessService";
 import { useContext } from "react";
 import { BusinessStatsContext } from "../../context/BusinessStatsContext";
+import { SubscriptionContext } from "../../context/SubscriptionContext";
 import { authAxios } from "../../services/api";
 
 // ─── Invoice ID generator ─────────────────────────────────────
@@ -149,7 +150,20 @@ const S = {
 const CreateInvoice = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { refetch } = useContext(BusinessStatsContext);  
+  const { refetch } = useContext(BusinessStatsContext);
+  const { subscriptions } = useContext(SubscriptionContext);
+  const isExpired = subscriptions?.["business"]?.status === "expired";
+
+  const trialEnded = subscriptions?.["business"]?.plan_key === "free_trial"
+                      && subscriptions?.["business"]?.status === "expired";
+
+  
+  
+  
+  
+  
+  
+
 
   const [isGST,        setIsGST]        = useState(false);
   const [customer,     setCustomer]     = useState({ name: "", mobile: "", gst: "" });
@@ -269,7 +283,7 @@ const CreateInvoice = () => {
   // ★ Open window synchronously — MUST be before any await
   // Do NOT use noopener — it kills the window reference
   let waWindow = null;
-  if (sendWA && customer.mobile?.trim()) {
+  if (sendWA && customer.mobile?.trim() && !isExpired) {
     waWindow = window.open("", "_blank");   // ← no noopener
     if (waWindow) {
       waWindow.document.write(`
@@ -388,6 +402,8 @@ const CreateInvoice = () => {
 
 
   // ── Keyboard shortcuts ────────────────────────────────────
+
+  // ── Keyboard shortcuts ────────────────────────────────────
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Enter" && !e.ctrlKey && activeRow === null) { e.preventDefault(); addItem(); }
@@ -398,10 +414,57 @@ const CreateInvoice = () => {
   }, [items, customer, discount, advance, payment, activeRow, saving]);
 
   // ─────────────────────────────────────────────────────────
+  // ★  Block invoice creation if Free Trial has expired
+  // ─────────────────────────────────────────────────────────
+  if (trialEnded) {
+    return (
+      <div style={{
+        minHeight: "60vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "2rem",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}>
+        <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem", opacity: 0.7 }}>🔒</div>
+        <h3 style={{
+          fontFamily: "'Playfair Display', Georgia, serif",
+          fontSize: "1.2rem",
+          fontWeight: 800,
+          color: "#0e1b2e",
+          marginBottom: "0.5rem",
+        }}>
+          Plan Required
+        </h3>
+        <p style={{ fontSize: "0.88rem", color: "#64748b", maxWidth: "320px", lineHeight: 1.6 }}>
+          You haven't taken a plan. Please upgrade to access invoice creation.
+        </p>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
   // ★  WhatsApp preview banner (shown when mobile is entered)
   // ─────────────────────────────────────────────────────────
-  const WaBanner = () => {
-    if (!customer.mobile || customer.mobile.trim().length < 6) return null;
+
+  // ─────────────────────────────────────────────────────────
+  // ★  WhatsApp preview banner (shown when mobile is entered)
+  // ─────────────────────────────────────────────────────────
+   const WaBanner = () => {
+      if (!customer.mobile || customer.mobile.trim().length < 6) return null;
+    
+      if (isExpired) {
+        return (
+          <div style={{ ...S.waBanner, background:"#fef2f2", border:"1px solid #fecaca" }}>
+            <div style={{ flex:1, fontSize:"0.78rem", color:"#dc2626", fontWeight:600 }}>
+              🔒 WhatsApp sharing is locked. Renew your plan to share invoices automatically. Invoice will still be saved normally.
+            </div>
+          </div>
+        );
+      }
+
     return (
       <div style={S.waBanner}>
         <div style={S.waIcon}>
@@ -696,7 +759,14 @@ const CreateInvoice = () => {
       </div>
 
       {/* ★ WhatsApp banner — desktop */}
-      {customer.mobile?.trim().length >= 6 && (
+      {customer.mobile?.trim().length >= 6 && isExpired && (
+        <div style={{ ...S.waBanner, marginBottom: "18px", background:"#fef2f2", border:"1px solid #fecaca" }}>
+          <div style={{ flex:1, fontSize:"0.78rem", color:"#dc2626", fontWeight:600 }}>
+            🔒 WhatsApp sharing is locked. Renew your plan to share invoices automatically. Invoice will still be saved normally.
+          </div>
+        </div>
+      )}
+      {customer.mobile?.trim().length >= 6 && !isExpired && (
         <div style={{ ...S.waBanner, marginBottom: "18px" }}>
           <div style={S.waIcon}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>

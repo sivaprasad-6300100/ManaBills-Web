@@ -6,6 +6,7 @@ import {
   saveShopProfile,
   deleteShopProfile,
   getProducts,
+  uploadShopLogo,
 } from "../../services/businessService";
 import { useShop } from "../../context/ShopContext";
 import useAuth from "../../hooks/useAuth";
@@ -134,6 +135,15 @@ const ShopProfile = () => {
     }
     setSaving(true);
     try {
+      let logoUrl = shop.logo_url || "";
+
+      if (shop.logo_file) {
+        const formData = new FormData();
+        formData.append("logo", shop.logo_file);
+        const uploadRes = await uploadShopLogo(formData);
+        logoUrl = uploadRes.logo_url;
+      }
+      
       const payload = {
         shop_name:    shop.shop_name,
         owner_name:   shop.owner_name,
@@ -144,7 +154,7 @@ const ShopProfile = () => {
         timings:      shop.timings,
         gst_enabled:  (isBasicPlan || isFreeTrial) ? false : shop.gst_enabled,   // ← force off
         gst_number:   (isBasicPlan || isFreeTrial) ? ""    : shop.gst_number,    // ← force empty
-        logo_url:     shop.logo_url || "",
+        logo_url:     logoUrl,
       };
       const data = await saveShopProfile(payload);
       setSavedShop(data);

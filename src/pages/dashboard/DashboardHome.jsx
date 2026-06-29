@@ -451,9 +451,18 @@ const DashboardHome = () => {
 
   const [period, setPeriod] = useState("today");
 
-  const subscriptions  = Object.keys(subData).filter(k => subData[k]?.is_active === true)
+
+  const subscriptions  = Object.keys(subData).filter(k => subData[k]?.is_active === true);
   const hasAny         = subscriptions.length > 0;
   const hasBusiness    = subscriptions.includes("business");
+
+  // ── NEW: detect "had a subscription before, now expired" ──
+  // (any module that EXISTS in subData at all, active or not)
+  const hasAnyHistory  = Object.keys(subData).length > 0;
+  const businessSub    = subData?.business;
+  const businessExpired = businessSub?.status === "expired";
+  const showBusiness = hasBusiness || businessExpired;
+  
 
   const displayName  = getDisplayName();
   const hour         = new Date().getHours();
@@ -504,7 +513,11 @@ const DashboardHome = () => {
     };
   };
 
-  const activeModules = MODULES.filter((m) => subscriptions.includes(m.key)).map((m) =>
+  const visibleModuleKeys = showBusiness
+  ? [...new Set([...subscriptions, "business"])]
+  : subscriptions;
+
+  const activeModules = MODULES.filter((m) => visibleModuleKeys.includes(m.key)).map((m) =>
     m.key === "business" ? getBusinessModule() : m
   );
 
@@ -514,7 +527,7 @@ const DashboardHome = () => {
       {/* ══════════════════════════════
           NO SUBSCRIPTION
       ══════════════════════════════ */}
-      {!hasAny && (
+      {!hasAny && !hasAnyHistory && (
         <PreSubscriptionView
           greet={greet}
           displayName={displayName}
@@ -525,7 +538,7 @@ const DashboardHome = () => {
       {/* ══════════════════════════════
           ACTIVE SUBSCRIPTION
       ══════════════════════════════ */}
-      {hasAny && (
+      {(hasAny || hasAnyHistory) && (
         <>
           {/* ── GREETING BANNER ── */}
           <div className="db-greeting-banner">
@@ -536,7 +549,7 @@ const DashboardHome = () => {
               </h2>
               <p className="db-greeting-sub">Here's your business overview for today.</p>
             </div>
-            {hasBusiness && (
+            {showBusiness && (
               <button className="db-greeting-cta" onClick={() => navigate("/dashboard/business/create-invoice")}>
                 + New Invoice
               </button>
@@ -544,7 +557,7 @@ const DashboardHome = () => {
           </div>
 
           {/* ── KPI SECTION ── */}
-          {hasBusiness && (
+          {showBusiness && (
             <div>
               <div className="db-kpi-section-header">
                 <div className="db-section-title">Business Overview</div>
@@ -581,7 +594,7 @@ const DashboardHome = () => {
           )}
 
           {/* ── QUICK ACTIONS ── */}
-          {hasBusiness && (
+          {showBusiness && (
             <>
               <div className="db-section-row">
                 <div className="db-section-title">Quick Actions</div>
@@ -630,7 +643,7 @@ const DashboardHome = () => {
           {/* ── RECENT ACTIVITY ── */}
           <div className="db-section-row" style={{ marginTop: "0.5rem" }}>
             <div className="db-section-title">Recent Activity</div>
-            {hasBusiness && (
+            {showBusiness && (
               <button className="db-section-link-inline" onClick={() => navigate("/dashboard/business/invoices")}>View All →</button>
             )}
           </div>
