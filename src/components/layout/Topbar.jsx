@@ -707,40 +707,7 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Current plan badge — visible inside dropdown on all screen sizes */}
-              {(currentPlanLabel || expiry) && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "10px 10px 0" }}>
-                  {currentPlanLabel && (
-                    <div
-                      onClick={() => { setOpen(false); navigate("/subscription"); }}
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 5,
-                        padding: "5px 12px", borderRadius: 8, cursor: "pointer",
-                        background: !isBusinessActive
-                          ? "#fef2f2"
-                          : businessSub?.plan_key === "business_pro" ? "#eef2ff"
-                          : businessSub?.plan_key === "free_trial"   ? "#ecfdf5"
-                          : "#f1f5f9",
-                        border: `1px solid ${!isBusinessActive ? "rgba(239,68,68,0.3)" : "rgba(14,27,46,0.1)"}`,
-                        fontSize: 12, fontWeight: 700,
-                        color: !isBusinessActive
-                          ? "#dc2626"
-                          : businessSub?.plan_key === "business_pro" ? "#6366f1"
-                          : businessSub?.plan_key === "free_trial"   ? "#10b981"
-                          : "#64748b",
-                      }}
-                    >
-                      {!isBusinessActive ? "⬆️" : "🏷️"} {currentPlanLabel}
-                    </div>
-                  )}
               
-                  {/* Expiry chip — same component used on desktop top bar */}
-                  <ExpiryChip expiry={expiry} onClick={() => { setOpen(false); navigate("/subscription"); }} />
-                </div>
-              )}
-
-
-
               
 
               {/* ── Active Plans from real backend ── */}
