@@ -79,6 +79,7 @@ import "../styles/global/account.css";
 import InvoiceView from "../pages/business_billing/InvoiceView";
 
 import PrivacyPolicy from "../pages/PrivacyPolicy";
+import SplashScreen from "../components/splash/SplashScreen";
 
 
 
@@ -91,6 +92,7 @@ const AppRoutes = () => {
           <Route path="/invoice/:invoiceId" element={ < InvoiceView/>}  />
 
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/splash"  element ={< SplashScreen/>} />
 
       {/* this is AppRoute.jsx file */}
 

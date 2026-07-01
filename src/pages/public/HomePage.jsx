@@ -79,7 +79,7 @@ const PRICING = [
     name: "Business Billing",
     price: "₹199",
     per: "/month",
-    trial: "3 Days Free",
+    trial: "7 Days Free",
     color: "#1e4fba",
     highlight: true,
     features: ["GST invoices", "Customer ledger", "Stock tracking", "WhatsApp reminders", "PDF export"],

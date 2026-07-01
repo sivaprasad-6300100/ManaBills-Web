@@ -47,7 +47,7 @@ const BusinessSubscription = () => {
     {
       key:      "free",
       name:     "FREE TRIAL",
-      tag:      "5 Days Free",
+      tag:      "7 Days Free",
       price:    "₹0",
       duration: "No card required",
       highlight: false,

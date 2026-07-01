@@ -8,7 +8,7 @@ const modules = [
     title: "Business Billing",
     description: "Invoices, GST, stock & customer management for your shop",
     price: "₹199",
-    trial: "3 Days Free Trial",
+    trial: "7 Days Free Trial",
     trialIcon: "clock",
     accent: "#c9963a",
     accentBg: "rgba(201,150,58,0.15)",

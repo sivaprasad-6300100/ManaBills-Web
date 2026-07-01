@@ -118,7 +118,7 @@ const usePlanExpiry = (subscriptions) => {
         "1 Year":   365 * 86_400_000,
         "6 Months": 182 * 86_400_000,
         "1 Month":   30 * 86_400_000,
-        "FREE_TRIAL": 5 * 86_400_000,
+        "FREE_TRIAL": 7 * 86_400_000,
       };
       if (durationMap[sub.duration]) expiresMs = base + durationMap[sub.duration];
     }
@@ -738,7 +738,7 @@ useEffect(() => {
                           )}
                         </div>
                         <div style={{ fontSize:"0.68rem", color:"#6b7280" }}>
-                          {plan.duration === "FREE_TRIAL" ? "5-day trial"
+                          {plan.duration === "FREE_TRIAL" ? "7-day trial"
                             : plan.duration === "1 Month"  ? "1 Month"
                             : plan.duration === "6 Months" ? "6 Months"
                             : plan.duration === "1 Year"   ? "1 Year"
