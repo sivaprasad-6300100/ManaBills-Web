@@ -1,4 +1,4 @@
-const CACHE = "manabills-v4";
+const CACHE = "manabills-v5";
 const STATIC_ASSETS = [
   "/",
   "/index.html",

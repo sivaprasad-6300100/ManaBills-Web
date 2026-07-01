@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-const TOTAL_DURATION = 3100;
+const TOTAL_DURATION = 4000;
 
 const SplashScreen = ({ onFinish }) => {
   const [mounted, setMounted] = useState(false);
