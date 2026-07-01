@@ -1,8 +1,8 @@
-const CACHE = "manabills-v3";
+const CACHE = "manabills-v4";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
-  "/manifest.json",
+  // "/manifest.json",
   "/ManaBillsLogo192.png",
   "/ManaBillsLogo512.png"
 ];
@@ -46,6 +46,22 @@ self.addEventListener("fetch", (e) => {
   // and prevents stale cached responses from a previous account/session.
   if (isApiRequest(url)) {
     return; // let the browser handle it normally (no caching, no interception)
+  }
+
+  // manifest.json — always network-first, never trust stale cache.
+  // This file controls start_url, so a stale copy can silently break
+  // app launch behavior (e.g. splash screen not appearing) after a deploy.
+  if (url.includes("/manifest.json")) {
+    e.respondWith(
+      fetch(request)
+        .then((response) => {
+          const responseClone = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, responseClone));
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
   }
 
   // Navigation requests: try network, fall back to cached index.html (works offline)
