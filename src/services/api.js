@@ -53,12 +53,16 @@ authAxios.interceptors.response.use(
         window.location.href = "/";
         return Promise.reject(error);
       }
-
       try {
         const res = await publicAxios.post("auth/token/refresh/", { refresh });
         const newAccessToken = res.data.access;
 
         localStorage.setItem("access_token", newAccessToken);
+
+        if (res.data.refresh) {
+          localStorage.setItem("refresh_token", res.data.refresh);
+        }
+
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
         return authAxios(originalRequest); // retry failed request
