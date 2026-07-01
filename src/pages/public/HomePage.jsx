@@ -3,6 +3,7 @@ import { publicAxios } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import '../../styles/global/publicHomePage.css';
+import SplashScreen from "../../components/splash/SplashScreen"
 // import { auth } from "../../services/firebase";
 // import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 
@@ -396,6 +397,9 @@ export default function HomePage() {
 
   /* ── ALL STATES ── */
   const [modal,         setModal]         = useState(null);
+  const [showSplash,    setShowSplash]    = useState(
+  !localStorage.getItem("manabills_splash_seen")
+);
   const [isLoggedIn,    setLoggedIn]       = useState(false);
   const [message,       setMessage]        = useState({ text: "", type: "" });
   const [loading,       setLoading]        = useState(false);
@@ -686,6 +690,11 @@ export default function HomePage() {
   /* ══════════════════════════════════════════
      RENDER
   ══════════════════════════════════════════ */
+
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
   return (
     <div className="hp-page">
 

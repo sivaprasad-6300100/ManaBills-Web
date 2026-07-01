@@ -1,20 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-const TOTAL_DURATION = 3100; // ms — matches loader fill completion
+const TOTAL_DURATION = 3100;
 
-const SplashScreen = () => {
-  const navigate = useNavigate();
+const SplashScreen = ({ onFinish }) => {
   const [mounted, setMounted] = useState(false);
 
   const goNext = () => {
     localStorage.setItem("manabills_splash_seen", "1");
-    const isLoggedIn = !!localStorage.getItem("access_token");
-    navigate(isLoggedIn ? "/dashboard" : "/", { replace: true });
+    if (onFinish) onFinish();
   };
 
   useEffect(() => {
-    // Trigger entrance animations on mount
     const t = requestAnimationFrame(() => setMounted(true));
     const timer = setTimeout(goNext, TOTAL_DURATION);
     return () => {
