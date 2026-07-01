@@ -33,7 +33,7 @@
   "scope": "/",
   "display": "standalone",
   "theme_color": "#1e4fba",
-  "background_color": "#1e4fba",
+  "background_color": "#0a1422",
   "orientation": "portrait",
   "categories": ["business", "finance", "productivity"],
   "lang": "en",
