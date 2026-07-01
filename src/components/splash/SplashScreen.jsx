@@ -6,7 +6,7 @@ const SplashScreen = ({ onFinish }) => {
   const [mounted, setMounted] = useState(false);
 
   const goNext = () => {
-    localStorage.setItem("manabills_splash_seen", "1");
+    // localStorage.setItem("manabills_splash_seen", "1");
     if (onFinish) onFinish();
   };
 

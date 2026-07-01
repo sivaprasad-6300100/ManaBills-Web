@@ -397,9 +397,9 @@ export default function HomePage() {
 
   /* ── ALL STATES ── */
   const [modal,         setModal]         = useState(null);
-  const [showSplash,    setShowSplash]    = useState(
-  !localStorage.getItem("manabills_splash_seen")
-);
+  const [showSplash,    setShowSplash]    = useState(true);
+  // !localStorage.getItem("manabills_splash_seen")
+// );
   const [isLoggedIn,    setLoggedIn]       = useState(false);
   const [message,       setMessage]        = useState({ text: "", type: "" });
   const [loading,       setLoading]        = useState(false);
