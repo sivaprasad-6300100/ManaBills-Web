@@ -735,7 +735,7 @@ useEffect(() => {
                   )}
               
                   {/* Expiry chip — same component used on desktop top bar */}
-                  <ExpiryChip expiry={expiry} onClick={() => { setOpen(false); navigate("/subscription"); }} />
+                  {/* <ExpiryChip expiry={expiry} onClick={() => { setOpen(false); navigate("/subscription"); }} /> */}
                 </div>
               )}
 
