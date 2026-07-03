@@ -227,122 +227,128 @@ const CreateInvoice = () => {
   // ─────────────────────────────────────────────────────────
   // ★  GENERATE INVOICE  (WhatsApp/SMS opens INSTANTLY on click,
   //     invoice saves to server in the background right after)
-  // ────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────────────────turn; 
+
   const handleGenerate = async () => {
-    if (!customer.name.trim()) { showToast("Enter customer name", "error"); return; }
-    if (!customer.mobile.trim() || !isValidMobile(customer.mobile)) {
-      showToast("Enter valid 10-digit mobile number", "error"); return;
-    }
-    if (customer.gst.trim() && !isValidGST(customer.gst)) {
-      showToast("Invalid GST number. Format: 29ABCDE1234F1Z5", "error"); return;
-    }
-    if (items.every((i) => !i.name.trim())) { showToast("Add at least one item", "error"); return; }
-    if (saving) return;
+  if (!customer.name.trim()) { showToast("Enter customer name", "error"); return; }
+  if (!customer.mobile.trim() || !isValidMobile(customer.mobile)) {
+    showToast("Enter valid 10-digit mobile number", "error"); return;
+  }
+  if (customer.gst.trim() && !isValidGST(customer.gst)) {
+    showToast("Invalid GST number. Format: 29ABCDE1234F1Z5", "error"); return;
+  }
+  if (items.every((i) => !i.name.trim())) { showToast("Add at least one item", "error"); return; }
+  if (saving) return;
 
-    setSaving(true);
+  setSaving(true);
 
-    // ★ Step 1: Build our own invoice link token right now — no waiting for server.
-    const publicToken = generateToken();
-    const wantsShare = shareMethod !== "none" && customer.mobile?.trim() && !isExpired;
-    const cleaned = customer.mobile.replace(/\D/g, "").replace(/^91/, "").slice(-10);
+  const publicToken = generateToken();
+  const wantsShare = shareMethod !== "none" && customer.mobile?.trim() && !isExpired;
+  const cleaned = customer.mobile.replace(/\D/g, "").replace(/^91/, "").slice(-10);
 
-    const msg = [
-      `Hello ${customer.name}! 👋`,
-      ``,
-      `Welcome to *${shopProfile?.name || "ManaBills Shop"}*`,
-      ``,
-      `Your invoice has been generated:`,
-      `🧾 Invoice No: *${invoiceId}*`,
-      `💰 Total Amount: *₹${Number(total).toLocaleString("en-IN")}*`,
-      `📅 Date: ${todayStr()}`,
-      ``,
-      `👇 View & Download your invoice:`,
-      `${process.env.REACT_APP_BASE_URL}/invoice/${publicToken}`,
-      ``,
-      `Thank you for shopping with us! 🙏`,
-    ].join("\n");
+  // ★ STEP 1: Open a blank tab RIGHT NOW, while the tap is still "fresh".
+  //   We fill it in later — this is what keeps WhatsApp opening the app directly.
+  let waTab = null;
+  if (wantsShare && (shareMethod === "whatsapp" || shareMethod === "sms")) {
+    waTab = window.open("", "_blank");
+  }
 
-    // ★ Step 2: Open WhatsApp / SMS IMMEDIATELY on this same click.
-    //   This is a real, trusted user gesture, so it opens the app directly
-    //   instead of falling back to the browser landing page.
-    if (wantsShare && shareMethod === "whatsapp") {
-      const waUrl = `https://wa.me/91${cleaned}?text=${encodeURIComponent(msg)}`;
-      window.open(waUrl, "_blank");
-    }
-    if (wantsShare && shareMethod === "sms") {
-      const smsUrl = `sms:+91${cleaned}?body=${encodeURIComponent(msg)}`;
-      window.open(smsUrl, "_blank");
-    }
+  try {
+    const payload = {
+      invoice_id:      invoiceId,
+      public_token:    publicToken,
+      customer_name:   customer.name,
+      customer_mobile: customer.mobile,
+      customer_gst:    customer.gst,
+      shop_name:       shopProfile?.name    || "",
+      shop_address:    shopProfile?.address || "",
+      shop_gst:        shopProfile?.gst_number || "",
+      subtotal,
+      gst_amt:         gstAmt,
+      discount:        Number(discount),
+      advance:         Number(advance),
+      total,
+      is_gst:          applyGST,
+      payment,
+      date:            todayStr(),
+      items: items
+        .filter((i) => i.name.trim())
+        .map((i) => ({
+          product:       i.isStockItem ? i.productId : null,
+          name:          i.name,
+          qty:           Number(i.qty),
+          price:         Number(i.price),
+          unit:          i.unit,
+          is_stock_item: i.isStockItem,
+          gst_rate:      Number(i.gst_rate || 0),
+        })),
+    };
 
-    // ★ Step 3: Save the invoice to the server in the background,
-    //   using the SAME token we already shared.
-    try {
-      const payload = {
-        invoice_id:      invoiceId,
-        public_token:    publicToken,
-        customer_name:   customer.name,
-        customer_mobile: customer.mobile,
-        customer_gst:    customer.gst,
-        shop_name:       shopProfile?.name    || "",
-        shop_address:    shopProfile?.address || "",
-        shop_gst:        shopProfile?.gst_number || "",
-        subtotal,
-        gst_amt:         gstAmt,
-        discount:        Number(discount),
-        advance:         Number(advance),
-        total,
-        is_gst:          applyGST,
-        payment,
-        date:            todayStr(),
+    // ★ STEP 2: Save to server, get the REAL invoice number back
+    const savedInvoice = await createInvoice(payload);
+    const realInvoiceId = savedInvoice?.invoice_id || invoiceId;
 
-        items: items
-          .filter((i) => i.name.trim())
-          .map((i) => ({
-            product:       i.isStockItem ? i.productId : null,
-            name:          i.name,
-            qty:           Number(i.qty),
-            price:         Number(i.price),
-            unit:          i.unit,
-            is_stock_item: i.isStockItem,
-            gst_rate:      Number(i.gst_rate || 0),
-          })),
-      };
+    refetch();
+    showToast(`✅ Invoice ${realInvoiceId} saved!`);
 
-      await createInvoice(payload);
+    // ★ STEP 3: NOW send the already-open tab to the WhatsApp/SMS link
+    if (wantsShare) {
+      const msg = [
+        `Hello ${customer.name}! 👋`,
+        ``,
+        `Welcome to *${shopProfile?.name || "ManaBills Shop"}*`,
+        ``,
+        `Your invoice has been generated:`,
+        `🧾 Invoice No: *${realInvoiceId}*`,
+        `💰 Total Amount: *₹${Number(total).toLocaleString("en-IN")}*`,
+        `📅 Date: ${todayStr()}`,
+        ``,
+        `👇 View & Download your invoice:`,
+        `${process.env.REACT_APP_BASE_URL}/invoice/${publicToken}`,
+        ``,
+        `Thank you for shopping with us! 🙏`,
+      ].join("\n");
 
-      refetch();
-      showToast(`✅ Invoice ${invoiceId} saved!`);
-
-      authAxios.get("business/invoices/next-id/")
-        .then(r => setInvoiceId(r.data.invoice_id))
-        .catch(() => {});
-
-      if (wantsShare) {
-        setTimeout(() => {
-          showToast(
-            shareMethod === "whatsapp" ? "💬 WhatsApp opened!" : "✉️ SMS app opened!",
-            shareMethod === "whatsapp" ? "whatsapp" : "success"
-          );
-        }, 400);
+      if (shareMethod === "whatsapp") {
+        const waUrl = `https://wa.me/91${cleaned}?text=${encodeURIComponent(msg)}`;
+        if (waTab) waTab.location.href = waUrl;
+        else window.open(waUrl, "_blank");
+      }
+      if (shareMethod === "sms") {
+        const smsUrl = `sms:+91${cleaned}?body=${encodeURIComponent(msg)}`;
+        if (waTab) waTab.location.href = smsUrl;
+        else window.open(smsUrl, "_blank");
       }
 
-      // Reset form
-      getProductStats().then(setStockStats).catch(() => {});
-      setItems([emptyItem()]);
-      setCustomer({ name: "", mobile: "", gst: "" });
-      setDiscount(0);
-      setAdvance(0);
-      setPayment("Cash");
-
-    } catch (err) {
-      const errData = err?.response?.data;
-      if (errData?.stock)      showToast(errData.stock.join(" | "), "error");
-      else if (errData?.items) showToast(errData.items, "error");
-      else                     showToast("Failed to save invoice. Try again.", "error");
-    } finally {
-      setSaving(false);
+      setTimeout(() => {
+        showToast(
+          shareMethod === "whatsapp" ? "💬 WhatsApp opened!" : "✉️ SMS app opened!",
+          shareMethod === "whatsapp" ? "whatsapp" : "success"
+        );
+      }, 400);
     }
-  };
+
+    authAxios.get("business/invoices/next-id/")
+      .then(r => setInvoiceId(r.data.invoice_id))
+      .catch(() => {});
+
+    getProductStats().then(setStockStats).catch(() => {});
+    setItems([emptyItem()]);
+    setCustomer({ name: "", mobile: "", gst: "" });
+    setDiscount(0);
+    setAdvance(0);
+    setPayment("Cash");
+
+  } catch (err) {
+    if (waTab) waTab.close(); // clean up the blank tab if save failed
+    const errData = err?.response?.data;
+    if (errData?.stock)      showToast(errData.stock.join(" | "), "error");
+    else if (errData?.items) showToast(errData.items, "error");
+    else                     showToast("Failed to save invoice. Try again.", "error");
+  } finally {
+    setSaving(false);
+  }
+};
 
   // ── Keyboard shortcuts ────────────────────────────────────
   useEffect(() => {
