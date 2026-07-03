@@ -144,6 +144,8 @@ const CreateInvoice = () => {
 
   // ★ Share method — owner picks WhatsApp / SMS / Don't Send, per invoice
   const [shareMethod, setShareMethod] = useState("whatsapp"); // "whatsapp" | "sms" | "none"
+  // ★ Holds the saved invoice details so the popup can use them to open WhatsApp/SMS
+  const [sharePopup, setSharePopup] = useState(null); // { invoiceId, publicToken, msg } | null
 
   const lastInputRef = useRef(null);
 
@@ -227,114 +229,133 @@ const CreateInvoice = () => {
   // ─────────────────────────────────────────────────────────
   // ★  GENERATE INVOICE  (WhatsApp/SMS opens INSTANTLY on click,
   //     invoice saves to server in the background right after)
-  // ───────────────────────────────────────────────────────turn; 
+  // ───────────────────────────────────────────────────────
 
+
+  // ─────────────────────────────────────────────────────────
+  // ★  GENERATE INVOICE — save to server FIRST, get the real
+  //     invoice number back, THEN ask the user whether to share.
+  // ────────────────────────────────────────────────────────
   const handleGenerate = async () => {
-  if (!customer.name.trim()) { showToast("Enter customer name", "error"); return; }
-  if (!customer.mobile.trim() || !isValidMobile(customer.mobile)) {
-    showToast("Enter valid 10-digit mobile number", "error"); return;
-  }
-  if (customer.gst.trim() && !isValidGST(customer.gst)) {
-    showToast("Invalid GST number. Format: 29ABCDE1234F1Z5", "error"); return;
-  }
-  if (items.every((i) => !i.name.trim())) { showToast("Add at least one item", "error"); return; }
-  if (saving) return;
-
-  setSaving(true);
-
-  const publicToken = generateToken();
-  const wantsShare = shareMethod !== "none" && customer.mobile?.trim() && !isExpired;
-  const cleaned = customer.mobile.replace(/\D/g, "").replace(/^91/, "").slice(-10);
-
-  const msg = [
-    `Hello ${customer.name}! 👋`,
-    ``,
-    `Welcome to *${shopProfile?.name || "ManaBills Shop"}*`,
-    ``,
-    `Your invoice has been generated:`,
-    `🧾 Invoice No: *${invoiceId}*`,
-    `💰 Total Amount: *₹${Number(total).toLocaleString("en-IN")}*`,
-    `📅 Date: ${todayStr()}`,
-    ``,
-    `👇 View & Download your invoice:`,
-    `${process.env.REACT_APP_BASE_URL}/invoice/${publicToken}`,
-    ``,
-    `Thank you for shopping with us! 🙏`,
-  ].join("\n");
-
-  // ★ Open WhatsApp/SMS INSTANTLY — this is a real tap, so phone opens the app directly
-  if (wantsShare && shareMethod === "whatsapp") {
-    window.open(`https://wa.me/91${cleaned}?text=${encodeURIComponent(msg)}`, "_blank");
-  }
-  if (wantsShare && shareMethod === "sms") {
-    window.open(`sms:+91${cleaned}?body=${encodeURIComponent(msg)}`, "_blank");
-  }
-
-  try {
-    const payload = {
-      invoice_id:      invoiceId,   // ← same number used in WhatsApp above — will match 100%
-      public_token:    publicToken,
-      customer_name:   customer.name,
-      customer_mobile: customer.mobile,
-      customer_gst:    customer.gst,
-      shop_name:       shopProfile?.name    || "",
-      shop_address:    shopProfile?.address || "",
-      shop_gst:        shopProfile?.gst_number || "",
-      subtotal,
-      gst_amt:         gstAmt,
-      discount:        Number(discount),
-      advance:         Number(advance),
-      total,
-      is_gst:          applyGST,
-      payment,
-      date:            todayStr(),
-      items: items
-        .filter((i) => i.name.trim())
-        .map((i) => ({
-          product:       i.isStockItem ? i.productId : null,
-          name:          i.name,
-          qty:           Number(i.qty),
-          price:         Number(i.price),
-          unit:          i.unit,
-          is_stock_item: i.isStockItem,
-          gst_rate:      Number(i.gst_rate || 0),
-        })),
-    };
-
-    await createInvoice(payload);
-
-    refetch();
-    showToast(`✅ Invoice ${invoiceId} saved!`);
-
-    authAxios.get("business/invoices/next-id/")
-      .then(r => setInvoiceId(r.data.invoice_id))
-      .catch(() => {});
-
-    if (wantsShare) {
-      setTimeout(() => {
-        showToast(
-          shareMethod === "whatsapp" ? "💬 WhatsApp opened!" : "✉️ SMS app opened!",
-          shareMethod === "whatsapp" ? "whatsapp" : "success"
-        );
-      }, 400);
+    if (!customer.name.trim()) { showToast("Enter customer name", "error"); return; }
+    if (!customer.mobile.trim() || !isValidMobile(customer.mobile)) {
+      showToast("Enter valid 10-digit mobile number", "error"); return;
     }
+    if (customer.gst.trim() && !isValidGST(customer.gst)) {
+      showToast("Invalid GST number. Format: 29ABCDE1234F1Z5", "error"); return;
+    }
+    if (items.every((i) => !i.name.trim())) { showToast("Add at least one item", "error"); return; }
+    if (saving) return;
 
-    getProductStats().then(setStockStats).catch(() => {});
-    setItems([emptyItem()]);
-    setCustomer({ name: "", mobile: "", gst: "" });
-    setDiscount(0);
-    setAdvance(0);
-    setPayment("Cash");
+    setSaving(true);
 
-  } catch (err) {
-    const errData = err?.response?.data;
-    if (errData?.stock)      showToast(errData.stock.join(" | "), "error");
-    else if (errData?.items) showToast(errData.items, "error");
-    else                     showToast("Failed to save invoice. Try again.", "error");
-  } finally {
-    setSaving(false);
-  }
-};
+    const publicToken = generateToken();
+
+    try {
+      const payload = {
+        invoice_id:      invoiceId,
+        public_token:    publicToken,
+        customer_name:   customer.name,
+        customer_mobile: customer.mobile,
+        customer_gst:    customer.gst,
+        shop_name:       shopProfile?.name    || "",
+        shop_address:    shopProfile?.address || "",
+        shop_gst:        shopProfile?.gst_number || "",
+        subtotal,
+        gst_amt:         gstAmt,
+        discount:        Number(discount),
+        advance:         Number(advance),
+        total,
+        is_gst:          applyGST,
+        payment,
+        date:            todayStr(),
+        items: items
+          .filter((i) => i.name.trim())
+          .map((i) => ({
+            product:       i.isStockItem ? i.productId : null,
+            name:          i.name,
+            qty:           Number(i.qty),
+            price:         Number(i.price),
+            unit:          i.unit,
+            is_stock_item: i.isStockItem,
+            gst_rate:      Number(i.gst_rate || 0),
+          })),
+      };
+
+      // ★ SAVE FIRST — wait for server response
+      const res = await createInvoice(payload);
+
+      // ★ Use the REAL invoice_id/public_token the server returns (falls back
+      //   to what we sent, in case your API doesn't echo them back)
+      const savedInvoiceId   = res?.data?.invoice_id   || invoiceId;
+      const savedPublicToken = res?.data?.public_token || publicToken;
+
+      refetch();
+      showToast(`✅ Invoice ${savedInvoiceId} saved!`);
+
+      authAxios.get("business/invoices/next-id/")
+        .then(r => setInvoiceId(r.data.invoice_id))
+        .catch(() => {});
+
+      // ★ Build the share message using the CONFIRMED saved number
+      const wantsShare = shareMethod !== "none" && customer.mobile?.trim() && !isExpired;
+      if (wantsShare) {
+        const msg = [
+          `Hello ${customer.name}! 👋`,
+          ``,
+          `Welcome to *${shopProfile?.name || "ManaBills Shop"}*`,
+          ``,
+          `Your invoice has been generated:`,
+          `🧾 Invoice No: *${savedInvoiceId}*`,
+          `💰 Total Amount: *₹${Number(total).toLocaleString("en-IN")}*`,
+          `📅 Date: ${todayStr()}`,
+          ``,
+          `👇 View & Download your invoice:`,
+          `${process.env.REACT_APP_BASE_URL}/invoice/${savedPublicToken}`,
+          ``,
+          `Thank you for shopping with us! 🙏`,
+        ].join("\n");
+
+        // ★ Show the popup instead of opening WhatsApp automatically
+        setSharePopup({
+          mobile: customer.mobile,
+          msg,
+          method: shareMethod,
+        });
+      }
+
+      // Reset form
+      getProductStats().then(setStockStats).catch(() => {});
+      setItems([emptyItem()]);
+      setCustomer({ name: "", mobile: "", gst: "" });
+      setDiscount(0);
+      setAdvance(0);
+      setPayment("Cash");
+
+    } catch (err) {
+      const errData = err?.response?.data;
+      if (errData?.stock)      showToast(errData.stock.join(" | "), "error");
+      else if (errData?.items) showToast(errData.items, "error");
+      else                     showToast("Failed to save invoice. Try again.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ★ Called when user taps "Share" on the popup — this tap itself
+  //   opens WhatsApp/SMS, so it's a fresh trusted click (no blocking).
+  const confirmShare = () => {
+    if (!sharePopup) return;
+    const cleaned = sharePopup.mobile.replace(/\D/g, "").replace(/^91/, "").slice(-10);
+
+    if (sharePopup.method === "whatsapp") {
+      window.open(`https://wa.me/91${cleaned}?text=${encodeURIComponent(sharePopup.msg)}`, "_blank");
+    }
+    if (sharePopup.method === "sms") {
+      window.open(`sms:+91${cleaned}?body=${encodeURIComponent(sharePopup.msg)}`, "_blank");
+    }
+    setSharePopup(null);
+  };
 
   // ── Keyboard shortcuts ────────────────────────────────────
   useEffect(() => {
@@ -345,6 +366,60 @@ const CreateInvoice = () => {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [items, customer, discount, advance, payment, activeRow, saving, shareMethod]);
+
+
+  // ─────────────────────────────────────────────────────────
+  // ★  Share confirmation popup — shown after invoice is saved
+  // ─────────────────────────────────────────────────────────
+  const SharePopup = () => {
+    if (!sharePopup) return null;
+    return (
+      <div style={{
+        position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 10000, padding: "20px", boxSizing: "border-box",
+      }}>
+        <div style={{
+          background: "#fff", borderRadius: "18px", padding: "26px 22px",
+          maxWidth: "340px", width: "100%", textAlign: "center",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+        }}>
+          <div style={{ fontSize: "2.2rem", marginBottom: "10px" }}>
+            {sharePopup.method === "whatsapp" ? "💬" : "✉️"}
+          </div>
+          <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0f172a", margin: "0 0 8px" }}>
+            Invoice saved!
+          </h3>
+          <p style={{ fontSize: "0.85rem", color: "#64748b", margin: "0 0 20px", lineHeight: 1.5 }}>
+            Send it to the customer on {sharePopup.method === "whatsapp" ? "WhatsApp" : "SMS"} now?
+          </p>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button
+              onClick={() => setSharePopup(null)}
+              style={{
+                flex: 1, padding: "12px", borderRadius: "11px", border: "1.5px solid #e2e8f0",
+                background: "#fff", color: "#64748b", fontWeight: 600, fontSize: "0.85rem",
+                cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmShare}
+              style={{
+                flex: 1, padding: "12px", borderRadius: "11px", border: "none",
+                background: sharePopup.method === "whatsapp" ? "#25d366" : "#2563eb",
+                color: "#fff", fontWeight: 700, fontSize: "0.85rem",
+                cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Share
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // ─────────────────────────────────────────────────────────
   // ★  Block invoice creation if Free Trial has expired
@@ -424,7 +499,9 @@ const CreateInvoice = () => {
   // ─────────────────────────────────────────────────────────
   if (isMobile) {
     return (
+
       <div style={S.page}>
+        <SharePopup />
         {toast && <div style={S.toast(toast.type)}>{toast.msg}</div>}
 
         <div style={S.headerBar}>
@@ -615,6 +692,7 @@ const CreateInvoice = () => {
   // ─────────────────────────────────────────────────────────
   return (
     <div className="invoice-page-full">
+      <SharePopup />
       {toast && (
         <div style={{ position:"fixed", top:"72px", left:"50%", transform:"translateX(-50%)", zIndex:9999, padding:"10px 24px", borderRadius:"100px", fontWeight:600, fontSize:"0.85rem", whiteSpace:"nowrap", background: toast.type === "whatsapp" ? "#25d366" : toast.type === "success" ? "#0e1b2e" : "#dc2626", color:"#fff", boxShadow:"0 4px 20px rgba(0,0,0,0.18)" }}>
           {toast.msg}
