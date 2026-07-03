@@ -246,16 +246,33 @@ const CreateInvoice = () => {
   const wantsShare = shareMethod !== "none" && customer.mobile?.trim() && !isExpired;
   const cleaned = customer.mobile.replace(/\D/g, "").replace(/^91/, "").slice(-10);
 
-  // ★ STEP 1: Open a blank tab RIGHT NOW, while the tap is still "fresh".
-  //   We fill it in later — this is what keeps WhatsApp opening the app directly.
-  let waTab = null;
-  if (wantsShare && (shareMethod === "whatsapp" || shareMethod === "sms")) {
-    waTab = window.open("", "_blank");
+  const msg = [
+    `Hello ${customer.name}! 👋`,
+    ``,
+    `Welcome to *${shopProfile?.name || "ManaBills Shop"}*`,
+    ``,
+    `Your invoice has been generated:`,
+    `🧾 Invoice No: *${invoiceId}*`,
+    `💰 Total Amount: *₹${Number(total).toLocaleString("en-IN")}*`,
+    `📅 Date: ${todayStr()}`,
+    ``,
+    `👇 View & Download your invoice:`,
+    `${process.env.REACT_APP_BASE_URL}/invoice/${publicToken}`,
+    ``,
+    `Thank you for shopping with us! 🙏`,
+  ].join("\n");
+
+  // ★ Open WhatsApp/SMS INSTANTLY — this is a real tap, so phone opens the app directly
+  if (wantsShare && shareMethod === "whatsapp") {
+    window.open(`https://wa.me/91${cleaned}?text=${encodeURIComponent(msg)}`, "_blank");
+  }
+  if (wantsShare && shareMethod === "sms") {
+    window.open(`sms:+91${cleaned}?body=${encodeURIComponent(msg)}`, "_blank");
   }
 
   try {
     const payload = {
-      invoice_id:      invoiceId,
+      invoice_id:      invoiceId,   // ← same number used in WhatsApp above — will match 100%
       public_token:    publicToken,
       customer_name:   customer.name,
       customer_mobile: customer.mobile,
@@ -284,42 +301,16 @@ const CreateInvoice = () => {
         })),
     };
 
-    // ★ STEP 2: Save to server, get the REAL invoice number back
-    const savedInvoice = await createInvoice(payload);
-    const realInvoiceId = savedInvoice?.invoice_id || invoiceId;
+    await createInvoice(payload);
 
     refetch();
-    showToast(`✅ Invoice ${realInvoiceId} saved!`);
+    showToast(`✅ Invoice ${invoiceId} saved!`);
 
-    // ★ STEP 3: NOW send the already-open tab to the WhatsApp/SMS link
+    authAxios.get("business/invoices/next-id/")
+      .then(r => setInvoiceId(r.data.invoice_id))
+      .catch(() => {});
+
     if (wantsShare) {
-      const msg = [
-        `Hello ${customer.name}! 👋`,
-        ``,
-        `Welcome to *${shopProfile?.name || "ManaBills Shop"}*`,
-        ``,
-        `Your invoice has been generated:`,
-        `🧾 Invoice No: *${realInvoiceId}*`,
-        `💰 Total Amount: *₹${Number(total).toLocaleString("en-IN")}*`,
-        `📅 Date: ${todayStr()}`,
-        ``,
-        `👇 View & Download your invoice:`,
-        `${process.env.REACT_APP_BASE_URL}/invoice/${publicToken}`,
-        ``,
-        `Thank you for shopping with us! 🙏`,
-      ].join("\n");
-
-      if (shareMethod === "whatsapp") {
-        const waUrl = `https://wa.me/91${cleaned}?text=${encodeURIComponent(msg)}`;
-        if (waTab) waTab.location.href = waUrl;
-        else window.open(waUrl, "_blank");
-      }
-      if (shareMethod === "sms") {
-        const smsUrl = `sms:+91${cleaned}?body=${encodeURIComponent(msg)}`;
-        if (waTab) waTab.location.href = smsUrl;
-        else window.open(smsUrl, "_blank");
-      }
-
       setTimeout(() => {
         showToast(
           shareMethod === "whatsapp" ? "💬 WhatsApp opened!" : "✉️ SMS app opened!",
@@ -327,10 +318,6 @@ const CreateInvoice = () => {
         );
       }, 400);
     }
-
-    authAxios.get("business/invoices/next-id/")
-      .then(r => setInvoiceId(r.data.invoice_id))
-      .catch(() => {});
 
     getProductStats().then(setStockStats).catch(() => {});
     setItems([emptyItem()]);
@@ -340,7 +327,6 @@ const CreateInvoice = () => {
     setPayment("Cash");
 
   } catch (err) {
-    if (waTab) waTab.close(); // clean up the blank tab if save failed
     const errData = err?.response?.data;
     if (errData?.stock)      showToast(errData.stock.join(" | "), "error");
     else if (errData?.items) showToast(errData.items, "error");
