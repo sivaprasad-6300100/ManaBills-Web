@@ -73,6 +73,24 @@ self.addEventListener("fetch", (e) => {
   }
 
   // Static assets only: cache-first, fall back to network
+  // JS and CSS files: ALWAYS get the latest from network first.
+// Only use cache if the user is offline (network fails).
+if (url.endsWith(".js") || url.endsWith(".css")) {
+  e.respondWith(
+    fetch(request)
+      .then((response) => {
+        if (response.ok) {
+          const responseClone = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, responseClone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request))
+  );
+  return;
+}
+
+// Everything else (images, fonts, etc): cache-first is fine, they rarely change
   if (request.method === "GET") {
     e.respondWith(
       caches.match(request).then((cached) => {

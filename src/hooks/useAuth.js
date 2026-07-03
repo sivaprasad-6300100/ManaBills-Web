@@ -13,6 +13,7 @@ const useAuth = () => {
   return {
     user,
     isAuthenticated: !!user,
+    accessToken: localStorage.getItem("access_token"),
     login,
     logout,
   };

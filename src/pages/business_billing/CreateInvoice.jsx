@@ -11,16 +11,6 @@ import { BusinessStatsContext } from "../../context/BusinessStatsContext";
 import { SubscriptionContext } from "../../context/SubscriptionContext";
 import { authAxios } from "../../services/api";
 
-// ─── Invoice ID generator ─────────────────────────────────────
-// const genInvoiceId = () => {
-  // const now = new Date();
-  // const yy  = String(now.getFullYear()).slice(-2);
-  // const mm  = String(now.getMonth() + 1).padStart(2, "0");
-  // const dd  = String(now.getDate()).padStart(2, "0");
-  // const seq = Math.floor(Math.random() * 9000) + 1000;
-  // return `INV-${yy}${mm}${dd}-${seq}`;
-// };
-
 const emptyItem = () => ({
   productId: null, name: "", qty: 1, price: 0,
   unit: "piece", maxQty: Infinity, isStockItem: false,
@@ -41,39 +31,10 @@ const isValidGST = (gst) => {
   return gstRegex.test(gst.trim().toUpperCase());
 };
 
-// ─────────────────────────────────────────────────────────────
-// ★  WhatsApp auto-message sender
-//    Opens wa.me in a new tab — no extra API cost, works on
-//    every Android/iPhone instantly.
-// ─────────────────────────────────────────────────────────────
-const sendWhatsAppInvoice = ({ mobile, customerName, shopName, invoiceId, total, invoiceUrl }) => {
-  if (!mobile || mobile.trim().length < 10) return;
-
-  // Clean mobile: strip +91, spaces, dashes → keep 10 digits
-  const cleaned = mobile.replace(/\D/g, "").replace(/^91/, "").slice(-10);
-  if (cleaned.length < 10) return;
-
-  const waNumber = `91${cleaned}`;   // Indian numbers
-
-  const msg = [
-    `🙏 *Hello ${customerName || "Customer"}!*`,
-    ``,
-    `Welcome to *${shopName || "our shop"}* 🛒`,
-    ``,
-    `✅ Your invoice *${invoiceId}* has been generated.`,
-    `💰 *Amount: ₹${Number(total).toLocaleString("en-IN")}*`,
-    `📅 Date: ${todayStr()}`,
-    ``,
-    `📄 View your invoice here:`,
-    invoiceUrl,
-    ``,
-    `Thank you for your purchase! 😊`,
-  ].join("\n");
-
-  const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
-
-  // Small delay so the success toast shows first
-  setTimeout(() => window.open(waUrl, "_blank", "noopener,noreferrer"), 600);
+// ★ Generates a unique invoice token instantly in the browser,
+//   so we don't have to wait for the server before opening WhatsApp/SMS.
+const generateToken = () => {
+  return "inv_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
 };
 
 // ─── Mobile detection ─────────────────────────────────────────
@@ -137,7 +98,7 @@ const S = {
   balanceVal: { fontSize:"1.1rem", fontWeight:800, color:"#fff" },
   stockNote: { background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"10px", padding:"10px 12px", marginTop:"12px", fontSize:"0.75rem", color:"#15803d", fontWeight:500, lineHeight:1.5, boxSizing:"border-box", width:"100%" },
 
-  // ── WhatsApp preview banner ────────────────────────────────
+  // ── Share banner (was WhatsApp-only, now WhatsApp/SMS) ─────
   waBanner: { background:"#f0fdf4", border:"1px solid #86efac", borderRadius:"13px", padding:"12px 14px", marginBottom:"14px", display:"flex", alignItems:"center", gap:"10px", boxSizing:"border-box", width:"100%" },
   waIcon: { width:"36px", height:"36px", borderRadius:"50%", background:"#25d366", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:"18px" },
   waText: { flex:1, fontSize:"0.78rem", color:"#15803d", lineHeight:1.5 },
@@ -145,6 +106,16 @@ const S = {
 
   generateBtn: { display:"flex", alignItems:"center", justifyContent:"center", gap:"8px", width:"100%", boxSizing:"border-box", background:"linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)", color:"#fff", border:"none", borderRadius:"14px", padding:"16px", fontSize:"0.95rem", fontWeight:700, letterSpacing:"-0.2px", cursor:"pointer", marginTop:"16px", boxShadow:"0 4px 18px rgba(37,99,235,0.3)", fontFamily:"inherit" },
   toast: (type) => ({ position:"fixed", top:"72px", left:"50%", transform:"translateX(-50%)", zIndex:9999, padding:"11px 22px", borderRadius:"100px", fontWeight:600, fontSize:"0.82rem", whiteSpace:"nowrap", background: type === "success" ? "#0f172a" : type === "whatsapp" ? "#25d366" : "#dc2626", color:"#fff", boxShadow:"0 6px 24px rgba(0,0,0,0.22)", maxWidth:"calc(100vw - 32px)" }),
+
+  // ── Share method picker buttons ─────────────────────────────
+  pickerWrap: { display:"flex", gap:"8px", marginBottom:"14px" },
+  pickerBtn: (active, color, bg) => ({
+    flex:1, padding:"10px", borderRadius:"10px", fontSize:"0.8rem", fontWeight:600,
+    border: active ? `2px solid ${color}` : "1.5px solid #e2e8f0",
+    background: active ? bg : "#fff",
+    color: active ? color : "#64748b",
+    cursor:"pointer", fontFamily:"inherit",
+  }),
 };
 
 const CreateInvoice = () => {
@@ -156,14 +127,6 @@ const CreateInvoice = () => {
 
   const trialEnded = subscriptions?.["business"]?.plan_key === "free_trial"
                       && subscriptions?.["business"]?.status === "expired";
-
-  
-  
-  
-  
-  
-  
-
 
   const [isGST,        setIsGST]        = useState(false);
   const [customer,     setCustomer]     = useState({ name: "", mobile: "", gst: "" });
@@ -179,8 +142,8 @@ const CreateInvoice = () => {
   const [invoiceId, setInvoiceId] = useState("Loading…");
   const [shopProfile,  setShopProfile]  = useState({ name: "ManaBills Shop", mobile: "" });
 
-  // ★ WhatsApp toggle — owner can turn off per invoice
-  const [sendWA, setSendWA] = useState(true);
+  // ★ Share method — owner picks WhatsApp / SMS / Don't Send, per invoice
+  const [shareMethod, setShareMethod] = useState("whatsapp"); // "whatsapp" | "sms" | "none"
 
   const lastInputRef = useRef(null);
 
@@ -192,8 +155,6 @@ const CreateInvoice = () => {
     .then(r => setInvoiceId(r.data.invoice_id))
     .catch(() => setInvoiceId("INV-ERR"));
 
-    // getShopProfile returns { name, mobile, address, ... }
-    // If you don't have this service yet, you can hardcode shopProfile above.
     if (typeof getShopProfile === "function") {
       getShopProfile().then((data) => {
         setShopProfile(data);
@@ -210,7 +171,6 @@ const CreateInvoice = () => {
 
   // ── Calculations ──────────────────────────────────────────
   const subtotal = items.reduce((s, i) => s + Number(i.qty) * Number(i.price), 0);
-  // GST only applies when shop has GST AND customer has entered their GST number
   const applyGST = isGST;
   const gstAmt = applyGST
   ? Math.round(items.reduce((s, i) =>
@@ -265,7 +225,8 @@ const CreateInvoice = () => {
   };
 
   // ─────────────────────────────────────────────────────────
-  // ★  GENERATE INVOICE  (with WhatsApp auto-send)
+  // ★  GENERATE INVOICE  (WhatsApp/SMS opens INSTANTLY on click,
+  //     invoice saves to server in the background right after)
   // ────────────────────────────────────────────────────────
   const handleGenerate = async () => {
     if (!customer.name.trim()) { showToast("Enter customer name", "error"); return; }
@@ -278,130 +239,110 @@ const CreateInvoice = () => {
     if (items.every((i) => !i.name.trim())) { showToast("Add at least one item", "error"); return; }
     if (saving) return;
 
-  setSaving(true);
+    setSaving(true);
 
-  // ★ Open window synchronously — MUST be before any await
-  // Do NOT use noopener — it kills the window reference
-  let waWindow = null;
-  if (sendWA && customer.mobile?.trim() && !isExpired) {
-    waWindow = window.open("", "_blank");   // ← no noopener
-    if (waWindow) {
-      waWindow.document.write(`
-        <!DOCTYPE html><html><head><title>Opening WhatsApp…</title></head>
-        <body style="margin:0;height:100vh;display:flex;flex-direction:column;
-                     align-items:center;justify-content:center;gap:14px;
-                     background:#f0fdf4;font-family:sans-serif;">
-          <div style="font-size:52px">💬</div>
-          <div style="font-size:1.1rem;font-weight:700;color:#15803d">Saving invoice…</div>
-          <div style="font-size:0.82rem;color:#64748b">WhatsApp will open automatically</div>
-        </body></html>
-      `);
-      waWindow.document.close();
+    // ★ Step 1: Build our own invoice link token right now — no waiting for server.
+    const publicToken = generateToken();
+    const wantsShare = shareMethod !== "none" && customer.mobile?.trim() && !isExpired;
+    const cleaned = customer.mobile.replace(/\D/g, "").replace(/^91/, "").slice(-10);
+
+    const msg = [
+      `Hello ${customer.name}! 👋`,
+      ``,
+      `Welcome to *${shopProfile?.name || "ManaBills Shop"}*`,
+      ``,
+      `Your invoice has been generated:`,
+      `🧾 Invoice No: *${invoiceId}*`,
+      `💰 Total Amount: *₹${Number(total).toLocaleString("en-IN")}*`,
+      `📅 Date: ${todayStr()}`,
+      ``,
+      `👇 View & Download your invoice:`,
+      `${process.env.REACT_APP_BASE_URL}/invoice/${publicToken}`,
+      ``,
+      `Thank you for shopping with us! 🙏`,
+    ].join("\n");
+
+    // ★ Step 2: Open WhatsApp / SMS IMMEDIATELY on this same click.
+    //   This is a real, trusted user gesture, so it opens the app directly
+    //   instead of falling back to the browser landing page.
+    if (wantsShare && shareMethod === "whatsapp") {
+      const waUrl = `https://wa.me/91${cleaned}?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, "_blank");
     }
-  }
-
-  try {
-    const payload = {
-      invoice_id:      invoiceId,
-      customer_name:   customer.name,
-      customer_mobile: customer.mobile,
-      customer_gst:    customer.gst,
-      shop_name:       shopProfile?.name    || "",
-      shop_address:    shopProfile?.address || "",
-      shop_gst:        shopProfile?.gst_number || "",
-      subtotal,
-      gst_amt:         gstAmt,
-      discount:        Number(discount),
-      advance:         Number(advance),
-      total,
-      is_gst:          applyGST,
-      payment,
-      date:            todayStr(),
-      
-      items: items
-        .filter((i) => i.name.trim())
-        .map((i) => ({
-          product:       i.isStockItem ? i.productId : null,
-          name:          i.name,
-          qty:           Number(i.qty),
-          price:         Number(i.price),
-          unit:          i.unit,
-          is_stock_item: i.isStockItem,
-          gst_rate:      Number(i.gst_rate || 0),
-        })),
-    };
-
-
-    const savedInvoice = await createInvoice(payload);
-    const publicToken = savedInvoice?.public_token || invoiceId;
-    
-    refetch();
-
-    showToast(`✅ Invoice ${invoiceId} saved!`);
-
-
-    authAxios.get("business/invoices/next-id/")
-      .then(r => setInvoiceId(r.data.invoice_id))
-      .catch(() => {});
-
-    // ★ Now redirect the already-open window to WhatsApp
-    if (waWindow && !waWindow.closed) {
-      const invoiceUrl = `${process.env.REACT_APP_BASE_URL}/invoice/${publicToken}`;
-      const cleaned    = customer.mobile.replace(/\D/g, "").replace(/^91/, "").slice(-10);
-      const waNumber   = `91${cleaned}`;
-
-      const msg = [
-        `Hello ${customer.name}! 👋`,
-        ``,
-        `Welcome to *${shopProfile?.name || "ManaBills Shop"}*`,
-        ``,
-        `Your invoice has been generated:`,
-        `🧾 Invoice No: *${invoiceId}*`,
-        `💰 Total Amount: *₹${Number(total).toLocaleString("en-IN")}*`,
-        `📅 Date: ${todayStr()}`,
-        ``,
-        `👇 View & Download your invoice:`,
-        `${invoiceUrl}`,
-        ``,
-        `Thank you for shopping with us! 🙏`,
-      ].join("\n");
-
-      const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
-      waWindow.location.href = waUrl;
-
-
-
-
-
-
-
-
-      setTimeout(() => showToast("💬 WhatsApp opened!", "whatsapp"), 500);
+    if (wantsShare && shareMethod === "sms") {
+      const smsUrl = `sms:+91${cleaned}?body=${encodeURIComponent(msg)}`;
+      window.open(smsUrl, "_blank");
     }
 
-    // Reset form
-    getProductStats().then(setStockStats).catch(() => {});
-    setItems([emptyItem()]);
-    setCustomer({ name: "", mobile: "", gst: "" });
-    setDiscount(0);
-    setAdvance(0);
-    setPayment("Cash");
+    // ★ Step 3: Save the invoice to the server in the background,
+    //   using the SAME token we already shared.
+    try {
+      const payload = {
+        invoice_id:      invoiceId,
+        public_token:    publicToken,
+        customer_name:   customer.name,
+        customer_mobile: customer.mobile,
+        customer_gst:    customer.gst,
+        shop_name:       shopProfile?.name    || "",
+        shop_address:    shopProfile?.address || "",
+        shop_gst:        shopProfile?.gst_number || "",
+        subtotal,
+        gst_amt:         gstAmt,
+        discount:        Number(discount),
+        advance:         Number(advance),
+        total,
+        is_gst:          applyGST,
+        payment,
+        date:            todayStr(),
 
-  } catch (err) {
-    if (waWindow && !waWindow.closed) waWindow.close();
+        items: items
+          .filter((i) => i.name.trim())
+          .map((i) => ({
+            product:       i.isStockItem ? i.productId : null,
+            name:          i.name,
+            qty:           Number(i.qty),
+            price:         Number(i.price),
+            unit:          i.unit,
+            is_stock_item: i.isStockItem,
+            gst_rate:      Number(i.gst_rate || 0),
+          })),
+      };
 
-    const errData = err?.response?.data;
-    if (errData?.stock)      showToast(errData.stock.join(" | "), "error");
-    else if (errData?.items) showToast(errData.items, "error");
-    else                     showToast("Failed to save invoice. Try again.", "error");
-  } finally {
-    setSaving(false);
-  }
-};
+      await createInvoice(payload);
 
+      refetch();
+      showToast(`✅ Invoice ${invoiceId} saved!`);
 
+      authAxios.get("business/invoices/next-id/")
+        .then(r => setInvoiceId(r.data.invoice_id))
+        .catch(() => {});
 
-  // ── Keyboard shortcuts ────────────────────────────────────
+      if (wantsShare) {
+        setTimeout(() => {
+          showToast(
+            shareMethod === "whatsapp" ? "💬 WhatsApp opened!" : "✉️ SMS app opened!",
+            shareMethod === "whatsapp" ? "whatsapp" : "success"
+          );
+        }, 400);
+      }
+
+      // Reset form
+      getProductStats().then(setStockStats).catch(() => {});
+      setItems([emptyItem()]);
+      setCustomer({ name: "", mobile: "", gst: "" });
+      setDiscount(0);
+      setAdvance(0);
+      setPayment("Cash");
+
+    } catch (err) {
+      const errData = err?.response?.data;
+      if (errData?.stock)      showToast(errData.stock.join(" | "), "error");
+      else if (errData?.items) showToast(errData.items, "error");
+      else                     showToast("Failed to save invoice. Try again.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // ── Keyboard shortcuts ────────────────────────────────────
   useEffect(() => {
@@ -411,7 +352,7 @@ const CreateInvoice = () => {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [items, customer, discount, advance, payment, activeRow, saving]);
+  }, [items, customer, discount, advance, payment, activeRow, saving, shareMethod]);
 
   // ─────────────────────────────────────────────────────────
   // ★  Block invoice creation if Free Trial has expired
@@ -446,45 +387,42 @@ const CreateInvoice = () => {
   }
 
   // ─────────────────────────────────────────────────────────
-  // ★  WhatsApp preview banner (shown when mobile is entered)
+  // ★  Share method picker — WhatsApp / SMS / Don't Send
+  //    Used in BOTH mobile and desktop views.
   // ─────────────────────────────────────────────────────────
+  const ShareMethodPicker = () => {
+    if (!customer.mobile || customer.mobile.trim().length < 6) return null;
 
-  // ─────────────────────────────────────────────────────────
-  // ★  WhatsApp preview banner (shown when mobile is entered)
-  // ─────────────────────────────────────────────────────────
-   const WaBanner = () => {
-      if (!customer.mobile || customer.mobile.trim().length < 6) return null;
-    
-      if (isExpired) {
-        return (
-          <div style={{ ...S.waBanner, background:"#fef2f2", border:"1px solid #fecaca" }}>
-            <div style={{ flex:1, fontSize:"0.78rem", color:"#dc2626", fontWeight:600 }}>
-              🔒 WhatsApp sharing is locked. Renew your plan to share invoices automatically. Invoice will still be saved normally.
-            </div>
+    if (isExpired) {
+      return (
+        <div style={{ ...S.waBanner, background:"#fef2f2", border:"1px solid #fecaca" }}>
+          <div style={{ flex:1, fontSize:"0.78rem", color:"#dc2626", fontWeight:600 }}>
+            🔒 Auto-sharing is locked. Renew your plan to share invoices automatically. Invoice will still be saved normally.
           </div>
-        );
-      }
+        </div>
+      );
+    }
 
     return (
-      <div style={S.waBanner}>
-        <div style={S.waIcon}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-          </svg>
+      <div>
+        <div style={S.pickerWrap}>
+          <button type="button" style={S.pickerBtn(shareMethod === "whatsapp", "#15803d", "#f0fdf4")} onClick={() => setShareMethod("whatsapp")}>
+            💬 WhatsApp
+          </button>
+          <button type="button" style={S.pickerBtn(shareMethod === "sms", "#2563eb", "#eff6ff")} onClick={() => setShareMethod("sms")}>
+            ✉️ SMS
+          </button>
+          <button type="button" style={S.pickerBtn(shareMethod === "none", "#334155", "#f8fafc")} onClick={() => setShareMethod("none")}>
+            🚫 Don't Send
+          </button>
         </div>
-        <div style={S.waText}>
-          <strong>WhatsApp will be sent</strong> to {customer.mobile}<br />
-          <span style={{ opacity: 0.8 }}>Invoice link + amount will be shared automatically</span>
-        </div>
-        <label style={S.waToggle}>
-          <input
-            type="checkbox"
-            checked={sendWA}
-            onChange={() => setSendWA(!sendWA)}
-            style={{ accentColor: "#25d366", width: "15px", height: "15px" }}
-          />
-          {sendWA ? "On" : "Off"}
-        </label>
+        {shareMethod !== "none" && (
+          <div style={{ fontSize:"0.75rem", color:"#64748b", padding:"0 2px 10px" }}>
+            {shareMethod === "whatsapp"
+              ? `WhatsApp will open with the invoice link right when you tap Generate.`
+              : `SMS app will open with the invoice link right when you tap Generate.`}
+          </div>
+        )}
       </div>
     );
   };
@@ -541,8 +479,8 @@ const CreateInvoice = () => {
               <div style={{ fontSize:"0.72rem", color:"#15803d", marginBottom:8, paddingLeft:4 }}>✓ Valid mobile number</div>
             )}
 
-            {/* ★ WhatsApp preview banner */}
-            <WaBanner />
+            {/* ★ Share method picker (WhatsApp / SMS / Don't Send) */}
+            <ShareMethodPicker />
 
             {shopProfile?.gst_enabled && (
               <>
@@ -570,7 +508,7 @@ const CreateInvoice = () => {
                   <div style={{ fontSize:"0.72rem", color:"#15803d", paddingLeft:4 }}>✓ Valid GST number</div>
                 )}
               </>
-            )}            
+            )}
           </div>
 
           {/* Items card */}
@@ -612,7 +550,6 @@ const CreateInvoice = () => {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <input type="number" style={S.itemNumInput} value={item.price} placeholder="Price ₹" onChange={(e) => updateItem(i, "price", e.target.value)} />
                   </div>
-                   {/* ← ADD HERE */}
 
                    {applyGST && (
                       <select
@@ -625,7 +562,6 @@ const CreateInvoice = () => {
                         ))}
                       </select>
                     )}
-
 
                   <div style={S.itemAmtBox}>₹{(Number(item.qty) * Number(item.price)).toLocaleString("en-IN")}</div>
                 </div>
@@ -660,15 +596,17 @@ const CreateInvoice = () => {
             </div>
             {items.some((i) => i.isStockItem) && <div style={S.stockNote}>📦 Stock will be deducted automatically when you generate this invoice.</div>}
 
-            {/* ★ Generate button — shows WhatsApp icon when enabled */}
+            {/* ★ Generate button — shows WhatsApp or SMS icon based on selection */}
             <button style={{ ...S.generateBtn, opacity: saving ? 0.7 : 1 }} onClick={handleGenerate} disabled={saving}>
               {saving ? "Saving…" : (
                 <>
                   Generate Invoice
-                  {sendWA && customer.mobile?.trim() && (
+                  {shareMethod !== "none" && customer.mobile?.trim() && (
                     <span style={{ fontSize: "0.78rem", opacity: 0.85, display: "flex", alignItems: "center", gap: "4px" }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                      + WhatsApp
+                      {shareMethod === "whatsapp" ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                      ) : "✉️"}
+                      + {shareMethod === "whatsapp" ? "WhatsApp" : "SMS"}
                     </span>
                   )}
                 </>
@@ -754,31 +692,12 @@ const CreateInvoice = () => {
             </div>
           </>
         )}
-
-
       </div>
 
-      {/* ★ WhatsApp banner — desktop */}
-      {customer.mobile?.trim().length >= 6 && isExpired && (
-        <div style={{ ...S.waBanner, marginBottom: "18px", background:"#fef2f2", border:"1px solid #fecaca" }}>
-          <div style={{ flex:1, fontSize:"0.78rem", color:"#dc2626", fontWeight:600 }}>
-            🔒 WhatsApp sharing is locked. Renew your plan to share invoices automatically. Invoice will still be saved normally.
-          </div>
-        </div>
-      )}
-      {customer.mobile?.trim().length >= 6 && !isExpired && (
-        <div style={{ ...S.waBanner, marginBottom: "18px" }}>
-          <div style={S.waIcon}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-          </div>
-          <div style={S.waText}>
-            <strong>WhatsApp will be sent to {customer.mobile}</strong> after generating invoice<br />
-            <span style={{ opacity:0.8 }}>Message: "Hi {customer.name || "Customer"}! Welcome to {shopProfile?.name}. Your invoice {invoiceId} of ₹{total.toLocaleString("en-IN")} is ready. [link]"</span>
-          </div>
-          <label style={{ ...S.waToggle, gap:"8px" }}>
-            <input type="checkbox" checked={sendWA} onChange={() => setSendWA(!sendWA)} style={{ accentColor:"#25d366", width:"16px", height:"16px" }} />
-            {sendWA ? "Send WhatsApp ✓" : "Disabled"}
-          </label>
+      {/* ★ Share method picker — desktop */}
+      {customer.mobile?.trim().length >= 6 && (
+        <div style={{ marginBottom: "18px" }}>
+          <ShareMethodPicker />
         </div>
       )}
 
@@ -856,9 +775,9 @@ const CreateInvoice = () => {
             {saving ? "Saving…" : (
               <>
                 Generate Invoice
-                {sendWA && customer.mobile?.trim() && (
+                {shareMethod !== "none" && customer.mobile?.trim() && (
                   <span style={{ fontSize:"0.75rem", opacity:0.85, background:"rgba(255,255,255,0.2)", padding:"2px 8px", borderRadius:"20px" }}>
-                    + WhatsApp
+                    + {shareMethod === "whatsapp" ? "WhatsApp" : "SMS"}
                   </span>
                 )}
                 {!saving && <span style={{ opacity:0.6, fontSize:"0.75rem" }}>Ctrl+Enter</span>}

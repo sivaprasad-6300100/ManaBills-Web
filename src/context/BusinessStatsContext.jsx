@@ -40,6 +40,9 @@ export const BusinessStatsProvider = ({ children }) => {
     const onFocus = () => fetchStats();
     window.addEventListener("focus", onFocus);
 
+    const onStatsDirty = () => fetchStats();              
+    window.addEventListener("manabills:stats-dirty", onStatsDirty);   
+
     const scheduleMidnightRefetch = () => {
       const now = new Date();
       const nextMidnight = new Date();
@@ -56,6 +59,7 @@ export const BusinessStatsProvider = ({ children }) => {
 
     return () => {
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("manabills:stats-dirty", onStatsDirty);   
       clearTimeout(midnightTimer);
     };
   }, [accessToken, sessionVersion, fetchStats]);

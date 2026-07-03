@@ -206,7 +206,7 @@ const fromApi = (p) => ({
   hwBrand:        p.hw_brand        || "", subCategory:    p.sub_category    || "",
   hwMaterial:     p.hw_material     || "", hwModel:        p.hw_model        || "",
   medCompany:     p.med_company     || "", medSchedule:    p.med_schedule    || "OTC",
-  medExpiry:      p.med_expiry      || "", medBatch:       p.med_batch       || "",
+  medCompany:     p.med_company     || "", medSchedule:    p.med_schedule    || "",
   goldPurity:     p.gold_purity     || "", metalType:      p.metal_type      || "",
   goldWeight:     p.gold_weight     || "",
   makingCharges:  p.making_charges  != null ? Number(p.making_charges)  : 0,
@@ -948,8 +948,8 @@ const Products = () => {
     const chips = [
       { show: true,                   label: "Qty",    val: `${s.qty} ${s.unit}`,   color: s.isLowStock ? "#dc2626" : "#16a34a" },
       { show: true,                   label: "Price",  val: `₹${s.sellingPrice}`,   color: t.color },
-      { show: true,                   label: "",       val: s.category,              color: "#7c3aed" },
-      { show: s.gstRate != null,      label: "GST",    val: `${s.gstRate}%`,         color: "#15803d" },
+      { show: true,                   label: "Value",  val: `₹${(Number(s.qty) * Number(s.sellingPrice)).toLocaleString("en-IN")}`, color: "#0f172a" },
+      { show: s.gstRate != null && shopProfile?.gst_enabled,      label: "GST",    val: `${s.gstRate}%`,         color: "#15803d" },
       { show: !!s.clothingSize,       label: "Size",   val: s.clothingSize },
       { show: !!s.clothingColor,      label: "Color",  val: s.clothingColor },
       { show: !!s.hwBrand,            label: "Brand",  val: s.hwBrand },
@@ -961,7 +961,8 @@ const Products = () => {
       { show: !!s.goldPurity,         label: "Purity", val: s.goldPurity },
       { show: !!s.goldWeight,         label: "Wt",     val: `${s.goldWeight}g` },
       { show: s.makingCharges > 0,    label: "Making", val: `₹${s.makingCharges}` },
-      { show: !!s.hsnCode,            label: "HSN",    val: s.hsnCode },
+      { show: !!s.hsnCode && shopProfile?.gst_enabled,            label: "HSN",    val: s.hsnCode },
+      { show: true,                   label: "",       val: s.category,              color: "#7c3aed" },
     ].filter((c) => c.show);
 
     const isExpiringSoon = s.medExpiry && new Date(`${s.medExpiry}-01`) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);

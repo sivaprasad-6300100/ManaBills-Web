@@ -19,21 +19,19 @@ import { SubscriptionContext } from "../../context/SubscriptionContext";
 ═══════════════════════════════════════════════ */
 const syncInvoiceCustomers = async (invoices) => {
   try {
-    // 1. Fetch all existing customers (load all, search="")
     const existing = await getCustomers("");
     const existingMobiles = new Set(
       existing.map((c) => (c.mobile || "").replace(/\D/g, "").slice(-10)).filter(Boolean)
     );
 
-    // 2. Deduplicate invoice customers by mobile
     const seen = new Set();
     const toCreate = [];
     for (const inv of invoices) {
       const name   = (inv.customer_name   || "").trim();
       const mobile = (inv.customer_mobile || "").replace(/\D/g, "").slice(-10);
-      if (!name || !mobile) continue;                  // skip anonymous
-      if (seen.has(mobile))        continue;           // dedup within invoices
-      if (existingMobiles.has(mobile)) continue;       // already in Customers
+      if (!name || !mobile) continue;
+      if (seen.has(mobile))        continue;
+      if (existingMobiles.has(mobile)) continue;
       seen.add(mobile);
       toCreate.push({
         name,
@@ -44,16 +42,15 @@ const syncInvoiceCustomers = async (invoices) => {
       });
     }
 
-    // 3. Create missing customers one by one
     for (const payload of toCreate) {
       try {
         await createCustomer(payload);
       } catch {
-        // ignore per-customer errors (e.g. duplicate race condition)
+        // ignore per-customer errors
       }
     }
   } catch {
-    // Sync is best-effort; don't surface errors to user
+    // Sync is best-effort
   }
 };
 
@@ -79,7 +76,6 @@ const STYLES = `
 
   .ih-page { padding:1.75rem; background:var(--bg); min-height:100%; font-family:var(--font-b); }
 
-  /* TOAST */
   .ih-toast {
     position:fixed; top:72px; left:50%; transform:translateX(-50%);
     z-index:9999; padding:10px 26px; border-radius:100px;
@@ -95,12 +91,10 @@ const STYLES = `
     to   { opacity:1; transform:translateX(-50%) translateY(0); }
   }
 
-  /* HEADER */
   .ih-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
   .ih-title  { font-family:var(--font-d); font-size:1.6rem; font-weight:800; color:var(--navy); letter-spacing:-0.025em; margin-bottom:4px; }
   .ih-subtitle { font-size:0.82rem; color:var(--muted); font-weight:600; }
 
-  /* KPI */
   .ih-kpi-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px; }
   .ih-kpi {
     background:var(--white); border:1px solid var(--border);
@@ -117,7 +111,6 @@ const STYLES = `
   .ih-kpi.green strong  { color:var(--green); }
   .ih-kpi.orange strong { color:var(--orange); }
 
-  /* FILTERS */
   .ih-filters {
     background:var(--white); border:1px solid var(--border);
     border-radius:var(--r-lg); padding:14px;
@@ -141,7 +134,6 @@ const STYLES = `
   .ih-tab:hover { border-color:var(--navy); color:var(--navy); }
   .ih-tab.active { background:rgba(201,150,58,0.1); border-color:rgba(201,150,58,0.35); color:var(--navy); font-weight:800; }
 
-  /* TABLE */
   .ih-table-wrap { background:var(--white); border:1px solid var(--border); border-radius:var(--r-xl); overflow:hidden; box-shadow:var(--sh-sm); }
   .ih-table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .ih-table { width:100%; min-width:900px; border-collapse:separate; border-spacing:0; }
@@ -165,7 +157,6 @@ const STYLES = `
   .ih-bal.red { color:var(--red); }
   .ih-bal.green { color:var(--green); }
 
-  /* BADGES */
   .ih-badge {
     display:inline-flex; align-items:center; gap:5px;
     padding:5px 11px; border-radius:100px; font-size:0.72rem; font-weight:800;
@@ -181,7 +172,6 @@ const STYLES = `
     padding:1px 6px; border-radius:100px; border:1px solid rgba(30,79,186,0.2);
   }
 
-  /* ACTION BUTTONS */
   .ih-actions-cell { white-space:nowrap; }
   .ih-actions { display:flex; gap:6px; align-items:center; }
   .ih-btn {
@@ -202,15 +192,11 @@ const STYLES = `
   .ih-btn.pdf:hover   { background:var(--navy); color:#fff; }
   .ih-btn:disabled { opacity:0.45; cursor:not-allowed; transform:none !important; }
 
-  /* EMPTY */
   .ih-empty { padding:60px 24px; text-align:center; background:var(--white); border:1.5px dashed var(--border2); border-radius:var(--r-xl); margin-top:14px; }
   .ih-empty-icon { font-size:3rem; margin-bottom:1rem; opacity:0.6; }
   .ih-empty p     { font-size:1rem; font-weight:700; color:var(--navy); margin-bottom:4px; }
   .ih-empty small { font-size:0.82rem; color:var(--muted); }
 
-  /* ═══════════════════════════════════════════════════
-     EDIT MODAL — FULL FEATURED WITH ITEMS
-  ═══════════════════════════════════════════════════ */
   .em-overlay {
     position:fixed; inset:0; z-index:600;
     background:rgba(14,27,46,0.7); backdrop-filter:blur(10px);
@@ -395,7 +381,6 @@ const STYLES = `
   .em-stock-pill.manual { background:#f1f5f9; color:var(--muted); border:1px solid var(--border); }
   .em-stock-pill.new    { background:rgba(201,150,58,0.12); color:#8a6420; border:1px solid rgba(201,150,58,0.3); }
 
-  /* PDF MODAL */
   .pdf-overlay {
     position:fixed; inset:0; z-index:700;
     background:rgba(14,27,46,0.65); backdrop-filter:blur(10px);
@@ -424,7 +409,6 @@ const STYLES = `
   .pdf-action-btn.wa-btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
   .pdf-modal-body { overflow-y:auto; flex:1; padding:1.5rem 1.75rem; }
 
-  /* PDF DOCUMENT */
   .pdf-doc {
     background:#fff; color:#000; padding:40px; border-radius:8px;
     border:1px solid #e5e7eb; position:relative; overflow:hidden;
@@ -546,6 +530,41 @@ const STYLES = `
     .pdf-header { flex-direction:column; gap:8px; }
     .pdf-inv-meta { text-align:left; }
   }
+
+  /* PAID CONFIRM MODAL */
+  .pc-overlay {
+    position:fixed; inset:0; z-index:800;
+    background:rgba(14,27,46,0.72); backdrop-filter:blur(10px);
+    display:flex; align-items:center; justify-content:center; padding:1rem;
+    animation:emFadeIn 0.2s ease;
+  }
+  .pc-modal {
+    position:relative; background:var(--white); border-radius:var(--r-xl);
+    width:100%; max-width:380px; padding:2rem 1.75rem 1.75rem;
+    box-shadow:var(--sh-lg); text-align:center;
+    animation:emPop 0.3s cubic-bezier(0.34,1.36,0.64,1);
+    overflow:hidden;
+  }
+  .pc-icon { font-size:2.4rem; margin-bottom:8px; }
+  .pc-title { font-family:var(--font-d); font-size:1.15rem; font-weight:800; color:var(--navy); }
+  .pc-sub { font-size:0.8rem; color:var(--muted); margin-top:3px; margin-bottom:16px; }
+  .pc-amount-box {
+    background:var(--bg); border:1.5px solid var(--border);
+    border-radius:var(--r-lg); padding:14px; margin-bottom:6px;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .pc-amount-box span { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+  .pc-amount-box strong { font-family:var(--font-d); font-size:1.6rem; font-weight:900; color:var(--green); }
+  .pc-stamp-wrap { height:46px; display:flex; align-items:center; justify-content:center; margin:6px 0; position:relative; }
+  .pc-stamp {
+    font-family:var(--font-d); font-weight:900; font-size:1.3rem;
+    color:var(--green); border:3px solid var(--green); border-radius:10px;
+    padding:4px 18px; transform:scale(1.8) rotate(-8deg); opacity:0;
+    transition:all 0.45s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .pc-stamp.show { transform:scale(1) rotate(-8deg); opacity:1; }
+  .pc-actions { display:flex; gap:10px; margin-top:10px; }
+  .pc-actions .em-cancel, .pc-actions .em-save { flex:1; }
 `;
 
 const MOBILE_CARD_STYLES = `
@@ -576,7 +595,6 @@ const emptyItem = () => ({ id: Date.now() + Math.random(), name:"", qty:1, price
 /* ═══════════════════════════════════════════════
    PDF DOCUMENT
 ═══════════════════════════════════════════════ */
-
 const PdfDocument = React.forwardRef(({ invoice, shop }, ref) => {
   const items    = invoice?.items  || [];
   const status   = invoice?.status || "Pending";
@@ -586,12 +604,6 @@ const PdfDocument = React.forwardRef(({ invoice, shop }, ref) => {
   const discount = Number(invoice?.discount || 0);
   const gstAmt   = Number(invoice?.gst_amt  || 0);
   const subtotal = Number(invoice?.subtotal || 0);
-
-  // ★ Derive actual GST rate from stored amounts (works for 3%, 5%, 12%, 18%, 28%)
-  // const gstRate = subtotal > 0 && gstAmt > 0
-    // ? Math.round((gstAmt / subtotal) * 100)
-    // : 0;
-  // const hasCustomerGst = !!(invoice?.customer_gst?.trim());
 
   return (
     <div className="pdf-doc" ref={ref}>
@@ -700,15 +712,20 @@ const PdfDocument = React.forwardRef(({ invoice, shop }, ref) => {
               });
           })()}
 
-
-
-
-
-
           {discount > 0 && <div className="pdf-total-row" style={{color:"#15803d"}}><span>Discount</span><span>- {fmt(discount)}</span></div>}
           <div className="pdf-total-row grand"><span>Grand Total</span><span>{fmt(total)}</span></div>
-          {advance > 0  && <div className="pdf-total-row paid-row"><span>Paid (Advance)</span><span>{fmt(advance)}</span></div>}
-          {balance > 0  && <div className="pdf-total-row balance-row"><span>Balance Due</span><span>{fmt(balance)}</span></div>}
+          {advance > 0 && balance > 0 && (
+            <div className="pdf-total-row paid-row">
+              <span>Paid (Advance)</span>
+              <span>{fmt(advance)}</span>
+            </div>
+          )}
+          {balance > 0 && (
+            <div className="pdf-total-row balance-row">
+              <span>Balance Due</span>
+              <span>{fmt(balance)}</span>
+            </div>
+          )}
         </div>
 
         <div className={`pdf-pay-block ${status !== "Paid" ? "unpaid" : ""}`}>
@@ -739,22 +756,22 @@ const PdfPreviewModal = ({ invoice, shop, onClose }) => {
   const printRef = useRef(null);
 
   const handleDownload = () => {
-  const content = printRef.current?.innerHTML;
-  if (!content) return;
-  const html = `<!DOCTYPE html><html><head>
-    <meta charset="utf-8"/>
-    <title>Invoice ${invoice?.invoice_id}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-    <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#000;background:#fff;}@page{size:A4;margin:18mm 16mm;}.pdf-doc{padding:32px;position:relative;overflow:hidden;}.pdf-watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;}.pdf-wm-text{font-family:'Playfair Display',Georgia,serif;font-size:5.5rem;font-weight:900;color:rgba(201,150,58,0.06);transform:rotate(-30deg);white-space:nowrap;user-select:none;}.pdf-content{position:relative;z-index:1;}.pdf-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;margin-bottom:18px;border-bottom:2.5px solid #0e1b2e;}.pdf-brand-name{font-size:1.6rem;font-weight:900;font-family:'Playfair Display',Georgia,serif;color:#0e1b2e;}.pdf-brand-name span{color:#c9963a;}.pdf-brand-tag{font-size:0.65rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;}.pdf-inv-meta{text-align:right;}.pdf-inv-title{font-family:'Playfair Display',Georgia,serif;font-size:1.15rem;font-weight:800;color:#0e1b2e;}.pdf-gst-tag{display:inline-block;background:rgba(30,79,186,0.1);color:#1e4fba;font-size:0.6rem;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:100px;border:1px solid rgba(30,79,186,0.2);margin-bottom:4px;}.pdf-inv-num{font-weight:800;color:#c9963a;font-size:0.9rem;}.pdf-inv-date{font-size:0.78rem;color:#6b7280;}.pdf-shop-block{margin-bottom:16px;}.pdf-shop-name{font-weight:800;color:#0e1b2e;font-size:0.88rem;}.pdf-shop-det{font-size:0.75rem;color:#6b7280;margin-top:1px;}.pdf-info-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#f8faf9;border-radius:8px;padding:14px 16px;margin-bottom:18px;border:1px solid #e5e7eb;}.pdf-info-lbl{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:3px;}.pdf-info-val{font-weight:700;color:#111827;font-size:0.82rem;}.pdf-table{width:100%;border-collapse:collapse;margin-bottom:18px;}.pdf-table th{background:#0e1b2e;color:#fff;padding:9px 11px;text-align:left;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;}.pdf-table th:last-child{text-align:right;}.pdf-table td{padding:9px 11px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;}.pdf-table td:last-child{text-align:right;font-weight:700;}.pdf-table tbody tr:nth-child(even) td{background:#fafafa;}.pdf-totals{margin-left:auto;width:48%;margin-bottom:18px;}.pdf-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:0.8rem;border-bottom:1px solid #f1f5f9;}.pdf-total-row.grand{font-weight:900;font-size:0.95rem;color:#0e1b2e;padding-top:10px;border-top:2.5px solid #0e1b2e;border-bottom:none;}.pdf-total-row.balance-row{color:#dc2626;font-weight:800;}.pdf-total-row.paid-row{color:#15803d;font-weight:800;}.pdf-pay-block{display:flex;gap:12px;align-items:center;margin-bottom:18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;}.pdf-pay-block.unpaid{background:#fff7ed;border-color:#fed7aa;}.pdf-status-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:100px;font-size:0.72rem;font-weight:800;background:#dcfce7;color:#166534;border:1px solid rgba(21,128,61,0.3);}.pdf-status-badge.partial{background:#fef3c7;color:#92400e;}.pdf-status-badge.pending{background:#fee2e2;color:#991b1b;}.pdf-footer{border-top:1.5px solid #e5e7eb;padding-top:14px;display:flex;justify-content:space-between;align-items:flex-end;}.pdf-footer-brand{font-size:0.65rem;color:#9ca3af;}.pdf-footer-brand strong{font-family:'Playfair Display',Georgia,serif;color:#0e1b2e;font-size:0.85rem;}.pdf-footer-brand strong span{color:#c9963a;}.pdf-powered{font-size:0.6rem;color:#9ca3af;text-transform:uppercase;text-align:right;}.pdf-powered strong{color:#c9963a;}</style>
-  </head><body>${content}</body></html>`;
-  const blob = new Blob([html], { type: "text/html" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `Invoice-${invoice?.invoice_id || "download"}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
+    const content = printRef.current?.innerHTML;
+    if (!content) return;
+    const html = `<!DOCTYPE html><html><head>
+      <meta charset="utf-8"/>
+      <title>Invoice ${invoice?.invoice_id}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+      <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#000;background:#fff;}@page{size:A4;margin:18mm 16mm;}.pdf-doc{padding:32px;position:relative;overflow:hidden;}.pdf-watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;}.pdf-wm-text{font-family:'Playfair Display',Georgia,serif;font-size:5.5rem;font-weight:900;color:rgba(201,150,58,0.06);transform:rotate(-30deg);white-space:nowrap;user-select:none;}.pdf-content{position:relative;z-index:1;}.pdf-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;margin-bottom:18px;border-bottom:2.5px solid #0e1b2e;}.pdf-brand-name{font-size:1.6rem;font-weight:900;font-family:'Playfair Display',Georgia,serif;color:#0e1b2e;}.pdf-brand-name span{color:#c9963a;}.pdf-brand-tag{font-size:0.65rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;}.pdf-inv-meta{text-align:right;}.pdf-inv-title{font-family:'Playfair Display',Georgia,serif;font-size:1.15rem;font-weight:800;color:#0e1b2e;}.pdf-gst-tag{display:inline-block;background:rgba(30,79,186,0.1);color:#1e4fba;font-size:0.6rem;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:100px;border:1px solid rgba(30,79,186,0.2);margin-bottom:4px;}.pdf-inv-num{font-weight:800;color:#c9963a;font-size:0.9rem;}.pdf-inv-date{font-size:0.78rem;color:#6b7280;}.pdf-shop-block{margin-bottom:16px;}.pdf-shop-name{font-weight:800;color:#0e1b2e;font-size:0.88rem;}.pdf-shop-det{font-size:0.75rem;color:#6b7280;margin-top:1px;}.pdf-info-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#f8faf9;border-radius:8px;padding:14px 16px;margin-bottom:18px;border:1px solid #e5e7eb;}.pdf-info-lbl{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:3px;}.pdf-info-val{font-weight:700;color:#111827;font-size:0.82rem;}.pdf-table{width:100%;border-collapse:collapse;margin-bottom:18px;}.pdf-table th{background:#0e1b2e;color:#fff;padding:9px 11px;text-align:left;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;}.pdf-table th:last-child{text-align:right;}.pdf-table td{padding:9px 11px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;}.pdf-table td:last-child{text-align:right;font-weight:700;}.pdf-table tbody tr:nth-child(even) td{background:#fafafa;}.pdf-totals{margin-left:auto;width:48%;margin-bottom:18px;}.pdf-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:0.8rem;border-bottom:1px solid #f1f5f9;}.pdf-total-row.grand{font-weight:900;font-size:0.95rem;color:#0e1b2e;padding-top:10px;border-top:2.5px solid #0e1b2e;border-bottom:none;}.pdf-total-row.balance-row{color:#dc2626;font-weight:800;}.pdf-total-row.paid-row{color:#15803d;font-weight:800;}.pdf-pay-block{display:flex;gap:12px;align-items:center;margin-bottom:18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;}.pdf-pay-block.unpaid{background:#fff7ed;border-color:#fed7aa;}.pdf-status-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:100px;font-size:0.72rem;font-weight:800;background:#dcfce7;color:#166534;border:1px solid rgba(21,128,61,0.3);}.pdf-status-badge.partial{background:#fef3c7;color:#92400e;}.pdf-status-badge.pending{background:#fee2e2;color:#991b1b;}.pdf-footer{border-top:1.5px solid #e5e7eb;padding-top:14px;display:flex;justify-content:space-between;align-items:flex-end;}.pdf-footer-brand{font-size:0.65rem;color:#9ca3af;}.pdf-footer-brand strong{font-family:'Playfair Display',Georgia,serif;color:#0e1b2e;font-size:0.85rem;}.pdf-footer-brand strong span{color:#c9963a;}.pdf-powered{font-size:0.6rem;color:#9ca3af;text-transform:uppercase;text-align:right;}.pdf-powered strong{color:#c9963a;}</style>
+    </head><body>${content}</body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `Invoice-${invoice?.invoice_id || "download"}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handlePrint = () => {
     const content = printRef.current?.innerHTML;
@@ -771,23 +788,23 @@ const PdfPreviewModal = ({ invoice, shop, onClose }) => {
   };
 
   const handleWa = () => {
-  const mob = invoice?.customer_mobile?.replace(/\D/g,"") || "";
-  if (!mob) return;
-  const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
-  const invoiceLink = `${baseUrl}/invoice/${invoice?.public_token || invoice?.invoice_id}`;
+    const mob = invoice?.customer_mobile?.replace(/\D/g,"") || "";
+    if (!mob) return;
+    const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
+    const invoiceLink = `${baseUrl}/invoice/${invoice?.public_token || invoice?.invoice_id}`;
 
-  const itemLines = (invoice?.items||[])
-    .map((it,i) => `  ${i+1}. ${it.name} — ${it.qty} × ₹${Number(it.price).toLocaleString("en-IN")} = *₹${(Number(it.qty)*Number(it.price)).toLocaleString("en-IN")}*`)
-    .join("\n");
+    const itemLines = (invoice?.items||[])
+      .map((it,i) => `  ${i+1}. ${it.name} — ${it.qty} × ₹${Number(it.price).toLocaleString("en-IN")} = *₹${(Number(it.qty)*Number(it.price)).toLocaleString("en-IN")}*`)
+      .join("\n");
 
-  const balanceLine = Number(invoice?.balance||0) > 0
-    ? `\n⚠️ *Balance Due: ₹${Number(invoice.balance).toLocaleString("en-IN")}*`
-    : `\n✅ *Payment: Fully Cleared*`;
+    const balanceLine = Number(invoice?.balance||0) > 0
+      ? `\n⚠️ *Balance Due: ₹${Number(invoice.balance).toLocaleString("en-IN")}*`
+      : `\n✅ *Payment: Fully Cleared*`;
 
-  const discountLine = Number(invoice?.discount||0) > 0
-    ? `\n🏷️ Discount: -₹${Number(invoice.discount).toLocaleString("en-IN")}` : "";
+    const discountLine = Number(invoice?.discount||0) > 0
+      ? `\n🏷️ Discount: -₹${Number(invoice.discount).toLocaleString("en-IN")}` : "";
 
-  const msg =
+    const msg =
 `🏪 *${shop?.shop_name || "ManaBills"}*
 ${shop?.mobile ? `📞 ${shop.mobile}` : ""}${shop?.address ? `\n📍 ${shop.address}` : ""}
 ━━━━━━━━━━━━━━━━━━
@@ -815,9 +832,8 @@ _Powered by ManaBills_
 _AP & Telangana's #1 Billing App_
 _manabills.com_`;
 
-  window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`,"_blank");
-};
-
+    window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`,"_blank");
+  };
 
   return (
     <div className="pdf-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -841,6 +857,52 @@ _manabills.com_`;
         </div>
         <div className="pdf-modal-body">
           <div ref={printRef}><PdfDocument invoice={invoice} shop={shop} /></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════
+   MARK AS PAID — CONFIRMATION MODAL
+   (this now lives on its own, NOT inside PdfPreviewModal)
+═══════════════════════════════════════════════ */
+const PaidConfirmModal = ({ invoice, onClose, onConfirm }) => {
+  const [stamped, setStamped] = useState(false);
+  const [working, setWorking] = useState(false);
+  const balance = Number(invoice?.balance || 0);
+
+  const handleConfirm = () => {
+    setWorking(true);
+    setStamped(true);
+    setTimeout(async () => {
+      await onConfirm(invoice.id);
+    }, 550);
+  };
+
+  return (
+    <div className="pc-overlay" onClick={e=>e.target===e.currentTarget && !working && onClose()}>
+      <div className="pc-modal">
+        <button className="em-close" onClick={onClose} disabled={working} style={{position:"absolute",top:14,right:14}}>✕</button>
+
+        <div className="pc-icon">🧾</div>
+        <div className="pc-title">Mark invoice as Paid?</div>
+        <div className="pc-sub">{invoice?.invoice_id} · {invoice?.customer_name || "—"}</div>
+
+        <div className="pc-amount-box">
+          <span>Balance to clear</span>
+          <strong>{fmt(balance)}</strong>
+        </div>
+
+        <div className="pc-stamp-wrap">
+          <div className={`pc-stamp ${stamped ? "show" : ""}`}>PAID ✓</div>
+        </div>
+
+        <div className="pc-actions">
+          <button className="em-cancel" onClick={onClose} disabled={working}>Cancel</button>
+          <button className="em-save" onClick={handleConfirm} disabled={working}>
+            {working ? "Marking…" : "✓ Yes, mark as Paid"}
+          </button>
         </div>
       </div>
     </div>
@@ -1014,12 +1076,11 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
   const handleAddItem = () => setItems(prev => [...prev, emptyItem()]);
 
   const subtotal = items.filter(i=>i.name.trim()).reduce((s,i) => s + Number(i.qty||0)*Number(i.price||0), 0);
-  // GST only applies when is_gst AND customer has a GST number
   const applyGST = form.is_gst && form.customer_gst.trim().length > 0;
   const gstAmt = applyGST
-  ? Math.round(items.filter(i => i.name.trim()).reduce((s, i) =>
-      s + Number(i.qty||0) * Number(i.price||0) * Number(i.gst_rate||0) / 100, 0))
-  : 0;
+    ? Math.round(items.filter(i => i.name.trim()).reduce((s, i) =>
+        s + Number(i.qty||0) * Number(i.price||0) * Number(i.gst_rate||0) / 100, 0))
+    : 0;
   const total    = subtotal + gstAmt - Number(form.discount||0);
   const balance  = total - Number(form.advance||0);
 
@@ -1199,7 +1260,12 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
               {applyGST && gstAmt > 0 && <div className="em-sum-row"><span>GST</span><span>{fmt(gstAmt)}</span></div>}
               {Number(form.discount||0) > 0 && <div className="em-sum-row"><span>Discount</span><span style={{color:"var(--green)"}}>- {fmt(form.discount)}</span></div>}
               <div className="em-sum-row total"><span>Total</span><span>{fmt(total)}</span></div>
-              {Number(form.advance||0) > 0 && <div className="em-sum-row paid-row"><span>Advance Paid</span><span>{fmt(form.advance)}</span></div>}
+              {Number(form.advance||0) > 0 && balance > 0 && (
+                <div className="em-sum-row paid-row">
+                  <span>Advance Paid</span>
+                  <span>{fmt(form.advance)}</span>
+                </div>
+              )}
               <div className="em-sum-row balance">
                 <span>Balance Due</span>
                 <span style={{color:balance>0?"var(--red)":"var(--green)",fontWeight:800}}>
@@ -1230,7 +1296,7 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
 /* ═══════════════════════════════════════════════
    MOBILE INVOICE CARD ROW
 ═══════════════════════════════════════════════ */
-const InvoiceRow = ({ inv, idx, isExpired, onPreview, onEdit, onSendWa, onMarkPaid, onDelete, confirmDel, onConfirmDel, onCancelDel }) => {
+const InvoiceRow = ({ inv, idx, isExpired, onPreview, onEdit, onSendWa, onAskPaid, onDelete, confirmDel, onConfirmDel, onCancelDel }) => {
   const balance = Number(inv.balance || 0);
   return (
     <tr>
@@ -1268,7 +1334,7 @@ const InvoiceRow = ({ inv, idx, isExpired, onPreview, onEdit, onSendWa, onMarkPa
           <button className="ih-btn pdf"  onClick={()=>onPreview(inv)} disabled={isExpired} title={isExpired?"Renew plan to view":""}>{isExpired?"🔒 View":"📄 View"}</button>
           <button className="ih-btn edit" onClick={()=>onEdit(inv)} disabled={isExpired} title={isExpired?"Renew plan to edit":""}>{isExpired?"🔒 Edit":"✏️ Edit"}</button>
           <button className="ih-btn wa"   onClick={()=>onSendWa(inv)} disabled={isExpired || !inv.customer_mobile} title={isExpired?"Renew plan to share":""}>{isExpired?"🔒 WA":"💬 WA"}</button>
-          {inv.status!=="Paid"&&<button className="ih-btn paid" onClick={()=>onMarkPaid(inv.id)}>✓ Paid</button>}
+          {inv.status!=="Paid"&&<button className="ih-btn paid" onClick={()=>onAskPaid(inv)}>✓ Paid</button>}
           {confirmDel===inv.id
             ? <><button className="ih-btn del" onClick={()=>onDelete(inv.id)}>Confirm</button><button className="ih-btn" style={{background:"var(--bg)",border:"1.5px solid var(--border2)",color:"var(--muted)"}} onClick={onCancelDel}>Cancel</button></>
             : <button className="ih-btn del" onClick={()=>onConfirmDel(inv.id)}>🗑</button>
@@ -1293,6 +1359,7 @@ const InvoiceHistory = () => {
   const [editInvoice,    setEditInvoice]    = useState(null);
   const [previewInvoice, setPreviewInvoice] = useState(null);
   const [confirmDel,     setConfirmDel]     = useState(null);
+  const [payingInvoice,  setPayingInvoice]  = useState(null);
   const [loadingEdit,    setLoadingEdit]    = useState(false);
 
   const { subscriptions } = useContext(SubscriptionContext);
@@ -1313,8 +1380,6 @@ const InvoiceHistory = () => {
       if (invData.status  === "fulfilled") {
         const invoiceList = invData.value;
         setInvoices(invoiceList);
-        // ── AUTO-SYNC: push new invoice customers → Customers DB ──
-        // Run in background; don't block or show errors to user
         syncInvoiceCustomers(invoiceList);
       }
       if (shopData.status === "fulfilled") setShop(shopData.value);
@@ -1352,25 +1417,25 @@ const InvoiceHistory = () => {
   };
 
   const handleOpenPreview = async (inv) => {
-      if (isExpired) {
-        showToast("Renew your plan to view invoices.", "error");
-        return;
-      }
-      try {
-        const detail = await authAxios.get(`business/invoices/${inv.id}/`).then(r=>r.data);
-        const items  = detail.items || detail.invoice_items || [];
-        setPreviewInvoice({ ...detail, items });
-      } catch {
-        setPreviewInvoice(inv);
-      }
-    };
+    if (isExpired) {
+      showToast("Renew your plan to view invoices.", "error");
+      return;
+    }
+    try {
+      const detail = await authAxios.get(`business/invoices/${inv.id}/`).then(r=>r.data);
+      const items  = detail.items || detail.invoice_items || [];
+      setPreviewInvoice({ ...detail, items });
+    } catch {
+      setPreviewInvoice(inv);
+    }
+  };
 
   const handleEditSaved = (updated) => {
     setInvoices(prev => prev.map(i => i.id === updated.id ? { ...i, ...updated } : i));
     setEditInvoice(null);
     showToast("Invoice updated successfully ✓");
-    // Re-sync customers after edit (customer name/mobile may have changed)
     syncInvoiceCustomers([updated]);
+    window.dispatchEvent(new Event("manabills:stats-dirty"));
   };
 
   const handleMarkPaid = async (id) => {
@@ -1378,6 +1443,7 @@ const InvoiceHistory = () => {
       const updated = await markInvoicePaid(id);
       setInvoices(prev => prev.map(i => i.id === updated.id ? updated : i));
       showToast("Invoice marked as Paid ✓");
+      window.dispatchEvent(new Event("manabills:stats-dirty"));
     } catch { showToast("Failed to update.", "error"); }
   };
 
@@ -1387,25 +1453,26 @@ const InvoiceHistory = () => {
       setInvoices(prev => prev.filter(i => i.id !== id));
       setConfirmDel(null);
       showToast("Invoice deleted.");
+      window.dispatchEvent(new Event("manabills:stats-dirty"));
     } catch { showToast("Failed to delete.", "error"); }
   };
 
   const sendWhatsApp = (inv) => {
-      if (isExpired) {
-        showToast("Renew your plan to share invoices.", "error");
-        return;
-      }
-      const mob = inv.customer_mobile?.replace(/\D/g,"") || "";
-      if (!mob) return;
-  const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
-  const invoiceLink = `${baseUrl}/invoice/${inv.public_token || inv.invoice_id}`;
+    if (isExpired) {
+      showToast("Renew your plan to share invoices.", "error");
+      return;
+    }
+    const mob = inv.customer_mobile?.replace(/\D/g,"") || "";
+    if (!mob) return;
+    const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
+    const invoiceLink = `${baseUrl}/invoice/${inv.public_token || inv.invoice_id}`;
 
-  const balanceLine = Number(inv.balance||0) > 0
-    ? `\n⚠️ *Balance Due: ₹${Number(inv.balance).toLocaleString("en-IN")}*`
-    : `\n✅ *Payment: Fully Cleared*`;
+    const balanceLine = Number(inv.balance||0) > 0
+      ? `\n⚠️ *Balance Due: ₹${Number(inv.balance).toLocaleString("en-IN")}*`
+      : `\n✅ *Payment: Fully Cleared*`;
 
-  const discountLine = Number(inv.discount||0) > 0
-    ? `\n🏷️ Discount: -₹${Number(inv.discount).toLocaleString("en-IN")}` : "";
+    const discountLine = Number(inv.discount||0) > 0
+      ? `\n🏷️ Discount: -₹${Number(inv.discount).toLocaleString("en-IN")}` : "";
 
     const msg =
 `🏪 *${shop?.shop_name || "ManaBills"}*
@@ -1431,12 +1498,8 @@ _Powered by ManaBills_
 _AP & Telangana's #1 Billing App_
 _manabills.com_`;
 
-  window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`,"_blank");
-};
-
-
-
-
+    window.open(`https://wa.me/91${mob.slice(-10)}?text=${encodeURIComponent(msg)}`,"_blank");
+  };
 
   const totalBilling = invoices.reduce((s,i)=>s+Number(i.total||0),0);
   const totalPaid    = invoices.reduce((s,i)=>s+Number(i.advance||0),0);
@@ -1535,7 +1598,7 @@ _manabills.com_`;
                       onPreview={handleOpenPreview}
                       onEdit={handleOpenEdit}
                       onSendWa={sendWhatsApp}
-                      onMarkPaid={handleMarkPaid}
+                      onAskPaid={setPayingInvoice}
                       onDelete={handleDelete}
                       confirmDel={confirmDel}
                       onConfirmDel={setConfirmDel}
@@ -1570,6 +1633,17 @@ _manabills.com_`;
           invoice={previewInvoice}
           shop={shop}
           onClose={() => setPreviewInvoice(null)}
+        />
+      )}
+
+      {payingInvoice && (
+        <PaidConfirmModal
+          invoice={payingInvoice}
+          onClose={() => setPayingInvoice(null)}
+          onConfirm={async (id) => {
+            await handleMarkPaid(id);
+            setPayingInvoice(null);
+          }}
         />
       )}
     </>

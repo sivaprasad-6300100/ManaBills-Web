@@ -10,10 +10,11 @@ import { ShopProvider } from "./context/ShopContext";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js");
+    navigator.serviceWorker.register("/sw.js").then((reg) => {
+      reg.update();   // ← ADD THIS: forces an immediate check for new sw.js
+    });
   });
 }
-
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

@@ -294,7 +294,7 @@ const PreSubscriptionView = ({ greet, displayName, navigate }) => {
               Unlock Your Business Power
             </h3>
             <p style={{ fontSize: "0.82rem", color: "#6b7280", lineHeight: 1.65, marginBottom: "1rem", maxWidth: "360px" }}>
-              Starting at just <strong style={{ color: "#c9963a" }}>₹99/month</strong> — choose any module and get full access with a free trial.
+              Starting at just <strong style={{ color: "#c9963a" }}>₹199/month</strong> — choose any module and get full access with a free trial.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.4rem 1rem" }}>
               {BENEFITS.map((b, i) => (
@@ -308,7 +308,7 @@ const PreSubscriptionView = ({ greet, displayName, navigate }) => {
           <div style={{ background: "linear-gradient(145deg, #0e1b2e 0%, #1a2d47 100%)", borderRadius: "16px", padding: "1.25rem 1.4rem", minWidth: "160px", textAlign: "center", boxShadow: "0 8px 24px rgba(14,27,46,0.22)", flexShrink: 0, position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: "-20px", right: "-20px", width: 80, height: 80, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,150,58,0.2) 0%, transparent 70%)" }} />
             <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.5rem" }}>Plans starting at</div>
-            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "2rem", fontWeight: 900, color: "#c9963a", lineHeight: 1, letterSpacing: "-0.02em" }}>₹99</div>
+            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "2rem", fontWeight: 900, color: "#c9963a", lineHeight: 1, letterSpacing: "-0.02em" }}>₹199</div>
             <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.45)", marginBottom: "1rem" }}>per month only</div>
             <button onClick={() => navigate("/subscription")} style={{ display: "block", width: "100%", background: "linear-gradient(135deg, #c9963a, #e8a020)", color: "#0e1b2e", border: "none", padding: "0.65rem 1rem", borderRadius: "10px", fontSize: "0.82rem", fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 14px rgba(201,150,58,0.35)", transition: "all 0.2s" }}>
               Choose a Plan →

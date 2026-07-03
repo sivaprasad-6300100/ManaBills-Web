@@ -62,7 +62,8 @@ const ShopProfile = () => {
   const [hasStock,           setHasStock]           = useState(false);
   const [shop,               setShop]               = useState(defaultShop);
   const [savedShop,          setSavedShop]          = useState(null);
-  const [isEditing,          setIsEditing]          = useState(true);
+  const [isEditing,          setIsEditing]          = useState(false);
+  const [loading,            setLoading]            = useState(true);
   const [saving,             setSaving]             = useState(false);
   const [toast,              setToast]              = useState(null);
   const [customShopType,     setCustomShopType]     = useState("");
@@ -84,12 +85,12 @@ const ShopProfile = () => {
   const { isFirstSetup, paymentSuccess, planName, duration } = location.state || {};
   const [showBanner, setShowBanner] = useState(isFirstSetup || paymentSuccess || false);
 
- 
 
 
   useEffect(() => {
-     if (!accessToken) return;  // ← 
+    if (!accessToken) return;
 
+    setLoading(true);
     getShopProfile()
       .then((data) => {
         const complete = !!(data?.shop_name && data?.owner_name && data?.mobile && data?.address);
@@ -109,10 +110,17 @@ const ShopProfile = () => {
         });
         setIsEditing(false);
       })
-      .catch(() => {
-        setProfileReady(false);
-        setIsEditing(true);
-      });
+      .catch((err) => {
+        const status = err?.response?.status;
+        if (status === 404) {
+          setProfileReady(false);
+          setSavedShop(null);
+          setIsEditing(true);
+        } else {
+          showToast("Couldn't load shop profile. Please retry.", "error");
+        }
+      })
+      .finally(() => setLoading(false));
 
     getProducts()
       .then((products) => setHasStock(products.length > 0))
@@ -630,7 +638,11 @@ const ShopProfile = () => {
 
         <div className="sp-card">
 
-          {showProfile ? (
+          {loading ? (
+            <div style={{ padding: "60px 20px", textAlign: "center", color: "#94a3b8" }}>
+              Loading shop profile…
+            </div>
+          ) : showProfile ? (
             /* ══════════ DISPLAY MODE ══════════ */
             <>
               <div className="sp-display-hero">
