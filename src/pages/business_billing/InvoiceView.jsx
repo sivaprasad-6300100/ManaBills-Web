@@ -133,7 +133,7 @@ const PdfDocument = React.forwardRef(({ invoice , isOwnerView }, ref) => {
           })()}
           {discount > 0 && <div className="pdf-total-row" style={{color:"#15803d"}}><span>Discount</span><span>- {fmt(discount)}</span></div>}
           <div className="pdf-total-row grand"><span>Grand Total</span><span>{fmt(total)}</span></div>
-          {advance > 0  && <div className="pdf-total-row paid-row"><span>Paid (Advance)</span><span>{fmt(advance)}</span></div>}
+          {advance > 0 && balance > 0  && <div className="pdf-total-row paid-row"><span>Paid (Advance)</span><span>{fmt(advance)}</span></div>}
           {balance > 0  && <div className="pdf-total-row balance-row"><span>Balance Due</span><span>{fmt(balance)}</span></div>}
         </div>
 
@@ -146,7 +146,7 @@ const PdfDocument = React.forwardRef(({ invoice , isOwnerView }, ref) => {
         <div className="pdf-footer">
           <div className="pdf-footer-brand">
             <div><strong>Mana<span style={{color:"#c9963a"}}>Bills</span></strong></div>
-            <div>manabills.in | support@manabills.in</div>
+            <div>manabills.com | support@manabills.com</div>
             <div style={{marginTop:"4px",fontSize:"0.62rem",color:"#d1d5db"}}>Thank you for your business 🙏</div>
           </div>
           <div className="pdf-powered">

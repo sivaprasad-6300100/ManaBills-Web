@@ -1430,6 +1430,7 @@ const InvoiceHistory = () => {
     }
   };
 
+
   const handleEditSaved = (updated) => {
     setInvoices(prev => prev.map(i => i.id === updated.id ? { ...i, ...updated } : i));
     setEditInvoice(null);
