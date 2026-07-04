@@ -42,24 +42,6 @@ const useIsMobile = () => {
   return isMobile;
 };
 
-// ─── WhatsApp link builder ──────────────────────────────────
-// ★ FIX: On Android, a plain wa.me link opened after a delay (e.g. after
-//   waiting for the invoice-save API call to finish) is NOT trusted by the
-//   OS as a direct user gesture, so it falls back to the api.whatsapp.com
-//   landing page instead of jumping straight into the WhatsApp app.
-//   The "intent://" scheme forces Android to hand off directly to the
-//   WhatsApp app regardless of that delay, with wa.me as a safe fallback
-//   if WhatsApp isn't installed. iOS/desktop just use the normal wa.me link.
-const buildWhatsAppUrl = (cleaned, msg) => {
-  const waUrl = `https://wa.me/91${cleaned}?text=${encodeURIComponent(msg)}`;
-  const isAndroid = /Android/i.test(navigator.userAgent);
-
-  if (isAndroid) {
-    return `intent://send?phone=91${cleaned}&text=${encodeURIComponent(msg)}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(waUrl)};end`;
-  }
-  return waUrl;
-};
-
 // ─── Styles (unchanged from your original) ───────────────────
 const S = {
   page: { fontFamily:"'DM Sans','Segoe UI',sans-serif", background:"#f0f2f7", minHeight:"100vh", paddingBottom:"100px", boxSizing:"border-box", overflowX:"hidden", width:"100%" },
@@ -156,6 +138,7 @@ const CreateInvoice = () => {
 
   // ★ Share method — owner picks WhatsApp / SMS / Don't Send, per invoice
   const [shareMethod, setShareMethod] = useState("whatsapp"); // "whatsapp" | "sms" | "none"
+  const [shareConfirm, setShareConfirm] = useState(null); // { url, method } | null
 
   const lastInputRef = useRef(null);
 
@@ -256,23 +239,6 @@ const CreateInvoice = () => {
 
     // ★ Only WhatsApp needs a pre-opened blank tab (popup-blocker workaround).
     //   SMS uses the sms: link which opens reliably without this trick.
-    let shareWindow = null;
-    if (wantsShare && shareMethod === "whatsapp") {
-      shareWindow = window.open("", "_blank");   // no noopener — we need the reference
-      if (shareWindow) {
-        shareWindow.document.write(`
-          <!DOCTYPE html><html><head><title>Opening WhatsApp…</title></head>
-          <body style="margin:0;height:100vh;display:flex;flex-direction:column;
-                       align-items:center;justify-content:center;gap:14px;
-                       background:#f0fdf4;font-family:sans-serif;">
-            <div style="font-size:52px">💬</div>
-            <div style="font-size:1.1rem;font-weight:700;color:#15803d">Saving invoice…</div>
-            <div style="font-size:0.82rem;color:#64748b">WhatsApp will open automatically</div>
-          </body></html>
-        `);
-        shareWindow.document.close();
-      }
-    }
 
     try {
       const payload = {
@@ -336,20 +302,16 @@ const CreateInvoice = () => {
           `Thank you for shopping with us! 🙏`,
         ].join("\n");
 
-        // ★ FIX: use buildWhatsAppUrl() instead of a plain wa.me link so
-        //   Android hands off directly to the WhatsApp app instead of
-        //   showing the api.whatsapp.com landing page.
-        if (shareMethod === "whatsapp" && shareWindow && !shareWindow.closed) {
-          const finalUrl = buildWhatsAppUrl(cleaned, msg);
-          shareWindow.location.href = finalUrl;
-          setTimeout(() => showToast("💬 WhatsApp opened!", "whatsapp"), 500);
+        if (shareMethod === "whatsapp") {
+          const waUrl = `https://wa.me/91${cleaned}?text=${encodeURIComponent(msg)}`;
+          setShareConfirm({ url: waUrl, method: "whatsapp" });
         }
-
+        
         if (shareMethod === "sms") {
           const smsUrl = `sms:+91${cleaned}?body=${encodeURIComponent(msg)}`;
-          window.open(smsUrl, "_blank");
-          setTimeout(() => showToast("✉️ SMS app opened!", "success"), 300);
+          setShareConfirm({ url: smsUrl, method: "sms" });
         }
+
       }
 
       // Reset form
@@ -360,10 +322,8 @@ const CreateInvoice = () => {
       setAdvance(0);
       setPayment("Cash");
 
-    } catch (err) {
-      if (shareWindow && !shareWindow.closed) shareWindow.close();
-
-      const errData = err?.response?.data;
+      } catch (err) {
+        const errData = err?.response?.data;
       if (errData?.stock)      showToast(errData.stock.join(" | "), "error");
       else if (errData?.items) showToast(errData.items, "error");
       else                     showToast("Failed to save invoice. Try again.", "error");
@@ -454,6 +414,35 @@ const CreateInvoice = () => {
       </div>
     );
   };
+  const ShareConfirmPopup = () => {
+  if (!shareConfirm) return null;
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:10000, display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" }}>
+      <div style={{ background:"#fff", borderRadius:"16px", padding:"24px 20px", maxWidth:"320px", width:"100%", textAlign:"center" }}>
+        <div style={{ fontSize:"2rem", marginBottom:"10px" }}>{shareConfirm.method === "whatsapp" ? "💬" : "✉️"}</div>
+        <p style={{ fontSize:"0.95rem", fontWeight:700, color:"#0f172a", marginBottom:"6px" }}>Invoice saved!</p>
+        <p style={{ fontSize:"0.82rem", color:"#64748b", marginBottom:"18px" }}>Send it to the customer now?</p>
+        <div style={{ display:"flex", gap:"10px" }}>
+          <button
+            onClick={() => setShareConfirm(null)}
+            style={{ flex:1, padding:"12px", borderRadius:"10px", border:"1.5px solid #e2e8f0", background:"#fff", color:"#64748b", fontWeight:600, cursor:"pointer" }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              window.open(shareConfirm.url, "_blank");
+              setShareConfirm(null);
+            }}
+            style={{ flex:1, padding:"12px", borderRadius:"10px", border:"none", background: shareConfirm.method === "whatsapp" ? "#25d366" : "#2563eb", color:"#fff", fontWeight:700, cursor:"pointer" }}
+          >
+            Share
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
   // ─────────────────────────────────────────────────────────
   // ── MOBILE VIEW ──────────────────────────────────────────
@@ -462,6 +451,7 @@ const CreateInvoice = () => {
     return (
       <div style={S.page}>
         {toast && <div style={S.toast(toast.type)}>{toast.msg}</div>}
+        <ShareConfirmPopup />
 
         <div style={S.headerBar}>
           <p style={S.headerTitle}>Create Invoice</p>
@@ -656,6 +646,7 @@ const CreateInvoice = () => {
           {toast.msg}
         </div>
       )}
+      <ShareConfirmPopup />
 
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"6px" }}>
         <h2>Create Invoice</h2>
