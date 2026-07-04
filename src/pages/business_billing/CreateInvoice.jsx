@@ -42,6 +42,24 @@ const useIsMobile = () => {
   return isMobile;
 };
 
+// ─── WhatsApp link builder ──────────────────────────────────
+// ★ FIX: On Android, a plain wa.me link opened after a delay (e.g. after
+//   waiting for the invoice-save API call to finish) is NOT trusted by the
+//   OS as a direct user gesture, so it falls back to the api.whatsapp.com
+//   landing page instead of jumping straight into the WhatsApp app.
+//   The "intent://" scheme forces Android to hand off directly to the
+//   WhatsApp app regardless of that delay, with wa.me as a safe fallback
+//   if WhatsApp isn't installed. iOS/desktop just use the normal wa.me link.
+const buildWhatsAppUrl = (cleaned, msg) => {
+  const waUrl = `https://wa.me/91${cleaned}?text=${encodeURIComponent(msg)}`;
+  const isAndroid = /Android/i.test(navigator.userAgent);
+
+  if (isAndroid) {
+    return `intent://send?phone=91${cleaned}&text=${encodeURIComponent(msg)}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(waUrl)};end`;
+  }
+  return waUrl;
+};
+
 // ─── Styles (unchanged from your original) ───────────────────
 const S = {
   page: { fontFamily:"'DM Sans','Segoe UI',sans-serif", background:"#f0f2f7", minHeight:"100vh", paddingBottom:"100px", boxSizing:"border-box", overflowX:"hidden", width:"100%" },
@@ -318,9 +336,12 @@ const CreateInvoice = () => {
           `Thank you for shopping with us! 🙏`,
         ].join("\n");
 
+        // ★ FIX: use buildWhatsAppUrl() instead of a plain wa.me link so
+        //   Android hands off directly to the WhatsApp app instead of
+        //   showing the api.whatsapp.com landing page.
         if (shareMethod === "whatsapp" && shareWindow && !shareWindow.closed) {
-          const waUrl = `https://wa.me/91${cleaned}?text=${encodeURIComponent(msg)}`;
-          shareWindow.location.href = waUrl;
+          const finalUrl = buildWhatsAppUrl(cleaned, msg);
+          shareWindow.location.href = finalUrl;
           setTimeout(() => showToast("💬 WhatsApp opened!", "whatsapp"), 500);
         }
 
