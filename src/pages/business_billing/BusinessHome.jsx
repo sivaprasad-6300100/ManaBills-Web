@@ -20,7 +20,10 @@ const SkeletonCard = () => (
 
 // ── STATIC LABELS ────────────────────────────────────────────────
 const DAY_LABELS   = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const WEEK_LABELS  = ["Week 1", "Week 2", "Week 3", "Week 4"];
+function buildWeekLabels(year, monthIndex) {
+  const count = buildWeekRanges(year, monthIndex).length;
+  return Array.from({ length: count }, (_, i) => `Week ${i + 1}`);
+}
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun",
                       "Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -30,37 +33,26 @@ const DEFAULT_MON = _now.getMonth();
 
 // ── Helper: build calendar-accurate week ranges ───────────────────
 // Returns array of 4 items: { start: Date, end: Date } | null
+
 function buildWeekRanges(year, monthIndex) {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const ranges      = [];
   let start         = new Date(year, monthIndex, 1);
 
-  while (start.getMonth() === monthIndex && ranges.length < 4) {
-    const rangeStart = new Date(start);
-    let end;
-
-    if (ranges.length === 3) {
-      // Week 4 absorbs all remaining days
+  while (start.getMonth() === monthIndex) {
+    const rangeStart   = new Date(start);
+    const daysToSunday = start.getDay() === 0 ? 0 : 7 - start.getDay();
+    let end            = new Date(start);
+    end.setDate(start.getDate() + daysToSunday);
+    if (end.getMonth() !== monthIndex) {
       end = new Date(year, monthIndex, daysInMonth);
-    } else {
-      // Find Sunday (JS: Sun=0, so days until next Sunday)
-      const daysToSunday = start.getDay() === 0 ? 0 : 7 - start.getDay();
-      end = new Date(start);
-      end.setDate(start.getDate() + daysToSunday);
-      // Clamp to end of month
-      if (end.getMonth() !== monthIndex) {
-        end = new Date(year, monthIndex, daysInMonth);
-      }
     }
-
     ranges.push({ start: rangeStart, end: new Date(end) });
     start = new Date(end);
     start.setDate(end.getDate() + 1);
   }
 
-  // Pad to 4
-  while (ranges.length < 4) ranges.push(null);
-  return ranges;
+  return ranges; // 4 or 5 items, always real calendar weeks, no nulls
 }
 
 // ── Get which week index today falls in ──────────────────────────
@@ -71,7 +63,7 @@ function getCurrentWeekIndex(monthIndex) {
 
   for (let i = 0; i < weekRanges.length; i++) {
     const wr = weekRanges[i];
-    if (wr && today >= wr.start && today <= wr.end) return i;
+    if (today >= wr.start && today <= wr.end) return i;
   }
   return 0;
 }
@@ -272,12 +264,12 @@ const CHART_METRICS = [
   { key: "invoice_count", label: "Invoices",    color: "#3b82f6", isCount: true },
 ];
 
-const SalesChart = ({ chartData, loading, period, onPeriodChange }) => {
+const SalesChart = ({ chartData, loading, period, onPeriodChange, weekLabels }) => {
   const [activeMetrics, setActiveMetrics] = useState(["total_sales", "collected", "pending"]);
   const [tooltip,       setTooltip]       = useState(null);
 
   const labels = period === "day"  ? DAY_LABELS
-               : period === "week" ? WEEK_LABELS
+               : period === "week" ? weekLabels
                : MONTH_LABELS;
 
   const toggleMetric = (key) => {
@@ -460,8 +452,14 @@ const BusinessHome = () => {
   const [selDay,   setSelDay]   = useState(DEFAULT_DAY);
 
   // Dynamic day labels — array of { label, active }
+
   const [dayLabels, setDayLabels] = useState(
     () => buildDayLabels(DEFAULT_MON, DEFAULT_WEEK)
+  );
+  
+
+  const [weekLabels, setWeekLabels] = useState(
+    () => buildWeekLabels(new Date().getFullYear(), DEFAULT_MON)
   );
 
   useEffect(() => {
@@ -520,6 +518,7 @@ const BusinessHome = () => {
       setWeekData(wData);
       setDayData(dData);
       setDayLabels(buildDayLabels(DEFAULT_MON, DEFAULT_WEEK));
+      setWeekLabels(buildWeekLabels(new Date().getFullYear(), DEFAULT_MON));
     } catch (err) {
       console.error("Initial chart load error:", err);
       setMonthData(fallback(12));
@@ -544,6 +543,7 @@ const BusinessHome = () => {
       setWeekData(wData);
       setDayData(dData);
       setDayLabels(buildDayLabels(monthIndex, 0));
+      setWeekLabels(buildWeekLabels(new Date().getFullYear(), monthIndex));
     } catch (err) {
       console.error("Month change fetch error:", err);
       setWeekData(fallback(4));
@@ -650,6 +650,7 @@ const BusinessHome = () => {
         loading={chartLoading}
         period={chartPeriod}
         onPeriodChange={setChartPeriod}
+        weekLabels={weekLabels}
       />
 
       {loading ? (
@@ -678,7 +679,7 @@ const BusinessHome = () => {
           {/* THIS WEEK */}
           <SectionHeader
             title="This Week"
-            labels={WEEK_LABELS}
+            labels={weekLabels}
             selectedIndex={selWeek}
             onChange={handleWeekChange}
           />

@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubscriptionContext } from "../../context/SubscriptionContext";
 import { BusinessStatsContext } from "../../context/BusinessStatsContext";
+import { authAxios } from "../../services/api";
 // import { SubscriptionContext } from "../../context/SubscriptionContext";
 // import SummaryCard from "../../components/cards/SummaryCard";
 // import UpgradeCard from "../../components/cards/UpgradeCard";
@@ -441,6 +442,95 @@ const PeriodTabs = ({ active, onChange }) => (
   </>
 );
 
+
+const ReferralCard = () => {
+  const [referral, setReferral] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const fetchReferral = async () => {
+      try {
+        const res = await authAxios.get("auth/my-referral/");
+        setReferral(res.data);
+      } catch (err) {
+        console.error("Failed to load referral info", err);
+      }
+    };
+    fetchReferral();
+  }, []);
+
+  if (!referral) return null;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(referral.referral_link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = `Try ManaBills — GST billing app for shops! Use my referral link to sign up: ${referral.referral_link}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  return (
+    <div style={{
+      background: "linear-gradient(135deg, #0e1b2e 0%, #1a2d47 100%)",
+      borderRadius: "18px",
+      padding: "1.1rem 1.4rem",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "1rem",
+      flexWrap: "wrap",
+      boxShadow: "0 6px 24px rgba(14,27,46,0.18)",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      <div style={{ position: "absolute", top: "-30px", right: "-20px", width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,150,58,0.14) 0%, transparent 70%)", pointerEvents: "none" }} />
+
+      <div style={{ position: "relative", zIndex: 1, minWidth: "220px" }}>
+        <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.3rem" }}>
+          🎁 Your Referral Code
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+          <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.35rem", fontWeight: 900, color: "#c9963a", letterSpacing: "0.03em" }}>
+            {referral.referral_code}
+          </span>
+          {referral.total_referred > 0 && (
+            <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>
+              · {referral.total_referred} shop{referral.total_referred > 1 ? "s" : ""} referred
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: "0.6rem", position: "relative", zIndex: 1 }}>
+        <button onClick={handleCopy} style={{ background: "rgba(255,255,255,0.08)", border: "1.5px solid rgba(255,255,255,0.15)", color: "#fff", padding: "0.6rem 1rem", borderRadius: "10px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+          {copied ? "✓ Copied!" : "Copy Link"}
+        </button>
+        <button onClick={handleWhatsAppShare} style={{ background: "linear-gradient(135deg, #c9963a, #e8a020)", border: "none", color: "#0e1b2e", padding: "0.6rem 1.1rem", borderRadius: "10px", fontSize: "0.78rem", fontWeight: 800, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", boxShadow: "0 4px 14px rgba(201,150,58,0.35)" }}>
+          💬 Share on WhatsApp
+        </button>
+      </div>
+    
+    {/* ── Incentive banner ── */}
+      <div style={{
+        position: "relative", zIndex: 1,
+        display: "flex", alignItems: "center", gap: "0.6rem",
+        background: "rgba(201,150,58,0.12)",
+        border: "1px solid rgba(201,150,58,0.28)",
+        borderRadius: "10px",
+        padding: "0.55rem 0.85rem",
+      }}>
+        <span style={{ fontSize: "1.1rem" }}>💰</span>
+        <span style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.85)", fontWeight: 600, lineHeight: 1.4 }}>
+          Earn <span style={{ color: "#c9963a", fontWeight: 800 }}>₹100</span> or <span style={{ color: "#c9963a", fontWeight: 800 }}>50%</span> of your referral's first plan — whichever is higher.
+        </span>
+      </div>
+    </div>
+  );
+};
+
 /* ═══════════════════════════════════════════
    MAIN DASHBOARD HOME
 ═══════════════════════════════════════════ */
@@ -523,6 +613,7 @@ const DashboardHome = () => {
 
   return (
     <div className="db-home">
+      <ReferralCard />
 
       {/* ══════════════════════════════
           NO SUBSCRIPTION

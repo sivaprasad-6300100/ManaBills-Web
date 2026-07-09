@@ -429,6 +429,7 @@ export default function HomePage() {
     mobile_number: "",
     password: "",
     confirm_password: "",
+    referral_code: "",
   });
 
   /* ── EFFECTS ── */
@@ -443,6 +444,15 @@ export default function HomePage() {
       navigate("/dashboard", { replace: true });
     }
   }, [navigate]);
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      setSignupData(prev => ({ ...prev, referral_code: ref.toUpperCase() }));
+    }
+  }, []);
 
   /* ── MODAL HELPERS ── */
   const openModal = (type) => {
@@ -476,7 +486,7 @@ export default function HomePage() {
     setOtpConfirm(null);
     setOtpLoading(false);
     setSignupStep(1);
-    setSignupData({ full_name: "", mobile_number: "", password: "", confirm_password: "" });
+    setSignupData({ full_name: "", mobile_number: "", password: "", confirm_password: "", referral_code: "" });
     if (window.signupRecaptcha) {
       try { window.signupRecaptcha.clear(); } catch (e) {}
       window.signupRecaptcha = null;
@@ -588,6 +598,7 @@ export default function HomePage() {
         full_name:     signupData.full_name,
         mobile_number: signupData.mobile_number,
         password:      signupData.password,
+        referral_code: signupData.referral_code,
       });
       setMessage({ text: "Account created successfully! Please sign in.", type: "success" });
       resetOtpStates();
@@ -1179,6 +1190,17 @@ export default function HomePage() {
                           required
                           autoFocus
                         />
+                      </div>
+                      {/* Referral Code */}
+                      <div className="hp-field">
+                        <label htmlFor="su-referral">Referral Code (Optional)</label>
+                          <input
+                            id="su-referral"
+                            type="text"
+                            placeholder="Enter referral code if you have one"
+                            value={signupData.referral_code}
+                            onChange={e => setSignupData({ ...signupData, referral_code: e.target.value.toUpperCase() })}
+                          />
                       </div>
 
                       {/* Create Password */}

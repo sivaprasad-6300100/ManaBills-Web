@@ -52,7 +52,7 @@ const BusinessSubscription = () => {
       duration: "No card required",
       highlight: false,
       features: [
-        "10 invoices (GST & Non-GST)",
+        "Unlimited (GST)",
         "Professional invoice PDF",
         "Sales summary dashboard",
         "Basic stock tracking",
