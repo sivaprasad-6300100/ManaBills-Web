@@ -30,32 +30,25 @@ const PdfDocument = React.forwardRef(({ invoice , isOwnerView }, ref) => {
       <div className="pdf-content">
 
         <div className="pdf-header">
-          <div>
-            <div className="pdf-brand-name">Mana<span>Bills</span></div>
-            <div className="pdf-brand-tag">AP & Telangana's Billing Platform</div>
+          <div className="pdf-shop-hero">
+            <div className="pdf-shop-hero-name">{invoice?.shop_name || "Shop Name"}</div>
+            {(invoice?.shop_owner || invoice?.shop_mobile || invoice?.shop_address || invoice?.shop_gst) && (
+              <div className="pdf-shop-hero-details">
+                {invoice.shop_owner   && <div className="pdf-shop-det">👤 {invoice.shop_owner}</div>}
+                {invoice.shop_mobile  && <div className="pdf-shop-det">📞 {invoice.shop_mobile}</div>}
+                {invoice.shop_address && <div className="pdf-shop-det">📍 {invoice.shop_address}</div>}
+                {invoice.shop_gst     && <div className="pdf-shop-det">GSTIN: <strong>{invoice.shop_gst}</strong></div>}
+              </div>
+            )}
           </div>
           <div className="pdf-inv-meta">
             {invoice?.is_gst && (invoice?.customer_gst || isOwnerView) && <div className="pdf-gst-tag">GST Invoice</div>}
             <div className="pdf-inv-title">{invoice?.is_gst && (invoice?.customer_gst || isOwnerView) ? "TAX INVOICE" : "INVOICE"}</div>
             <div className="pdf-inv-num"># {invoice?.invoice_id}</div>
             <div className="pdf-inv-date">Date: {invoice?.date}</div>
+            <div className="pdf-mb-tag">via ManaBills</div>
           </div>
         </div>
-
-
-
-        {(invoice?.shop_name || invoice?.shop_owner || invoice?.shop_address || invoice?.shop_gst) && (
-          <div className="pdf-shop-block">
-            <div className="pdf-shop-name">{invoice.shop_name}</div>
-            {invoice.shop_owner   && <div className="pdf-shop-det">👤 {invoice.shop_owner}</div>}
-            {invoice.shop_mobile  && <div className="pdf-shop-det">📞 {invoice.shop_mobile}</div>}
-            {invoice.shop_address && <div className="pdf-shop-det">📍 {invoice.shop_address}</div>}
-            {invoice.shop_gst     && <div className="pdf-shop-det">GSTIN: <strong>{invoice.shop_gst}</strong></div>}
-          </div>
-        )}
-
-
-
 
         <div className="pdf-info-row">
           <div>
@@ -191,7 +184,7 @@ const InvoiceView = () => {
       <meta charset="utf-8"/>
       <title>Invoice ${invoice?.invoice_id}</title>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-      <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#000;background:#fff;}@page{size:A4;margin:18mm 16mm;}.pdf-doc{padding:32px;position:relative;overflow:hidden;}.pdf-watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;}.pdf-wm-text{font-family:'Playfair Display',Georgia,serif;font-size:5.5rem;font-weight:900;color:rgba(201,150,58,0.06);transform:rotate(-30deg);white-space:nowrap;user-select:none;}.pdf-content{position:relative;z-index:1;}.pdf-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;margin-bottom:18px;border-bottom:2.5px solid #0e1b2e;}.pdf-brand-name{font-size:1.6rem;font-weight:900;font-family:'Playfair Display',Georgia,serif;color:#0e1b2e;}.pdf-brand-name span{color:#c9963a;}.pdf-brand-tag{font-size:0.65rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;}.pdf-inv-meta{text-align:right;}.pdf-inv-title{font-family:'Playfair Display',Georgia,serif;font-size:1.15rem;font-weight:800;color:#0e1b2e;}.pdf-gst-tag{display:inline-block;background:rgba(30,79,186,0.1);color:#1e4fba;font-size:0.6rem;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:100px;border:1px solid rgba(30,79,186,0.2);margin-bottom:4px;}.pdf-inv-num{font-weight:800;color:#c9963a;font-size:0.9rem;}.pdf-inv-date{font-size:0.78rem;color:#6b7280;}.pdf-shop-block{margin-bottom:16px;}.pdf-shop-name{font-weight:800;color:#0e1b2e;font-size:0.88rem;}.pdf-shop-det{font-size:0.75rem;color:#6b7280;margin-top:1px;}.pdf-info-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#f8faf9;border-radius:8px;padding:14px 16px;margin-bottom:18px;border:1px solid #e5e7eb;}.pdf-info-lbl{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:3px;}.pdf-info-val{font-weight:700;color:#111827;font-size:0.82rem;}.pdf-table{width:100%;border-collapse:collapse;margin-bottom:18px;}.pdf-table th{background:#0e1b2e;color:#fff;padding:9px 11px;text-align:left;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;}.pdf-table th:last-child{text-align:right;}.pdf-table td{padding:9px 11px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;}.pdf-table td:last-child{text-align:right;font-weight:700;}.pdf-table tbody tr:nth-child(even) td{background:#fafafa;}.pdf-totals{margin-left:auto;width:48%;margin-bottom:18px;}.pdf-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:0.8rem;border-bottom:1px solid #f1f5f9;}.pdf-total-row.grand{font-weight:900;font-size:0.95rem;color:#0e1b2e;padding-top:10px;border-top:2.5px solid #0e1b2e;border-bottom:none;}.pdf-total-row.balance-row{color:#dc2626;font-weight:800;}.pdf-total-row.paid-row{color:#15803d;font-weight:800;}.pdf-pay-block{display:flex;gap:12px;align-items:center;margin-bottom:18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;}.pdf-pay-block.unpaid{background:#fff7ed;border-color:#fed7aa;}.pdf-status-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:100px;font-size:0.72rem;font-weight:800;background:#dcfce7;color:#166534;border:1px solid rgba(21,128,61,0.3);}.pdf-status-badge.partial{background:#fef3c7;color:#92400e;}.pdf-status-badge.pending{background:#fee2e2;color:#991b1b;}.pdf-footer{border-top:1.5px solid #e5e7eb;padding-top:14px;display:flex;justify-content:space-between;align-items:flex-end;}.pdf-footer-brand{font-size:0.65rem;color:#9ca3af;}.pdf-powered{font-size:0.6rem;color:#9ca3af;text-transform:uppercase;text-align:right;}.pdf-powered strong{color:#c9963a;}</style>
+      <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#000;background:#fff;}@page{size:A4;margin:18mm 16mm;}.pdf-doc{padding:32px;position:relative;overflow:hidden;}.pdf-watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;}.pdf-wm-text{font-family:'Playfair Display',Georgia,serif;font-size:5.5rem;font-weight:900;color:rgba(201,150,58,0.06);transform:rotate(-30deg);white-space:nowrap;user-select:none;}.pdf-content{position:relative;z-index:1;}.pdf-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;margin-bottom:18px;border-bottom:2.5px solid #0e1b2e;}.pdf-shop-hero-name{font-size:1.55rem;font-weight:900;font-family:'Playfair Display',Georgia,serif;color:#0e1b2e;line-height:1.2;}.pdf-shop-hero-details{margin-top:4px;}.pdf-shop-det{font-size:0.75rem;color:#6b7280;margin-top:1px;}.pdf-inv-meta{text-align:right;}.pdf-inv-title{font-family:'Playfair Display',Georgia,serif;font-size:1.15rem;font-weight:800;color:#0e1b2e;}.pdf-gst-tag{display:inline-block;background:rgba(30,79,186,0.1);color:#1e4fba;font-size:0.6rem;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:100px;border:1px solid rgba(30,79,186,0.2);margin-bottom:4px;}.pdf-inv-num{font-weight:800;color:#c9963a;font-size:0.9rem;}.pdf-inv-date{font-size:0.78rem;color:#6b7280;}.pdf-mb-tag{font-size:0.6rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;margin-top:6px;font-weight:700;}.pdf-info-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#f8faf9;border-radius:8px;padding:14px 16px;margin-bottom:18px;border:1px solid #e5e7eb;}.pdf-info-lbl{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:3px;}.pdf-info-val{font-weight:700;color:#111827;font-size:0.82rem;}.pdf-table{width:100%;border-collapse:collapse;margin-bottom:18px;}.pdf-table th{background:#0e1b2e;color:#fff;padding:9px 11px;text-align:left;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;}.pdf-table th:last-child{text-align:right;}.pdf-table td{padding:9px 11px;border-bottom:1px solid #f1f5f9;font-size:0.8rem;}.pdf-table td:last-child{text-align:right;font-weight:700;}.pdf-table tbody tr:nth-child(even) td{background:#fafafa;}.pdf-totals{margin-left:auto;width:48%;margin-bottom:18px;}.pdf-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:0.8rem;border-bottom:1px solid #f1f5f9;}.pdf-total-row.grand{font-weight:900;font-size:0.95rem;color:#0e1b2e;padding-top:10px;border-top:2.5px solid #0e1b2e;border-bottom:none;}.pdf-total-row.balance-row{color:#dc2626;font-weight:800;}.pdf-total-row.paid-row{color:#15803d;font-weight:800;}.pdf-pay-block{display:flex;gap:12px;align-items:center;margin-bottom:18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;}.pdf-pay-block.unpaid{background:#fff7ed;border-color:#fed7aa;}.pdf-status-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:100px;font-size:0.72rem;font-weight:800;background:#dcfce7;color:#166534;border:1px solid rgba(21,128,61,0.3);}.pdf-status-badge.partial{background:#fef3c7;color:#92400e;}.pdf-status-badge.pending{background:#fee2e2;color:#991b1b;}.pdf-footer{border-top:1.5px solid #e5e7eb;padding-top:14px;display:flex;justify-content:space-between;align-items:flex-end;}.pdf-footer-brand{font-size:0.65rem;color:#9ca3af;}.pdf-powered{font-size:0.6rem;color:#9ca3af;text-transform:uppercase;text-align:right;}.pdf-powered strong{color:#c9963a;}</style>
     </head><body>${content}</body></html>`);
     w.document.close();
     setTimeout(() => { w.focus(); w.print(); }, 600);
@@ -259,17 +252,15 @@ const CSS = `
   .pdf-wm-text{font-family:'Playfair Display',Georgia,serif;font-size:5.5rem;font-weight:900;color:rgba(201,150,58,0.06);transform:rotate(-30deg);white-space:nowrap;user-select:none;}
   .pdf-content{position:relative;z-index:1;}
   .pdf-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;margin-bottom:18px;border-bottom:2.5px solid #0e1b2e;}
-  .pdf-brand-name{font-size:1.6rem;font-weight:900;font-family:'Playfair Display',Georgia,serif;color:#0e1b2e;}
-  .pdf-brand-name span{color:#c9963a;}
-  .pdf-brand-tag{font-size:0.65rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;margin-top:1px;}
+  .pdf-shop-hero-name{font-size:1.55rem;font-weight:900;font-family:'Playfair Display',Georgia,serif;color:#0e1b2e;line-height:1.2;}
+  .pdf-shop-hero-details{margin-top:4px;}
+  .pdf-shop-det{font-size:0.75rem;color:#6b7280;margin-top:1px;}
   .pdf-inv-meta{text-align:right;}
   .pdf-inv-title{font-family:'Playfair Display',Georgia,serif;font-size:1.15rem;font-weight:800;color:#0e1b2e;}
   .pdf-gst-tag{display:inline-block;background:rgba(30,79,186,0.1);color:#1e4fba;font-size:0.6rem;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:100px;border:1px solid rgba(30,79,186,0.2);margin-bottom:4px;}
   .pdf-inv-num{font-weight:800;color:#c9963a;font-size:0.9rem;}
   .pdf-inv-date{font-size:0.78rem;color:#6b7280;}
-  .pdf-shop-block{margin-bottom:16px;}
-  .pdf-shop-name{font-weight:800;color:#0e1b2e;font-size:0.88rem;}
-  .pdf-shop-det{font-size:0.75rem;color:#6b7280;margin-top:1px;}
+  .pdf-mb-tag{font-size:0.6rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;margin-top:6px;font-weight:700;}
   .pdf-info-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#f8faf9;border-radius:8px;padding:14px 16px;margin-bottom:18px;border:1px solid #e5e7eb;}
   .pdf-info-lbl{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:3px;}
   .pdf-info-val{font-weight:700;color:#111827;font-size:0.82rem;}
