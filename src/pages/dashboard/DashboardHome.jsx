@@ -613,7 +613,6 @@ const DashboardHome = () => {
 
   return (
     <div className="db-home">
-      <ReferralCard />
 
       {/* ══════════════════════════════
           NO SUBSCRIPTION
@@ -684,6 +683,7 @@ const DashboardHome = () => {
             </div>
           )}
 
+
           {/* ── QUICK ACTIONS ── */}
           {showBusiness && (
             <>
@@ -730,6 +730,9 @@ const DashboardHome = () => {
               </div>
             ))}
           </div>
+
+          <ReferralCard />
+
 
           {/* ── RECENT ACTIVITY ── */}
           <div className="db-section-row" style={{ marginTop: "0.5rem" }}>

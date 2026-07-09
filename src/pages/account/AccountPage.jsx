@@ -365,6 +365,10 @@ const AccountPage = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [referral, setReferral] = useState(null);
+  const [referralLoading, setReferralLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
   const [name, setName] = useState(user?.full_name || "");
   const [mobile, setMobile] = useState(user?.mobile_number || "");
   const [email, setEmail] = useState(user?.email || "");
@@ -412,6 +416,14 @@ const AccountPage = () => {
       })
       .catch(() => { setShopExists(false); setShopEditing(true); })
       .finally(() => setShopLoading(false));
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken) { setReferralLoading(false); return; }
+    authAxios.get("auth/my-referral/")
+      .then(res => setReferral(res.data))
+      .catch(() => setReferral(null))
+      .finally(() => setReferralLoading(false));
   }, [accessToken]);
 
   const handleLoginSave = async () => {
@@ -463,6 +475,21 @@ const AccountPage = () => {
   };
 
   const handleLogout = () => { logout(); localStorage.clear(); navigate("/",{replace:true}); };
+
+  const handleCopyReferral = () => {
+    if (!referral?.referral_link) return;
+    navigator.clipboard.writeText(referral.referral_link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShareReferral = () => {
+    if (!referral?.referral_link) return;
+    const msg = `Try ManaBills — GST billing app for shops! Use my referral link to sign up: ${referral.referral_link}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+
   const handleTabChange = (key) => { setActiveTab(key); setSidebarOpen(false); };
 
   const pwStrength = pw => {
@@ -839,6 +866,77 @@ const AccountPage = () => {
                 <GhostBtn color={T.text2} onClick={()=>setShopEditing(false)}>Cancel</GhostBtn>
               )}
             </div>
+          </div>
+        )}
+      </Card>
+
+      <Card title="Refer & Earn" subtitle="Invite shop owners, track your referrals" icon="🎁" accent={T.gold} isMobile={isMobile}>
+        {referralLoading ? (
+          <div style={{ padding:"1.2rem 0", textAlign:"center", color:T.text3 }}>Loading referral info…</div>
+        ) : !referral?.referral_code ? (
+          <div style={{ fontSize:"0.8rem", color:T.text2, textAlign:"center", padding:"1rem 0" }}>
+            Your referral code isn't ready yet. It'll appear here shortly — refresh in a bit.
+          </div>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:"1rem" }}>
+          
+            {/* Who referred me (only if present) */}
+            {referral.referred_by && (
+              <div style={{
+                background:"rgba(22,128,60,0.06)", border:`1px solid rgba(22,128,60,0.2)`,
+                borderRadius:T.radiusSm, padding:"11px 13px",
+                fontSize:"0.8rem", color:"#0f5132", display:"flex", alignItems:"center", gap:8,
+              }}>
+                ✅ You joined using <strong>{referral.referred_by.full_name || referral.referred_by.mobile_number}</strong>'s referral
+              </div>
+            )}
+      
+            {/* My code + link */}
+            <div style={{
+              background:`linear-gradient(135deg, ${T.goldPale}, rgba(200,146,58,0.04))`,
+              border:`1px solid ${T.goldBorder}`, borderRadius:T.radiusSm, padding:"14px 15px",
+            }}>
+              <FieldLabel>Your Referral Code</FieldLabel>
+              <div style={{
+                fontSize:"1.3rem", fontWeight:900, color:T.gold, letterSpacing:"0.08em",
+                fontFamily:"monospace", margin:"4px 0 10px",
+              }}>
+                {referral.referral_code}
+              </div>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                <GhostBtn color={T.gold} onClick={handleCopyReferral}>
+                  {copied ? "✓ Copied" : "📋 Copy Link"}
+                </GhostBtn>
+                <SolidBtn color="#25D366" onClick={handleShareReferral}>
+                  💬 Share on WhatsApp
+                </SolidBtn>
+              </div>
+            </div>
+            
+            {/* Stats */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.65rem" }}>
+              <Tile icon="👥" label="Total Referred" value={referral.total_referred?.toString() || "0"} isMobile={isMobile} />
+              <Tile icon="🎁" label="Status" value={referral.total_referred > 0 ? "Active" : "No referrals yet"} isMobile={isMobile} />
+            </div>
+            
+            {/* List of people I referred */}
+            {referral.referred_users?.length > 0 && (
+              <div>
+                <FieldLabel>People You've Referred</FieldLabel>
+                <div style={{ display:"flex", flexDirection:"column", gap:"6px", marginTop:6 }}>
+                  {referral.referred_users.map((u, i) => (
+                    <div key={i} style={{
+                      display:"flex", justifyContent:"space-between", alignItems:"center",
+                      background:T.bg, border:`1px solid ${T.border}`, borderRadius:T.radiusSm,
+                      padding:"9px 12px", fontSize:"0.8rem",
+                    }}>
+                      <span style={{ fontWeight:600, color:T.text1 }}>{u.full_name || "Unnamed"}</span>
+                      <span style={{ color:T.text3 }}>{u.mobile_number}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Card>
