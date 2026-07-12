@@ -148,6 +148,15 @@ export const uploadShopLogo = async (formData) => {
   return res.data; // expects { logo_url: "..." }
 };
 
+
+
+export const uploadProductImage = async (id, formData) => {
+  const res = await authAxios.post(`${BASE}products/${id}/image/`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data; // expects { image_url: "..." }
+};
+
 /* ── Jobs ────────────────────────────────────────────────── */
 export const getJobs   = () => authAxios.get(`${BASE}jobs/`).then(r => r.data);
 export const createJob = (data) => authAxios.post(`${BASE}jobs/`, data).then(r => r.data);

@@ -337,7 +337,7 @@ const ComingSoonModal = ({ moduleKey, onClose }) => {
    A module is only "locked" if it's in LOCKED_MODULE_KEYS
    AND the user has no active subscription for it.
 ════════════════════════════════════════ */
-const SmartBottomNav = ({ activeModule, onLockedTap }) => {
+const SmartBottomNav = ({ activeModule, onLockedTap, showBottomNav }) => {
   const location = useLocation();
 
   // ── FIX: pull subscription state ──────────────────────────
@@ -351,7 +351,7 @@ const SmartBottomNav = ({ activeModule, onLockedTap }) => {
   const { subscriptions } = useContext(SubscriptionContext);
 
 const subscribedModule = (() => {
-  if (activeModule && isSubscribed(activeModule)) return activeModule;
+  if (activeModule) return activeModule;
   // On /dashboard home, show the first active subscribed module's nav
   const firstActive = ["business", "home-expense", "construction", "custom"]
     .find(k => subscriptions[k]?.is_active === true);
@@ -412,6 +412,8 @@ const subscribedModule = (() => {
   }
 
   /* ── Default nav ──────────────────────────────────────────── */
+  if (!showBottomNav) return null;
+
   return (
     <nav className="mobile-bottom-nav">
       <div className="mobile-nav-inner">
@@ -516,6 +518,20 @@ const DashboardLayout = () => {
   const isAccountPage = location.pathname === "/dashboard/account";
   const hideTopbar = isAccountPage && isMobile;
 
+
+  const [showBottomNav] = useState(() => {
+    try {
+      const seen = localStorage.getItem("mb_bottomnav_seen");
+      if (!seen) {
+        localStorage.setItem("mb_bottomnav_seen", "true");
+        return true;
+      }
+      return false;
+    } catch {
+      return true;
+    }
+  });
+
 useEffect(() => {
   const fn = () => setIsMobile(window.innerWidth <= 768);
   window.addEventListener("resize", fn);
@@ -555,6 +571,7 @@ useEffect(() => {
       <SmartBottomNav
         activeModule={activeModule}
         onLockedTap={(key) => setOverlayKey(key)}
+        showBottomNav={showBottomNav}
       />
 
       {overlayKey && (

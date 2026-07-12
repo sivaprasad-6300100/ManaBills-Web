@@ -829,6 +829,9 @@ const ProductCard = memo(({ item, qty, onAdd, onRemove, color, delay }) => {
   return (
     <div className={`cv-pcard${inCart ? " in-cart" : ""}`} style={{ animationDelay:`${delay * 0.04}s` }}>
       <div className="cv-pcard-accent" style={{ background: inCart ? `linear-gradient(90deg,${color},${color}cc)` : `${color}20` }} />
+      {item.image_url && (
+        <img src={item.image_url} alt={item.name} style={{ width: "100%", height: 110, objectFit: "cover" }} />
+      )}
       <div className="cv-pcard-body">
         {item.category && (
           <div className="cv-cat-chip" style={{ background:`${color}18`, color }}>

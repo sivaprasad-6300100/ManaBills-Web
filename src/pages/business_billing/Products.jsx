@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getProducts, addProduct, updateProduct, deleteProduct,
-  getLowStockProducts, getProductStats, getShopProfile,
+  getLowStockProducts, getProductStats, getShopProfile, uploadProductImage,
 } from "../../services/businessService";
 import { S } from "../../styles/business/Products";
 
@@ -160,7 +160,7 @@ const GOLD_MAKING_GST = 5;
 
 // ─── FORM DEFAULTS ────────────────────────────────────────────
 const BASE_EMPTY_FORM = {
-  name: "", category: "General", unit: "piece",
+  name: "", category: "General", unit: "piece",image: null, imagePreview: "",
   purchasePrice: "", sellingPrice: "", qty: "", minQtyAlert: "5",
   hsnCode: "", gstRate: 18, purchaseGst: "", supplierGstin: "",
   purchaseInvoice: "", purchaseDate: "", saleType: "intra", gstInclusive: true,
@@ -187,6 +187,7 @@ const getEmptyForm = (shopType) => {
 // ─── API MAPPERS ──────────────────────────────────────────────
 const fromApi = (p) => ({
   id: p.id, name: p.name || "", category: p.category || "General",
+  imageUrl: p.image_url || "",
   unit: p.unit || "piece",
   purchasePrice:  p.purchase_price  != null ? String(p.purchase_price)  : "",
   sellingPrice:   p.selling_price   != null ? String(p.selling_price)   : "",
@@ -621,8 +622,19 @@ const Products = () => {
     const payload = toApi(form, shopType, finalName, customCategory, customSubCategory);
     setSaving(true);
     try {
+      let savedId = editingId;
       if (editingId) { await updateProduct(editingId, payload); showToast(`"${finalName}" updated successfully`); setEditingId(null); }
-      else { const result = await addProduct(payload); showToast(result.merged ? `"${result.name}" qty updated — stock merged` : `"${result.name}" added to stock`); }
+      else {
+        const result = await addProduct(payload);
+        savedId = result.id;
+        showToast(result.merged ? `"${result.name}" qty updated — stock merged` : `"${result.name}" added to stock`);
+      }
+      if (form.image && savedId) {
+        const fd = new FormData();
+        fd.append("image", form.image);
+        try { await uploadProductImage(savedId, fd); }
+        catch { showToast("Item saved, but image upload failed.", "error"); }
+      }
       setForm(getEmptyForm(shopType)); setCustomCategory(""); setCustomSubCategory(""); setTab("list");
       await refreshStock();
     } catch (err) {
@@ -716,6 +728,13 @@ const Products = () => {
           <W label="Item Name *" full>
             <input name="name" placeholder="e.g. Basmati Rice…" value={form.name} onChange={handleChange} style={iStyle} />
           </W>
+          <W label="Product Image" full>
+            <input type="file" accept="image/*" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
+            }} style={iStyle} />
+            {form.imagePreview && <img src={form.imagePreview} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginTop: 6 }} />}
+          </W>
           <CategorySelect {...catProps} isMobile={isMobile} />
           {form.category === "__custom__" && (
             <CustomTextInput label="Custom Category Name" placeholder="Type your category name…" value={customCategory} onChange={setCustomCategory} onConfirm={confirmCustomCategory} isMobile={isMobile} color={t.color} />
@@ -749,6 +768,13 @@ const Products = () => {
               <span style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "3px" }}>Will save as: <strong>{buildClothingName()}</strong></span>
             )}
           </W>
+          <W label="Product Image" full>
+            <input type="file" accept="image/*" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
+            }} style={iStyle} />
+            {form.imagePreview && <img src={form.imagePreview} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginTop: 6 }} />}
+          </W>
         </div>
         {isMobile && <div style={{ ...S.sectionDivider(t.color), marginTop: "14px" }}>💰 Pricing & Stock</div>}
         {!isMobile && <SectionHeader label="💰 Pricing & Stock" />}
@@ -766,6 +792,13 @@ const Products = () => {
         <div style={gridStyle}>
           <W label="Item Name *" full>
             <input name="name" placeholder="e.g. 1/2 inch PVC Pipe…" value={form.name} onChange={handleChange} style={iStyle} />
+          </W>
+          <W label="Product Image" full>
+            <input type="file" accept="image/*" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
+            }} style={iStyle} />
+            {form.imagePreview && <img src={form.imagePreview} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginTop: 6 }} />}
           </W>
           <CategorySelect {...catProps} isMobile={isMobile} />
           {form.category === "__custom__" && (
@@ -807,6 +840,13 @@ const Products = () => {
         <div style={gridStyle}>
           <W label="Medicine Name *" full>
             <input name="name" placeholder="e.g. Dolo 650mg…" value={form.name} onChange={handleChange} style={iStyle} />
+          </W>
+          <W label="Product Image" full>
+            <input type="file" accept="image/*" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
+            }} style={iStyle} />
+            {form.imagePreview && <img src={form.imagePreview} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginTop: 6 }} />}
           </W>
           <CategorySelect {...catProps} isMobile={isMobile} />
           {form.category === "__custom__" && (
@@ -863,6 +903,13 @@ const Products = () => {
           </W>
           <W label="Item Name *" full>
             <input name="name" placeholder="e.g. Necklace, Ring, Coin…" value={form.name} onChange={handleChange} style={iStyle} />
+          </W>
+          <W label="Product Image" full>
+            <input type="file" accept="image/*" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
+            }} style={iStyle} />
+            {form.imagePreview && <img src={form.imagePreview} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginTop: 6 }} />}
           </W>
           <CategorySelect {...catProps} isMobile={isMobile} />
           {form.category === "__custom__" && (
@@ -1036,6 +1083,9 @@ const Products = () => {
                   ? <div style={S.emptyBox}>{stock.length === 0 ? "No stock added yet. Go to '➕ Add Stock' tab to begin." : "No items match your search or filter."}</div>
                   : filtered.map((s) => (
                     <div key={s.id} style={S.stockCard}>
+                      {s.imageUrl && (
+                        <img src={s.imageUrl} alt={s.name} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8, marginBottom: 8 }} />
+                      )}
                       <div style={S.stockCardTop}>
                         <div>
                           <div style={S.stockName}>{s.name}</div>
@@ -1134,6 +1184,9 @@ const Products = () => {
                 : <ul style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", padding: 0, listStyle: "none", margin: 0 }}>
                   {filtered.map((s) => (
                     <li key={s.id}>
+                      {s.imageUrl && (
+                        <img src={s.imageUrl} alt={s.name} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
+                      )}
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "5px", flexWrap: "wrap" }}>
                           <strong style={{ fontSize: "0.95rem", color: "#0f172a" }}>{s.name}</strong>
