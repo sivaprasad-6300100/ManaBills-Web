@@ -350,13 +350,16 @@ const SmartBottomNav = ({ activeModule, onLockedTap }) => {
   // We use `activeModule` (derived from pathname in parent) as the source of truth.
   const { subscriptions } = useContext(SubscriptionContext);
 
-const subscribedModule = (() => {
-  if (activeModule && isSubscribed(activeModule)) return activeModule;
-  // On /dashboard home, show the first active subscribed module's nav
-  const firstActive = ["business", "home-expense", "construction", "custom"]
-    .find(k => subscriptions[k]?.is_active === true);
-  return firstActive || null;
-})();
+
+  const subscribedModule = (() => {
+  // "Ever subscribed" = record exists, active OR expired — not just currently active
+    if (activeModule && subscriptions[activeModule] != null) return activeModule;
+    
+    const firstEver = ["business", "home-expense", "construction", "custom"]
+      .find(k => subscriptions[k] != null);
+    
+    return firstEver || null;
+  })();
 
 
   // Show module-specific nav when inside a subscribed module
