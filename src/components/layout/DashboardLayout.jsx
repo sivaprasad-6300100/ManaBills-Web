@@ -351,17 +351,16 @@ const SmartBottomNav = ({ activeModule, onLockedTap }) => {
   const { subscriptions } = useContext(SubscriptionContext);
 
 
+
   const subscribedModule = (() => {
-  // "Ever subscribed" = record exists, active OR expired — not just currently active
     if (activeModule && subscriptions[activeModule] != null) return activeModule;
-    
     const firstEver = ["business", "home-expense", "construction", "custom"]
       .find(k => subscriptions[k] != null);
-    
     return firstEver || null;
   })();
 
 
+  
   // Show module-specific nav when inside a subscribed module
   if (subscribedModule && MODULE_NAVS[subscribedModule]) {
     const items  = MODULE_NAVS[subscribedModule];
