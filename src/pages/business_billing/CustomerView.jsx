@@ -1180,7 +1180,7 @@ export default function CustomerView({
 
   // ─── Render: Login screen if not authenticated ────────────
   if (!customer?.verified) {
-    return <CustomerLogin onLogin={(session) => setCustomer(session)} />;
+    return <CustomerLogin onLogin={(session) => setCustomer(session)} scannerId={effectiveScannerId} />;
   }
 
   const toastColors = { success:{ bg:"#0A0F1E", dot:"#4ADE80" }, error:{ bg:"#7F1D1D", dot:"#FCA5A5" }, info:{ bg:"#1E3A8A", dot:"#93C5FD" } };
