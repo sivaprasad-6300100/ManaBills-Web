@@ -273,32 +273,40 @@ const STYLES = `
     pointer-events:none;
   }
   .cv-hdr-inner { max-width:760px; margin:0 auto; padding:0 18px; position:relative; z-index:1; }
-  .cv-brand-row { display:flex; align-items:flex-start; justify-content:space-between; padding:8px 0 4px; gap:4px; }
+
+  .cv-brand-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0 12px; gap:10px; }
   .cv-wordmark { display:flex; flex-direction:column; gap:2px; }
-  .cv-wordmark-line1 { display:flex; align-items:baseline; font-family:'Playfair Display','Sora',serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; line-height:1; color:#fff; }
+  .cv-wordmark-line1 { display:flex; align-items:baseline; font-family:'Playfair Display','Sora',serif; font-size:24px; font-weight:800; letter-spacing:-0.5px; line-height:1; color:#fff; }
   .cv-wordmark-mana { color:rgba(255,255,255,.9); }
   .cv-wordmark-bills { color:var(--gold2); position:relative; }
   .cv-wordmark-bills::after { content:''; position:absolute; left:0; bottom:-2px; right:0; height:2px; background:linear-gradient(90deg,var(--gold2),transparent); border-radius:1px; }
-  .cv-wordmark-tagline { font-size:10px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.25); padding-left:2px; }
-  .cv-hdr-right { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
-  .cv-user-chip { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1); border-radius:100px; padding:5px 10px 5px 7px; cursor:default; }
-  .cv-user-avatar { width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,var(--gold),var(--gold2)); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:var(--ink); flex-shrink:0; }
-  .cv-user-name { font-size:11px; font-weight:600; color:rgba(255,255,255,.7); max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .cv-logout-btn { background:none; border:none; color:rgba(255,255,255,.3); font-size:10px; cursor:pointer; font-family:inherit; padding:0; transition:color .2s; }
-  .cv-logout-btn:hover { color:rgba(255,255,255,.6); }
+  .cv-wordmark-tagline { font-size:9.5px; font-weight:500; letter-spacing:.13em; text-transform:uppercase; color:rgba(255,255,255,.25); padding-left:2px; margin-top:1px; }
 
-  .cv-status-toggle { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
-  .cv-status-pill { display:flex; align-items:center; gap:8px; padding:6px 10px 6px 7px; border-radius:100px; border:1px solid; cursor:default; }
+  /* Status pill — top right, standalone */
+  .cv-status-pill { display:flex; align-items:center; gap:7px; padding:6px 12px 6px 8px; border-radius:100px; border:1px solid; cursor:default; flex-shrink:0; }
   .cv-status-pill.open  { background:rgba(20,83,45,.35); border-color:rgba(74,222,128,.25); }
   .cv-status-pill.closed{ background:rgba(127,29,29,.25); border-color:rgba(252,165,165,.2); }
-  .cv-status-bulb { width:12px; height:12px; border-radius:50%; position:relative; flex-shrink:0; }
+  .cv-status-bulb { width:9px; height:9px; border-radius:50%; position:relative; flex-shrink:0; }
   .cv-status-pill.open  .cv-status-bulb { background:#4ADE80; animation:breathe 2.4s ease-in-out infinite; }
   .cv-status-pill.closed .cv-status-bulb { background:#FCA5A5; animation:breatheRed 3s ease-in-out infinite; }
-  .cv-status-bulb::after { content:''; position:absolute; inset:2px; border-radius:50%; background:rgba(255,255,255,.5); }
-  .cv-status-text { font-size:11px; font-weight:700; letter-spacing:.04em; }
+  .cv-status-bulb::after { content:''; position:absolute; inset:1.5px; border-radius:50%; background:rgba(255,255,255,.5); }
+  .cv-status-text { font-size:11px; font-weight:700; letter-spacing:.05em; }
   .cv-status-pill.open  .cv-status-text { color:#4ADE80; }
   .cv-status-pill.closed .cv-status-text { color:#FCA5A5; }
-  .cv-status-sub { font-size:10px; color:rgba(255,255,255,.28); font-weight:400; text-align:right; min-height:13px; }
+
+  /* Secondary row: shop status detail + user chip + cart, aligned together */
+  .cv-hdr-meta-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:14px; flex-wrap:wrap; }
+  .cv-status-sub { font-size:11px; color:rgba(255,255,255,.32); font-weight:400; }
+
+  .cv-hdr-right-group { display:flex; align-items:center; gap:8px; margin-left:auto; }
+
+  .cv-user-chip { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1); border-radius:100px; padding:5px 6px 5px 6px; cursor:default; max-width:150px; }
+  .cv-user-avatar { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,var(--gold),var(--gold2)); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:var(--ink); flex-shrink:0; }
+  .cv-user-name { font-size:12px; font-weight:600; color:rgba(255,255,255,.75); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cv-logout-btn { background:rgba(255,255,255,.06); border:none; color:rgba(255,255,255,.4); font-size:10px; cursor:pointer; font-family:inherit; padding:0; width:20px; height:20px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+  .cv-logout-btn:hover { color:#fff; background:rgba(255,255,255,.16); }
+
+  .cv-status-toggle { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
 
   .cv-cart-pill { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.11); border-radius:14px; padding:8px 14px; cursor:pointer; transition:all .18s; }
   .cv-cart-pill:hover { background:rgba(255,255,255,.14); }
@@ -306,11 +314,13 @@ const STYLES = `
   .cv-cart-pill-badge { background:var(--gold2); color:var(--ink); font-size:10px; font-weight:800; min-width:20px; height:20px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; padding:0 5px; }
   .cv-cart-pill-amt { font-size:12px; color:rgba(255,255,255,.45); border-left:1px solid rgba(255,255,255,.1); padding-left:9px; }
 
-  .cv-shop-card { margin:0 0 14px; padding:12px 15px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:14px; display:flex; flex-direction:column; gap:6px; position:relative; overflow:hidden; }
+  .cv-shop-card { margin:0 0 14px; padding:13px 16px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:15px; display:flex; align-items:center; gap:12px; position:relative; overflow:hidden; }
   .cv-shop-card::before { content:''; position:absolute; top:0; bottom:0; width:40px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent); animation:scanLine 3.5s ease-in-out infinite; pointer-events:none; }
-  .cv-shop-name { font-family:'Sora',sans-serif; font-size:15px; font-weight:700; color:#fff; letter-spacing:-.2px; line-height:1.2; }
-  .cv-shop-owner { font-size:12px; color:rgba(255,255,255,.45); font-weight:500; }
-  .cv-shop-meta { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:2px; }
+  .cv-shop-emblem { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,var(--gold),var(--gold2)); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:800; font-size:15px; color:var(--ink); flex-shrink:0; }
+  .cv-shop-card-body { min-width:0; flex:1; }
+  .cv-shop-name { font-family:'Sora',sans-serif; font-size:15px; font-weight:700; color:#fff; letter-spacing:-.2px; line-height:1.25; }
+  .cv-shop-owner { font-size:12px; color:rgba(255,255,255,.45); font-weight:500; margin-top:1px; }
+  .cv-shop-meta { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:5px; }
   .cv-shop-meta-item { display:flex; align-items:center; gap:4px; font-size:11px; color:rgba(255,255,255,.32); }
 
   .cv-hdr-actions-row { display:flex; align-items:center; gap:8px; padding-bottom:14px; }
@@ -339,6 +349,8 @@ const STYLES = `
   .cv-pcard:hover { box-shadow:var(--sh2); transform:translateY(-3px); }
   .cv-pcard.in-cart { border-color:var(--gold2); box-shadow:0 0 0 3px rgba(232,160,32,.15),var(--sh2); }
   .cv-pcard-accent { height:4px; }
+  .cv-pcard-media { height:96px; display:flex; align-items:center; justify-content:center; font-size:34px; position:relative; overflow:hidden; }
+  .cv-pcard-media img { width:100%; height:100%; object-fit:cover; }
   .cv-pcard-body { padding:12px 12px 8px; }
   .cv-cat-chip { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:3px 8px; border-radius:100px; margin-bottom:6px; }
   .cv-pcard-name { font-family:'Sora',sans-serif; font-size:13px; font-weight:700; color:var(--ink); line-height:1.35; margin-bottom:4px; }
@@ -829,9 +841,13 @@ const ProductCard = memo(({ item, qty, onAdd, onRemove, color, delay }) => {
   return (
     <div className={`cv-pcard${inCart ? " in-cart" : ""}`} style={{ animationDelay:`${delay * 0.04}s` }}>
       <div className="cv-pcard-accent" style={{ background: inCart ? `linear-gradient(90deg,${color},${color}cc)` : `${color}20` }} />
-      {item.image_url && (
-        <img src={item.image_url} alt={item.name} style={{ width: "100%", height: 110, objectFit: "cover" }} />
-      )}
+      <div className="cv-pcard-media" style={{ background: item.image_url ? "transparent" : `linear-gradient(135deg,${color}14,${color}26)` }}>
+        {item.image_url ? (
+          <img src={item.image_url} alt={item.name} />
+        ) : (
+          <span style={{ opacity: .85 }}>{icon}</span>
+        )}
+      </div>
       <div className="cv-pcard-body">
         {item.category && (
           <div className="cv-cat-chip" style={{ background:`${color}18`, color }}>
@@ -1186,6 +1202,8 @@ export default function CustomerView({
   const toastColors = { success:{ bg:"#0A0F1E", dot:"#4ADE80" }, error:{ bg:"#7F1D1D", dot:"#FCA5A5" }, info:{ bg:"#1E3A8A", dot:"#93C5FD" } };
   const tc = toastColors[localToast?.type] || toastColors.success;
   const initials = customer.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  const firstName = customer.name.split(" ")[0];
+  const shopInitials = (shopProfile?.shop_name || "MB").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   return (
     <div className="cv-root">
@@ -1213,26 +1231,23 @@ export default function CustomerView({
               </div>
               <div className="cv-wordmark-tagline">Digital Shop · Quick Order</div>
             </div>
-            <div className="cv-hdr-right">
-              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
-                <div className={`cv-status-pill ${shopStatus.open ? "open" : "closed"}`}>
-                  <div className="cv-status-bulb" />
-                  <span className="cv-status-text">{shopStatus.open ? "OPEN" : "CLOSED"}</span>
-                </div>
-                <div className="cv-status-sub">{shopStatus.label || (shopStatus.open ? "We're open now" : "")}</div>
-              </div>
-              {/* User chip */}
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <div className="cv-user-chip">
-                  <div className="cv-user-avatar">{initials}</div>
-                  <span className="cv-user-name">{customer.name}</span>
-                </div>
+            <div className={`cv-status-pill ${shopStatus.open ? "open" : "closed"}`}>
+              <div className="cv-status-bulb" />
+              <span className="cv-status-text">{shopStatus.open ? "OPEN" : "CLOSED"}</span>
+            </div>
+          </div>
+
+          <div className="cv-hdr-meta-row">
+            <span className="cv-status-sub">{shopStatus.label || (shopStatus.open ? "We're open now" : "")}</span>
+            <div className="cv-hdr-right-group">
+              <div className="cv-user-chip">
+                <div className="cv-user-avatar">{initials}</div>
+                <span className="cv-user-name">{firstName}</span>
                 <button className="cv-logout-btn" onClick={handleLogout} title="Sign out">✕</button>
               </div>
               {cartCount > 0 && (
                 <button className="cv-cart-pill" onClick={() => setModal("cart")}>
                   <span style={{ fontSize:15 }}>🛒</span>
-                  <span className="cv-cart-pill-txt">Cart</span>
                   <span className="cv-cart-pill-badge">{cartCount}</span>
                   <span className="cv-cart-pill-amt">{fmt(cartTotal)}</span>
                 </button>
@@ -1244,11 +1259,14 @@ export default function CustomerView({
 
           {(shopProfile?.shop_name || shopProfile?.owner_name) && (
             <div className="cv-shop-card">
-              {shopProfile?.shop_name && <div className="cv-shop-name">{shopProfile.shop_name}</div>}
-              {shopProfile?.owner_name && <div className="cv-shop-owner">Owner: {shopProfile.owner_name}</div>}
-              <div className="cv-shop-meta">
-                {shopProfile?.address && <div className="cv-shop-meta-item"><span>📍</span><span>{shopProfile.address}</span></div>}
-                {shopProfile?.mobile  && <div className="cv-shop-meta-item"><span>📱</span><span>{shopProfile.mobile}</span></div>}
+              <div className="cv-shop-emblem">{shopInitials}</div>
+              <div className="cv-shop-card-body">
+                {shopProfile?.shop_name && <div className="cv-shop-name">{shopProfile.shop_name}</div>}
+                {shopProfile?.owner_name && <div className="cv-shop-owner">Owner: {shopProfile.owner_name}</div>}
+                <div className="cv-shop-meta">
+                  {shopProfile?.address && <div className="cv-shop-meta-item"><span>📍</span><span>{shopProfile.address}</span></div>}
+                  {shopProfile?.mobile  && <div className="cv-shop-meta-item"><span>📱</span><span>{shopProfile.mobile}</span></div>}
+                </div>
               </div>
             </div>
           )}
@@ -1259,12 +1277,6 @@ export default function CustomerView({
               <input className="cv-search" type="text" placeholder="Search products…"
                 value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            {cartCount > 0 && (
-              <button className="cv-cart-pill" onClick={() => setModal("cart")} style={{ flexShrink:0 }}>
-                <span style={{ fontSize:15 }}>🛒</span>
-                <span className="cv-cart-pill-badge">{cartCount}</span>
-              </button>
-            )}
           </div>
         </div>
       </div>
