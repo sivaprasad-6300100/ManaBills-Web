@@ -269,7 +269,7 @@ const STYLES = `
 
   .em-items-wrap {
     background:var(--bg); border:1px solid var(--border);
-    border-radius:var(--r-lg); overflow:hidden;
+    border-radius:var(--r-lg); overflow:visible
   }
   .em-items-header {
     display:grid; grid-template-columns:2fr 1fr 1.2fr 1fr 36px;
@@ -945,6 +945,7 @@ const ItemRow = ({ item, idx, onChange, onRemove, originalItems }) => {
     onChange(idx, "productId",   prod.id);
     onChange(idx, "isStockItem", true);
     onChange(idx, "maxQty",      Number(prod.qty));
+    onChange(idx, "gst_rate",    Number(prod.gst_rate || 0));   // ← ADD THIS LINE
     setSuggestions([]); setShowSuggest(false);
   };
 
@@ -1128,6 +1129,7 @@ const EditModal = ({ invoice, shop, onClose, onSaved }) => {
             price:         Number(i.price),
             unit:          i.unit,
             is_stock_item: i.isStockItem,
+            gst_rate:      Number(i.gst_rate || 0),
             _new:          i._new || false,
           })),
       };
