@@ -723,7 +723,7 @@ export default function HomePage() {
             <button className="hp-btn-ghost" onClick={handleLogout}>Logout</button>
           ) : (
             <>
-              <button className="hp-btn-ghost"  onClick={() => openModal("login")}>Sign In</button>
+              <button className="hp-btn-ghost"  onClick={() => openModal("login")}>Log In</button>
               <button className="hp-btn-primary" onClick={() => openModal("signup")}>Get Started Free →</button>
             </>
           )}
@@ -763,7 +763,7 @@ export default function HomePage() {
           </p>
           <div className="hp-hero-cta-row">
             <button className="hp-cta-main"  onClick={() => openModal("signup")}>🚀 Start Free — No Card Needed</button>
-            <button className="hp-cta-ghost" onClick={() => openModal("login")}>Sign In →</button>
+            <button className="hp-cta-ghost" onClick={() => openModal("login")}>Log In →</button>
           </div>
           <div className="hp-hero-mini-stats">
             <div className="hp-mini-stat"><strong>50K+</strong><span>Invoices/month</span></div>
@@ -1354,7 +1354,7 @@ export default function HomePage() {
                   onClick={() => { setForgotMode(false); resetForgot(); setMessage({ text: "", type: "" }); }}
                   style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px", padding: "0 0 0.5rem 0", fontFamily: "inherit" }}
                 >
-                  ← Back to Sign In
+                  ← Back to Log In
                 </button>
 
                 <div style={{ display: "flex", gap: "8px", marginBottom: "1.25rem" }}>
