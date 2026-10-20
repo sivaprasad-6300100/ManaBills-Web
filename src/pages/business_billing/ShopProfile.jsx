@@ -129,6 +129,14 @@ const ShopProfile = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    // Mobile fields: digits only, max 10
+    if (name === "mobile" || name === "extra_mobile") {
+      const digits = value.replace(/\D/g, "").slice(0, 10);
+      setShop((prev) => ({ ...prev, [name]: digits }));
+      return;
+    }
+
     setShop((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
@@ -137,6 +145,16 @@ const ShopProfile = () => {
       showToast("Please fill all required fields (marked with *)", "error");
       return;
     }
+
+    if (!/^[6-9]\d{9}$/.test(shop.mobile)) {
+      showToast("Primary mobile must be a valid 10-digit number", "error");
+      return;
+    }
+    if (shop.extra_mobile && !/^[6-9]\d{9}$/.test(shop.extra_mobile)) {
+      showToast("Extra mobile must be a valid 10-digit number", "error");
+      return;
+    }
+
     if (!isBasicPlan && shop.gst_enabled && !shop.gst_number.trim()) {
       showToast("GST Number is required when GST is enabled", "error");
       return;
@@ -749,6 +767,9 @@ const ShopProfile = () => {
                     <label>Primary Mobile <span className="sp-req">*</span></label>
                     <input
                       type="tel"
+                      pattern="[0-9]{10}"
+                      maxLength={10}
+                      inputMode="numeric"
                       name="mobile"
                       placeholder="e.g. 9876543210"
                       value={shop.mobile}
@@ -931,6 +952,9 @@ const ShopProfile = () => {
                       placeholder="e.g. 9123456789"
                       value={shop.extra_mobile}
                       onChange={handleChange}
+                      maxLength={10}
+                      inputMode="numeric"
+                      pattern="[0-9]{10}"
                     />
                   </div>
 
