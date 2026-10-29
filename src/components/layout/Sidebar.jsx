@@ -1,173 +1,89 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
-
-/* ── Module meta (same as DashboardLayout) ── */
-const MODULE_META = {
-  "home-expense": { emoji: "💸", label: "Expenses",     desc: "Smart expense tracking & reports" },
-  construction:   { emoji: "🏗️", label: "Construction", desc: "Budget, bills & site payments"    },
-  custom:         { emoji: "✨", label: "Custom",       desc: "Estimates, quotes & custom bills"  },
-};
-
-const MODULE_COLORS = {
-  "home-expense": "#15803d",
-  construction:   "#c2410c",
-  custom:         "#7c3aed",
-};
+import { SubscriptionContext } from "../../context/SubscriptionContext";
+import "../../styles/global/sidebar.css";
 
 /* ════════════════════════════════════════
-   COMING SOON MODAL (same design as mobile)
+   OPTIONS — change these to restyle quickly
+   THEME: "navy" (dark, default) | "light"
 ════════════════════════════════════════ */
-const ComingSoonModal = ({ moduleKey, onClose }) => {
-  const meta  = MODULE_META[moduleKey]   || {};
-  const color = MODULE_COLORS[moduleKey] || "#c9963a";
-
-  useEffect(() => {
-    const fn = (e) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [onClose]);
-
-  return (
-    <>
-      <style>{`
-        @keyframes cs-bd  { from{opacity:0} to{opacity:1} }
-        @keyframes cs-up  { from{opacity:0;transform:translateY(30px) scale(.93)} to{opacity:1;transform:none} }
-        @keyframes cs-flt { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
-        @keyframes cs-dot { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
-        @keyframes cs-glw { 0%,100%{opacity:.28;transform:scale(1)} 50%{opacity:.1;transform:scale(1.18)} }
-      `}</style>
-
-      {/* Backdrop */}
-      <div onClick={onClose} style={{
-        position:"fixed", inset:0, zIndex:9998,
-        background:"rgba(5,8,16,0.78)", backdropFilter:"blur(7px)",
-        animation:"cs-bd .2s ease",
-      }}/>
-
-      {/* Card */}
-      <div style={{
-        position:"fixed", inset:0, zIndex:9999,
-        display:"flex", alignItems:"center", justifyContent:"center",
-        pointerEvents:"none",
-      }}>
-        <div style={{
-          pointerEvents:"all",
-          width:"min(340px,86vw)",
-          background:"linear-gradient(145deg,#0f1320 0%,#141927 60%,#0c1018 100%)",
-          border:"1px solid rgba(255,255,255,0.07)",
-          borderRadius:"22px", padding:"44px 30px 36px",
-          textAlign:"center", position:"relative", overflow:"hidden",
-          boxShadow:`0 36px 90px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,255,255,0.06)`,
-          animation:"cs-up .3s cubic-bezier(.34,1.56,.64,1)",
-        }}>
-
-          {/* Glow blob */}
-          <div style={{
-            position:"absolute", top:"-50px", left:"50%", transform:"translateX(-50%)",
-            width:"200px", height:"200px", borderRadius:"50%",
-            background:`radial-gradient(circle,${color}2e 0%,transparent 70%)`,
-            animation:"cs-glw 3s ease-in-out infinite", pointerEvents:"none",
-          }}/>
-
-          {/* Top stripe */}
-          <div style={{
-            position:"absolute", top:0, left:"15%", right:"15%", height:"2px",
-            background:`linear-gradient(90deg,transparent,${color},transparent)`,
-          }}/>
-
-          {/* Close */}
-          <button onClick={onClose} style={{
-            position:"absolute", top:"13px", right:"13px",
-            background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.09)",
-            borderRadius:"50%", width:"28px", height:"28px",
-            display:"flex", alignItems:"center", justifyContent:"center",
-            cursor:"pointer", color:"#64748b", fontSize:"15px", lineHeight:1,
-          }}>×</button>
-
-          {/* LOCKED badge */}
-          <div style={{
-            display:"inline-flex", alignItems:"center", gap:"5px",
-            background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.09)",
-            borderRadius:"20px", padding:"3px 12px",
-            fontSize:"10px", fontWeight:700, letterSpacing:"0.1em",
-            color:"#64748b", textTransform:"uppercase", marginBottom:"18px",
-          }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2"/>
-              <path d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
-            LOCKED
-          </div>
-
-          {/* Emoji */}
-          <div style={{ fontSize:"48px", lineHeight:1, marginBottom:"14px", animation:"cs-flt 2.8s ease-in-out infinite" }}>
-            {meta.emoji}
-          </div>
-
-          {/* Title */}
-          <h2 style={{
-            margin:"0 0 7px", fontSize:"26px", fontWeight:800, letterSpacing:"-0.4px",
-            background:`linear-gradient(130deg,#fff 35%,${color})`,
-            WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text",
-          }}>{meta.label}</h2>
-
-          {/* Desc */}
-          <p style={{ margin:"0 0 26px", fontSize:"13px", color:"#64748b", lineHeight:1.6 }}>
-            {meta.desc}
-          </p>
-
-          {/* Coming Soon pill */}
-          <div style={{
-            display:"inline-flex", alignItems:"center", gap:"8px",
-            background:`${color}18`, border:`1.5px solid ${color}40`,
-            borderRadius:"12px", padding:"11px 22px",
-            fontSize:"13px", fontWeight:700, color, letterSpacing:"0.04em",
-          }}>
-            Coming Soon
-            <span style={{ display:"flex", gap:"3px", alignItems:"center" }}>
-              {[0,1,2].map(i => (
-                <span key={i} style={{
-                  width:"5px", height:"5px", borderRadius:"50%",
-                  background:color, display:"inline-block",
-                  animation:`cs-dot 1.4s ease-in-out ${i * 0.16}s infinite`,
-                }}/>
-              ))}
-            </span>
-          </div>
-
-          <div style={{ marginTop:"26px", height:"1px", background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.07) 50%,transparent)" }}/>
-          <p style={{ margin:"12px 0 0", fontSize:"10px", color:"#1e293b", letterSpacing:"0.06em" }}>
-            TAP ANYWHERE OUTSIDE TO CLOSE
-          </p>
-        </div>
-      </div>
-    </>
-  );
-};
+const THEME = "navy";
+const STORAGE_KEY = "sidebar_collapsed";
 
 /* ════════════════════════════════════════
-   LOCK ICON (inline svg)
+   ICONS (inline SVG — no emojis)
 ════════════════════════════════════════ */
-const LockBadge = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-    stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-    style={{ flexShrink: 0 }}>
-    <rect x="3" y="11" width="18" height="11" rx="2"/>
-    <path d="M7 11V7a5 5 0 0110 0v4"/>
+const ICONS = {
+  home:      ["M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z", "M9 21V12h6v9"],
+  overview:  ["M3 3h7v7H3z", "M14 3h7v7h-7z", "M14 14h7v7h-7z", "M3 14h7v7H3z"],
+  invoiceAdd:["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z", "M14 2v6h6", "M12 18v-6", "M9 15h6"],
+  invoices:  ["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z", "M14 2v6h6", "M16 13H8", "M16 17H8", "M10 9H8"],
+  stock:     ["M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z", "M3.27 6.96L12 12.01l8.73-5.05", "M12 22.08V12"],
+  customers: ["M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2", "M9 11a4 4 0 100-8 4 4 0 000 8z", "M23 21v-2a4 4 0 00-3-3.87", "M16 3.13a4 4 0 010 7.75"],
+  orders:    ["M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z", "M3 6h18", "M16 10a4 4 0 01-8 0"],
+  gst:       ["M18 20V10", "M12 20V4", "M6 20v-6"],
+  shop:      ["M3 9l1-5h16l1 5", "M3 9a3 3 0 006 0 3 3 0 006 0 3 3 0 006 0", "M5 21V12", "M19 21V12", "M5 21h14"],
+  account:   ["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2", "M12 11a4 4 0 100-8 4 4 0 000 8z"],
+  logout:    ["M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4", "M16 17l5-5-5-5", "M21 12H9"],
+  chevron:   ["M15 18l-6-6 6-6"],
+  crown:     ["M2 20h20", "M4 20L2 8l5 4 5-8 5 8 5-4-2 12"],
+};
+
+const Icon = ({ name, size = 19 }) => (
+  <svg
+    width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="1.9"
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+  >
+    {ICONS[name].map((d, i) => <path key={i} d={d} />)}
   </svg>
 );
 
 /* ════════════════════════════════════════
-   NAV CONFIG
+   NAV CONFIG — grouped sections
+   (routes match AppRoutes.jsx)
 ════════════════════════════════════════ */
-const NAV_MODULES = [
-  { to: "/dashboard/business",     icon: "🧾", label: "Business Billing", locked: false },
-  { to: "/dashboard/home-expense", icon: "💰", label: "Home Expenses",    locked: true,  moduleKey: "home-expense" },
-  { to: "/dashboard/construction", icon: "🏗️", label: "Construction",    locked: true,  moduleKey: "construction" },
-  { to: "/dashboard/custom",       icon: "⚙️", label: "Custom",           locked: true,  moduleKey: "custom"       },
+const NAV_SECTIONS = [
+  {
+    label: "Overview",
+    items: [
+      { to: "/dashboard", icon: "home", label: "Home", end: true },
+    ],
+  },
+  {
+    label: "Sales",
+    items: [
+      { to: "/dashboard/business",                 icon: "overview",   label: "Overview",       end: true },
+      { to: "/dashboard/business/create-invoice",  icon: "invoiceAdd", label: "Create Invoice" },
+      { to: "/dashboard/business/invoices",        icon: "invoices",   label: "Invoices" },
+      { to: "/dashboard/business/shopqroder",      icon: "orders",     label: "Orders" },
+    ],
+  },
+  {
+    label: "Manage",
+    items: [
+      { to: "/dashboard/business/products",  icon: "stock",     label: "Stock Entry" },
+      { to: "/dashboard/business/customers", icon: "customers", label: "Customers" },
+      { to: "/dashboard/business/gst",       icon: "gst",       label: "GST Reports" },
+    ],
+  },
+  {
+    label: "Settings",
+    items: [
+      { to: "/dashboard/business/shop-profile", icon: "shop",    label: "Shop Profile" },
+      { to: "/dashboard/account",               icon: "account", label: "Account" },
+    ],
+  },
 ];
+
+/* ── helpers ── */
+const isPhoneNumber = (v) => /^\+?\d{8,}$/.test(String(v || "").replace(/\s/g, ""));
+
+const formatPhone = (v) => {
+  const d = String(v).replace(/\D/g, "").slice(-10);
+  return d.length === 10 ? `+91 ${d.slice(0, 5)} ${d.slice(5)}` : v;
+};
 
 /* ════════════════════════════════════════
    SIDEBAR
@@ -175,11 +91,23 @@ const NAV_MODULES = [
 const Sidebar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const subCtx = useContext(SubscriptionContext) || {};
+  const hasPlan = subCtx.subscriptions?.business?.is_active === true;
 
-  const [overlayKey, setOverlayKey] = useState(null);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(STORAGE_KEY) === "1"; } catch { return false; }
+  });
 
-  const name     = user?.full_name || user?.mobile_number || "User";
-  const initials = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0"); } catch { /* ignore */ }
+  }, [collapsed]);
+
+  const rawName   = user?.full_name || user?.mobile_number || "User";
+  const hasName   = !!user?.full_name;
+  const display   = hasName ? rawName : isPhoneNumber(rawName) ? formatPhone(rawName) : rawName;
+  const initials  = hasName
+    ? rawName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+    : null; // phone-number users get a user icon instead of a digit
 
   const handleLogout = () => {
     logout();
@@ -187,95 +115,92 @@ const Sidebar = () => {
   };
 
   return (
-    <>
-      <aside className="sidebar">
-
-        {/* ── Logo + User ── */}
-        <div className="sidebar-header">
+    <aside
+      className={`sidebar${collapsed ? " collapsed" : ""}`}
+      data-theme={THEME}
+    >
+      {/* ── Brand ── */}
+      <div className="sidebar-header">
+        <div className="sidebar-brand">
           <div className="sidebar-logo" onClick={() => navigate("/dashboard")}>
-            Mana<span>Bills</span>
+            <span className="sidebar-logo-mark">M</span>
+            <span className="sidebar-logo-text">Mana<span>Bills</span></span>
           </div>
-          <div className="sidebar-user">
-            <div className="sidebar-avatar">{initials}</div>
-            <div>
-              <div className="sidebar-user-name">{name}</div>
-              <div className="sidebar-user-plan">Active Plan ✦</div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Navigation ── */}
-        <nav className="sidebar-nav">
-
-          <div className="sidebar-nav-label">Overview</div>
-          <NavLink to="/dashboard" end className="nav-link">
-            <span className="nav-link-icon">🏠</span>
-            Home
-          </NavLink>
-
-          <div className="sidebar-nav-label">Modules</div>
-
-          {NAV_MODULES.map((item) => {
-            /* ── LOCKED: button with lock badge ── */
-            if (item.locked) {
-              return (
-                <button
-                  key={item.to}
-                  type="button"
-                  onClick={() => setOverlayKey(item.moduleKey)}
-                  style={{
-                    display:"flex", alignItems:"center", gap:"10px",
-                    width:"100%", padding:"10px 12px",
-                    background:"none", border:"none", cursor:"pointer",
-                    borderRadius:"8px", textAlign:"left",
-                    opacity: 0.5,
-                    color:"#94a3b8", fontSize:"14px", fontWeight:500,
-                    transition:"opacity .15s, background .15s",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.opacity = "0.75"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = "0.5";  e.currentTarget.style.background = "none"; }}
-                >
-                  <span className="nav-link-icon">{item.icon}</span>
-                  <span style={{ flex: 1 }}>{item.label}</span>
-                  <LockBadge />
-                </button>
-              );
-            }
-
-            /* ── UNLOCKED: normal NavLink ── */
-            return (
-              <NavLink key={item.to} to={item.to} className="nav-link">
-                <span className="nav-link-icon">{item.icon}</span>
-                {item.label}
-              </NavLink>
-            );
-          })}
-
-          <NavLink to="/dashboard/account" className="nav-link">
-            <span className="nav-link-icon">👤</span>
-            Account / Settings
-          </NavLink>
-
-        </nav>
-
-        {/* ── Logout ── */}
-        <div className="sidebar-footer">
-          <button className="sidebar-logout" onClick={handleLogout}>
-            <span>🚪</span>
-            Sign Out
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={() => setCollapsed((c) => !c)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand" : "Collapse"}
+          >
+            <Icon name="chevron" size={16} />
           </button>
         </div>
 
-      </aside>
+        {/* ── User card ── */}
+        <div className="sidebar-user" title={collapsed ? display : undefined}>
+          <div className="sidebar-avatar">
+            {initials || <Icon name="account" size={16} />}
+          </div>
+          <div className="sidebar-user-info">
+            <div className="sidebar-user-name">{display}</div>
+            <div className={`sidebar-user-plan${hasPlan ? " is-active" : ""}`}>
+              <span className="plan-dot" />
+              {hasPlan ? "Business Plan" : "Free plan"}
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* ── Coming Soon Modal ── */}
-      {overlayKey && (
-        <ComingSoonModal
-          moduleKey={overlayKey}
-          onClose={() => setOverlayKey(null)}
-        />
-      )}
-    </>
+      {/* ── Navigation ── */}
+      <nav className="sidebar-nav" aria-label="Main navigation">
+        {NAV_SECTIONS.map((section) => (
+          <div className="sidebar-section" key={section.label}>
+            <div className="sidebar-nav-label">{section.label}</div>
+            {section.items.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className="nav-link"
+                data-tip={item.label}
+              >
+                <span className="nav-link-icon"><Icon name={item.icon} /></span>
+                <span className="nav-link-text">{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      {/* ── Footer ── */}
+      <div className="sidebar-footer">
+        {!hasPlan && (
+          <button
+            type="button"
+            className="sidebar-upgrade"
+            onClick={() => navigate("/subscription")}
+            data-tip="Upgrade"
+          >
+            <span className="sidebar-upgrade-icon"><Icon name="crown" size={17} /></span>
+            <span className="sidebar-upgrade-text">
+              <strong>Upgrade plan</strong>
+              <small>Unlock all features</small>
+            </span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          className="sidebar-logout"
+          onClick={handleLogout}
+          data-tip="Sign Out"
+        >
+          <span className="nav-link-icon"><Icon name="logout" /></span>
+          <span className="nav-link-text">Sign Out</span>
+        </button>
+      </div>
+    </aside>
   );
 };
 

@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { publicAxios } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import '../../styles/global/publicHomePage.css';
-import SplashScreen from "../../components/splash/SplashScreen"
+import '../../styles/global/publicHomePageStyles.css';
+import SplashScreen from "../../components/splash/SplashScreen";
+import BirdsBackground from "../../components/background/BirdsBackground";
 // import { auth } from "../../services/firebase";
 // import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 
@@ -18,19 +20,31 @@ const TRUST_BADGES = [
 ];
 
 const FOR_WHO = [
-  { icon: "🛍️", title: "Retail & Kirana Shops",  desc: "GST invoices, stock tracking, customer ledger — all in one tap.",    tag: "Most Popular" },
-  { icon: "🏗️", title: "Contractors & Builders", desc: "Track project costs, labour payments, and material bills easily.",    tag: "New" },
-  { icon: "🏠", title: "Families & Households",  desc: "Manage monthly expenses, utility bills, and savings goals.",          tag: "" },
-  { icon: "💼", title: "Freelancers & Agencies", desc: "Custom quotations, client invoices, and payment tracking.",           tag: "" },
+  { icon: "🛍️", title: "Retail & Kirana Shops",      desc: "GST invoices, stock tracking, customer ledger — all in one tap.",                         tag: "Most Popular" },
+  { icon: "🔩", title: "Hardware & Aluminium Shops", desc: "Bill by weight, size or quantity and keep every material in stock.",                      tag: "" },
+  { icon: "💊", title: "Medical Stores",             desc: "Fast billing and stock entry made for pharmacy counters.",                                tag: "" },
+  { icon: "👗", title: "Clothing, Gold & Silver",    desc: "Stock fields that change with your shop type, so you fill only what matters.",            tag: "" },
 ];
 
 const FEATURES = [
   { icon: "🧾", color: "#1e4fba", bg: "rgba(30,79,186,0.1)",  title: "GST Invoices in 30 Seconds",  desc: "Tax-compliant invoices instantly with PDF export and auto-calculations. Send directly on WhatsApp." },
-  { icon: "📊", color: "#c9963a", bg: "rgba(201,150,58,0.1)", title: "Smart Expense Tracking",       desc: "Auto-categorize spending. See exactly where your money is going every single month." },
-  { icon: "🏗️", color: "#1a6b3e", bg: "rgba(26,107,62,0.1)",  title: "Construction Billing",         desc: "Manage materials, labour, contractors and project budgets all in one place." },
   { icon: "📦", color: "#7c3aed", bg: "rgba(124,58,237,0.1)", title: "Stock Management",             desc: "Track inventory levels, set reorder alerts, and never run out of stock again." },
   { icon: "👥", color: "#0891b2", bg: "rgba(8,145,178,0.1)",  title: "Customer Ledger",              desc: "Know who owes you money. Automated payment reminders sent on WhatsApp." },
-  { icon: "✨", color: "#e8780a", bg: "rgba(232,120,10,0.1)", title: "AI Financial Insights",        desc: "Smart tips to save money. Spot unusual spending before it becomes a big problem." },
+  { icon: "🗂️", color: "#c9963a", bg: "rgba(201,150,58,0.1)", title: "Invoice History",              desc: "Find any old bill in seconds, preview it as PDF and share it again on WhatsApp." },
+  { icon: "📊", color: "#1a6b3e", bg: "rgba(26,107,62,0.1)",  title: "GST Reports",                  desc: "Summary, B2B, B2C, ITC and payments in one place. Download as CSV for your CA." },
+  { icon: "📲", color: "#e8780a", bg: "rgba(232,120,10,0.1)", title: "Shop QR Ordering",             desc: "Put a QR code on your counter. Customers scan, order and pay online." },
+];
+
+// Blocks shown inside the Business Billing app
+const MODULES = [
+  { icon: "🏠", title: "Overview",        desc: "Today's sales, pending dues and stock at a glance when you open the app." },
+  { icon: "➕", title: "Create Invoice",  desc: "Pick items, add the customer and the GST bill is ready. CGST/SGST split automatically when the customer has a GSTIN." },
+  { icon: "📦", title: "Stock Entry",     desc: "Add products with fields made for your shop type — hardware, kirana, medical, clothing, gold & silver or aluminium." },
+  { icon: "👥", title: "Customers",       desc: "Every customer's bills and visit history in one drawer. See who still owes you." },
+  { icon: "🧾", title: "Invoices",        desc: "Search all past invoices, preview as PDF and resend on WhatsApp." },
+  { icon: "📈", title: "GST Reports",     desc: "5 tabs — Summary, B2B, B2C, ITC and Payments — with CSV export and mark-as-paid." },
+  { icon: "🔳", title: "Shop QR Order",   desc: "Customers scan your shop QR, place an order and pay online with Razorpay." },
+  { icon: "🏪", title: "Shop Profile",    desc: "Add your shop name, logo and GST details once. They appear on every invoice." },
 ];
 
 const BEFORE_AFTER = [
@@ -39,7 +53,7 @@ const BEFORE_AFTER = [
   { before: "Lost receipts & forgotten payments",  after: "We Storage Your Data, never lose a bill" },
   { before: "Hours of end-month accounting",       after: "One-click monthly reports" },
   { before: "Chasing customers for payment",       after: "Auto WhatsApp payment reminders" },
-  { before: "No idea where money is going",        after: "Real-time expense dashboard" },
+  { before: "Guessing which items are running low", after: "Stock updated with every bill" },
 ];
 
 const TESTIMONIALS = [
@@ -57,44 +71,8 @@ const TESTIMONIALS = [
     stars: 5,
     text: "GST filing time came down from 3 hours to 15 minutes only. Customer ledger feature is too good — everyone's account is crystal clear itself.",
   },
-  {
-    name: "Anil Kumar",
-    role: "Construction Contractor, Warangal",
-    avatar: "AK",
-    stars: 5,
-    text: "Labour payments, material cost, project budget — everything is in one place only. Very less price but very professional tool it is.",
-  },
 ];
 
-const PRICING = [
-  {
-    name: "Home Expense",
-    price: "₹99",
-    per: "/month",
-    trial: "7 Days Free",
-    color: "#1a6b3e",
-    highlight: false,
-    features: ["Expense tracking", "Monthly reports", "Bill reminders", "AI savings tips"],
-  },
-  {
-    name: "Business Billing",
-    price: "₹199",
-    per: "/month",
-    trial: "7 Days Free",
-    color: "#1e4fba",
-    highlight: true,
-    features: ["GST invoices", "Customer ledger", "Stock tracking", "WhatsApp reminders", "PDF export"],
-  },
-  {
-    name: "Construction",
-    price: "₹699",
-    per: "/month",
-    trial: "Free Plan Available",
-    color: "#c9963a",
-    highlight: false,
-    features: ["Project budgeting", "Labour billing", "Material tracking", "Contractor payments", "Cost reports"],
-  },
-];
 
 /* ─── OTP STYLES ─── */
 const otpStyles = {
@@ -268,8 +246,8 @@ const LEGAL_CONTENT = {
   privacy: {
     title: "Privacy Policy", icon: "🔒", updated: "January 1, 2025",
     sections: [
-      { h: "Information We Collect", t: "We collect information you provide when creating an account: your name, mobile number, and shop details. We also collect business data including invoices, expenses, and billing history you create within ManaBills." },
-      { h: "How We Use Your Information", t: "We use your data to:\n• Provide billing and expense management services\n• Generate invoices and financial reports\n• Send transactional notifications\n• Respond to support queries\n• Ensure platform security" },
+      { h: "Information We Collect", t: "We collect information you provide when creating an account: your name, mobile number, and shop details. We also collect business data including invoices, customers, stock, and billing history you create within ManaBills." },
+      { h: "How We Use Your Information", t: "We use your data to:\n• Provide billing, stock, and customer management services\n• Generate invoices and financial reports\n• Send transactional notifications\n• Respond to support queries\n• Ensure platform security" },
       { h: "Data Storage & Security", t: "Your data is stored on secure, encrypted servers in India. We use SSL/TLS encryption for data transmission and AES-256 encryption at rest. Regular security audits and strict access controls keep your business data private." },
       { h: "Data Sharing", t: "We do not sell, trade, or rent your personal information to third parties. We may share anonymized, aggregated data for analytics. We only disclose information when required by law or with your explicit consent." },
       { h: "Data Retention", t: "We retain your data as long as your account is active. Upon deletion, data is permanently removed within 30 days, except GST billing records which must be retained for 7 years as per Indian tax law." },
@@ -394,6 +372,7 @@ const LegalModal = ({ pageKey, onClose }) => {
 export default function HomePage() {
   const navigate = useNavigate();
   const { login: authLogin, logout: authLogout } = useAuth();
+  const refCode = useRef(""); // referral code from ?ref= link
 
   /* ── ALL STATES ── */
   const [modal,         setModal]         = useState(null);
@@ -450,7 +429,8 @@ export default function HomePage() {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
     if (ref) {
-      setSignupData(prev => ({ ...prev, referral_code: ref.toUpperCase() }));
+      refCode.current = ref.toUpperCase();
+      setSignupData(prev => ({ ...prev, referral_code: refCode.current }));
     }
   }, []);
 
@@ -486,7 +466,7 @@ export default function HomePage() {
     setOtpConfirm(null);
     setOtpLoading(false);
     setSignupStep(1);
-    setSignupData({ full_name: "", mobile_number: "", password: "", confirm_password: "", referral_code: "" });
+    setSignupData({ full_name: "", mobile_number: "", password: "", confirm_password: "", referral_code: refCode.current });
     if (window.signupRecaptcha) {
       try { window.signupRecaptcha.clear(); } catch (e) {}
       window.signupRecaptcha = null;
@@ -708,6 +688,7 @@ export default function HomePage() {
 
   return (
     <div className="hp-page">
+     <BirdsBackground />
 
       {/* ══ 1. NAVBAR ══ */}
       <nav className="hp-nav">
@@ -757,7 +738,7 @@ export default function HomePage() {
             <span className="hp-gold-text">Your Account. Your Control.</span>
           </h1>
           <p className="hp-hero-sub">
-            GST invoices, expense tracking, construction billing — everything your
+            GST invoices, stock tracking, customer ledger and GST reports — everything your
             shop or business needs, all in one simple app only.
             No accountant needed. No confusion at all.
           </p>
@@ -821,7 +802,7 @@ export default function HomePage() {
           <div className="hp-eyebrow">Built for every business</div>
           <h2 className="hp-section-h2">Who All Are Using ManaBills?</h2>
           <p className="hp-section-p">
-            From small kirana shops to large construction firms — one platform is fitting all types of businesses only.
+            From kirana and hardware shops to medical stores and clothing showrooms — one platform is fitting all types of shops only.
           </p>
         </div>
         <div className="hp-for-grid">
@@ -851,6 +832,26 @@ export default function HomePage() {
               <div className="hp-feat-icon" style={{ background: f.bg, color: f.color }}>{f.icon}</div>
               <h3 className="hp-feat-title">{f.title}</h3>
               <p className="hp-feat-desc">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ══ 6b. BUSINESS BILLING BLOCKS ══ */}
+      <section className="hp-section" id="modules">
+        <div className="hp-section-head">
+          <div className="hp-eyebrow">Inside Business Billing</div>
+          <h2 className="hp-section-h2">Everything Your Counter Needs</h2>
+          <p className="hp-section-p">
+            Eight simple sections, one app. Open it, bill your customer and close the day with clear accounts.
+          </p>
+        </div>
+        <div className="hp-feat-grid">
+          {MODULES.map((m, i) => (
+            <div key={i} className="hp-feat-card">
+              <div className="hp-feat-icon" style={{ background: "rgba(30,79,186,0.1)", color: "#1e4fba" }}>{m.icon}</div>
+              <h3 className="hp-feat-title">{m.title}</h3>
+              <p className="hp-feat-desc">{m.desc}</p>
             </div>
           ))}
         </div>
@@ -892,7 +893,7 @@ export default function HomePage() {
           <div className="hp-eyebrow">Real businesses, real results</div>
           <h2 className="hp-section-h2">What Our Customers Are Telling</h2>
           <p className="hp-section-p">
-            Real shop owners from Hyderabad, Vijayawada and Warangal are sharing their experience only.
+            Real shop owners from Hyderabad and Vijayawada are sharing their experience only.
           </p>
         </div>
         <div className="hp-testi-grid">
@@ -925,42 +926,57 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══ 9. PRICING ══ */}
-      <section className="hp-section" id="pricing">
+      {/* ══ 9. HOW MANABILLS FITS YOUR DAY ══ */}
+      <section className="hp-section hp-workflow-section" id="workflow">
         <div className="hp-section-head">
-          <div className="hp-eyebrow">Simple, honest pricing</div>
-          <h2 className="hp-section-h2">Starting ₹99 Only — Zero Hidden Charges</h2>
+          <div className="hp-eyebrow">A simpler way to run your shop</div>
+          <h2 className="hp-section-h2">From First Bill to Day-End Clarity</h2>
           <p className="hp-section-p">
-            Start free itself. Upgrade only when you are ready. Cancel anytime. No tension at all.
+            Keep your daily shop work connected in one clear flow — without jumping between notebooks, spreadsheets and separate tools.
           </p>
         </div>
-        <div className="hp-pricing-grid">
-          {PRICING.map((plan, i) => (
-            <div key={i} className={`hp-plan ${plan.highlight ? "hp-plan-pop" : ""}`}>
-              {plan.highlight && <div className="hp-plan-badge">⭐ Most Popular</div>}
-              <h3 className="hp-plan-name">{plan.name}</h3>
-              <div className="hp-plan-price">{plan.price}<span>{plan.per}</span></div>
-              <div className="hp-plan-trial" style={{ color: plan.color }}>✦ {plan.trial}</div>
-              <ul className="hp-plan-feats">
-                {plan.features.map((f, j) => (
-                  <li key={j}><span className="hp-plan-check">✓</span>{f}</li>
-                ))}
-              </ul>
-              <button
-                className="hp-plan-btn"
-                style={plan.highlight
-                  ? { background: `linear-gradient(135deg,${plan.color},#4f46e5)` }
-                  : { background: plan.color }}
-                onClick={() => openModal("signup")}
-              >
-                Start Free Trial
-              </button>
-            </div>
-          ))}
+
+        <div className="hp-workflow-grid">
+          <article className="hp-workflow-card">
+            <span className="hp-workflow-number">01</span>
+            <div className="hp-workflow-icon">🧾</div>
+            <h3>Create the bill</h3>
+            <p>Add products, customer details and applicable GST. Review the total before you save.</p>
+            <span className="hp-workflow-foot">Billing made clearer</span>
+          </article>
+          <article className="hp-workflow-card">
+            <span className="hp-workflow-number">02</span>
+            <div className="hp-workflow-icon">📦</div>
+            <h3>Keep stock updated</h3>
+            <p>Record stock and use your product list to make repeat billing easier.</p>
+            <span className="hp-workflow-foot">Know what you have</span>
+          </article>
+          <article className="hp-workflow-card">
+            <span className="hp-workflow-number">03</span>
+            <div className="hp-workflow-icon">🤝</div>
+            <h3>Track customer dues</h3>
+            <p>Keep customer balances and billing history together, so pending payments are easier to follow up.</p>
+            <span className="hp-workflow-foot">Fewer missed details</span>
+          </article>
+          <article className="hp-workflow-card">
+            <span className="hp-workflow-number">04</span>
+            <div className="hp-workflow-icon">📊</div>
+            <h3>Review your business</h3>
+            <p>Use invoice history and available reports to understand your shop's activity.</p>
+            <span className="hp-workflow-foot">A clearer day-end view</span>
+          </article>
         </div>
-        <p className="hp-pricing-note">
-          🔒 No credit card required · Cancel anytime · 24/7 WhatsApp support is available
-        </p>
+
+        <div className="hp-workflow-bottom">
+          <div>
+            <span className="hp-workflow-bottom-kicker">Made for real shop routines</span>
+            <h3>Less switching. More clarity.</h3>
+            <p>Explore the billing flow with your own business details and see whether ManaBills fits your daily work.</p>
+          </div>
+          <button className="hp-workflow-cta" onClick={() => openModal("signup")}>
+            Explore ManaBills <span aria-hidden="true">↗</span>
+          </button>
+        </div>
       </section>
 
       {/* ══ 10. FINAL CTA ══ */}
@@ -987,7 +1003,7 @@ export default function HomePage() {
           <div className="hp-footer-brand">
             <div className="hp-footer-logo">Mana<span>Bills</span></div>
             <p className="hp-footer-tag">
-              Andhra Pradesh &amp; Telangana's trusted billing &amp; expense management app
+              Andhra Pradesh &amp; Telangana's trusted GST billing &amp; stock management app
             </p>
             <a href="https://wa.me/919550544441" target="_blank" rel="noreferrer" className="hp-wa-link">
               💬 Chat on WhatsApp
@@ -997,7 +1013,8 @@ export default function HomePage() {
             <div className="hp-footer-col">
               <h4>Product</h4>
               <a href="#features">Features</a>
-              <a href="#pricing">Pricing</a>
+              <a href="#modules">Inside the App</a>
+              <a href="#workflow">How It Works</a>
               <a href="#who">Who It's For</a>
             </div>
             <div className="hp-footer-col">

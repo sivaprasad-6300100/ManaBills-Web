@@ -1,0 +1,300 @@
+/*
+ * ManaBills homepage visual enhancements (v4 – few lines, travelling shapes)
+ * Import after publicHomePage.css.
+ *
+ * Background concept: five single hairlines (blue / teal / gold) crossing the
+ * screen, with small shapes and light "comets" travelling along them.
+ *   - dots, rings and a diamond glide along the lines and fade in and out
+ *   - four short comet dashes run along the lines at different speeds
+ *   - lines fade out behind the headline area so text stays clean
+ *
+ * One fixed layer (.hp-page::before), no scroll cost. Animation lives inside
+ * the SVG, so there is no JavaScript. prefers-reduced-motion gets static lines.
+ */
+
+:root {
+  --hp-bg: #fbfcff;
+}
+
+.hp-page {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  background-color: var(--hp-bg);
+  background-image:
+    radial-gradient(ellipse 60% 520px at 10% 0, rgba(67, 123, 255, 0.07), transparent 70%),
+    radial-gradient(ellipse 55% 520px at 92% 18%, rgba(78, 205, 190, 0.07), transparent 70%);
+  background-repeat: no-repeat;
+}
+
+.hp-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 900' preserveAspectRatio='xMidYMid slice'%3E%3Cdefs%3E%3ClinearGradient id='gb' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='1440' y2='0'%3E%3Cstop offset='0' stop-color='%23437bff' stop-opacity='0'/%3E%3Cstop offset='0.2' stop-color='%231e4fba' stop-opacity='0.55'/%3E%3Cstop offset='0.6' stop-color='%232fb8a8' stop-opacity='0.5'/%3E%3Cstop offset='1' stop-color='%232fb8a8' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='gt' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='1440' y2='0'%3E%3Cstop offset='0' stop-color='%232fb8a8' stop-opacity='0'/%3E%3Cstop offset='0.3' stop-color='%23437bff' stop-opacity='0.5'/%3E%3Cstop offset='0.75' stop-color='%231e4fba' stop-opacity='0.45'/%3E%3Cstop offset='1' stop-color='%231e4fba' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='gg' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='1440' y2='0'%3E%3Cstop offset='0' stop-color='%23c9963a' stop-opacity='0'/%3E%3Cstop offset='0.35' stop-color='%23c9963a' stop-opacity='0.55'/%3E%3Cstop offset='0.8' stop-color='%23c9963a' stop-opacity='0.3'/%3E%3Cstop offset='1' stop-color='%23c9963a' stop-opacity='0'/%3E%3C/linearGradient%3E%3CradialGradient id='glow'%3E%3Cstop offset='0' stop-color='%23437bff' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%23437bff' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='glowg'%3E%3Cstop offset='0' stop-color='%23c9963a' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%23c9963a' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M-80 700 C 260 840, 620 500, 960 560 S 1380 300, 1540 170' stroke='url(%23gb)' stroke-width='1.3' fill='none'/%3E%3Cpath d='M-80 150 C 300 40, 560 320, 900 220 S 1300 50, 1540 120' stroke='url(%23gt)' stroke-width='1.1' fill='none'/%3E%3Cpath d='M-80 470 C 200 360, 480 650, 820 710 S 1260 850, 1540 770' stroke='url(%23gg)' stroke-width='1.2' fill='none'/%3E%3Cpath d='M200 -80 C 380 200, 700 110, 980 360 S 1240 640, 1300 980' stroke='url(%23gt)' stroke-width='1' fill='none'/%3E%3Cpath d='M880 -60 C 1000 160, 1180 190, 1540 390' stroke='url(%23gb)' stroke-width='1' fill='none'/%3E%3Cpath d='M-80 700 C 260 840, 620 500, 960 560 S 1380 300, 1540 170' pathLength='1000' stroke='%23437bff' stroke-width='1.8' stroke-linecap='round' fill='none' stroke-dasharray='120 880' stroke-opacity='.8'%3E%3Canimate attributeName='stroke-dashoffset' values='120;-1000' dur='16s' begin='0s' repeatCount='indefinite'/%3E%3C/path%3E%3Cpath d='M-80 470 C 200 360, 480 650, 820 710 S 1260 850, 1540 770' pathLength='1000' stroke='%23c9963a' stroke-width='1.8' stroke-linecap='round' fill='none' stroke-dasharray='120 880' stroke-opacity='.8'%3E%3Canimate attributeName='stroke-dashoffset' values='120;-1000' dur='22s' begin='-6s' repeatCount='indefinite'/%3E%3C/path%3E%3Cpath d='M200 -80 C 380 200, 700 110, 980 360 S 1240 640, 1300 980' pathLength='1000' stroke='%232fb8a8' stroke-width='1.5' stroke-linecap='round' fill='none' stroke-dasharray='120 880' stroke-opacity='.8'%3E%3Canimate attributeName='stroke-dashoffset' values='120;-1000' dur='19s' begin='-11s' repeatCount='indefinite'/%3E%3C/path%3E%3Cpath d='M-80 150 C 300 40, 560 320, 900 220 S 1300 50, 1540 120' pathLength='1000' stroke='%231e4fba' stroke-width='1.5' stroke-linecap='round' fill='none' stroke-dasharray='120 880' stroke-opacity='.8'%3E%3Canimate attributeName='stroke-dashoffset' values='120;-1000' dur='26s' begin='-3s' repeatCount='indefinite'/%3E%3C/path%3E%3Cg opacity='0'%3E%3Ccircle r='14' fill='url(%23glow)'/%3E%3Ccircle r='3.6' fill='%23437bff'/%3E%3CanimateMotion path='M-80 700 C 260 840, 620 500, 960 560 S 1380 300, 1540 170' dur='28s' begin='-4s' repeatCount='indefinite' rotate='auto'/%3E%3Canimate attributeName='opacity' values='0;1;1;0' keyTimes='0;.1;.9;1' dur='28s' begin='-4s' repeatCount='indefinite'/%3E%3C/g%3E%3Cg opacity='0'%3E%3Ccircle r='7' fill='none' stroke='%232fb8a8' stroke-width='1.4'/%3E%3Ccircle r='1.8' fill='%232fb8a8'/%3E%3CanimateMotion path='M-80 150 C 300 40, 560 320, 900 220 S 1300 50, 1540 120' dur='34s' begin='-14s' repeatCount='indefinite' rotate='auto'/%3E%3Canimate attributeName='opacity' values='0;1;1;0' keyTimes='0;.1;.9;1' dur='34s' begin='-14s' repeatCount='indefinite'/%3E%3C/g%3E%3Cg opacity='0'%3E%3Crect x='-5' y='-5' width='10' height='10' transform='rotate(45)' fill='none' stroke='%23c9963a' stroke-width='1.4'/%3E%3CanimateMotion path='M-80 470 C 200 360, 480 650, 820 710 S 1260 850, 1540 770' dur='40s' begin='-20s' repeatCount='indefinite' rotate='auto'/%3E%3Canimate attributeName='opacity' values='0;1;1;0' keyTimes='0;.1;.9;1' dur='40s' begin='-20s' repeatCount='indefinite'/%3E%3C/g%3E%3Cg opacity='0'%3E%3Ccircle r='14' fill='url(%23glowg)'/%3E%3Ccircle r='3.2' fill='%23c9963a'/%3E%3CanimateMotion path='M200 -80 C 380 200, 700 110, 980 360 S 1240 640, 1300 980' dur='30s' begin='-9s' repeatCount='indefinite' rotate='auto'/%3E%3Canimate attributeName='opacity' values='0;1;1;0' keyTimes='0;.1;.9;1' dur='30s' begin='-9s' repeatCount='indefinite'/%3E%3C/g%3E%3Cg opacity='0'%3E%3Ccircle r='6' fill='none' stroke='%23437bff' stroke-width='1.3'/%3E%3CanimateMotion path='M880 -60 C 1000 160, 1180 190, 1540 390' dur='22s' begin='-2s' repeatCount='indefinite' rotate='auto'/%3E%3Canimate attributeName='opacity' values='0;1;1;0' keyTimes='0;.1;.9;1' dur='22s' begin='-2s' repeatCount='indefinite'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* keep the lines faint behind the left-hand headline block */
+  -webkit-mask-image: radial-gradient(ellipse 42% 38% at 22% 58%, rgba(0,0,0,0.18), #000 100%);
+  mask-image: radial-gradient(ellipse 42% 38% at 22% 58%, rgba(0,0,0,0.18), #000 100%);
+}
+
+/* Keep text and controls above the decorative backdrop. */
+.hp-nav,
+.hp-proof-bar,
+.hp-hero,
+.hp-trust-section,
+.hp-section,
+.hp-final,
+.hp-footer {
+  position: relative;
+}
+
+/* New replacement for the pricing block: an editorial, four-step product story. */
+.hp-workflow-section {
+  padding-top: clamp(4.5rem, 8vw, 7rem);
+  padding-bottom: clamp(4.5rem, 8vw, 7rem);
+}
+
+.hp-workflow-section .hp-section-head {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.hp-workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 2.6rem auto 0;
+  max-width: 1180px;
+}
+
+.hp-workflow-card {
+  position: relative;
+  min-height: 275px;
+  overflow: hidden;
+  padding: 1.55rem 1.35rem 1.35rem;
+  border: 1px solid rgba(30, 79, 186, 0.11);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 12px 38px rgba(14, 27, 46, 0.045);
+  backdrop-filter: blur(12px);
+  transition: transform 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
+}
+
+.hp-workflow-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 1.35rem;
+  right: 1.35rem;
+  height: 2px;
+  border-radius: 0 0 99px 99px;
+  background: linear-gradient(90deg, #1e4fba, #66d9d0, #c9963a);
+  opacity: 0.72;
+  transform: scaleX(0.45);
+  transform-origin: left;
+  transition: transform 260ms ease;
+}
+
+.hp-workflow-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(30, 79, 186, 0.25);
+  box-shadow: 0 22px 52px rgba(30, 79, 186, 0.11);
+}
+
+.hp-workflow-card:hover::before {
+  transform: scaleX(1);
+}
+
+.hp-workflow-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 1.6rem;
+  padding: 0 0.45rem;
+  border: 1px solid rgba(30, 79, 186, 0.12);
+  border-radius: 999px;
+  background: rgba(30, 79, 186, 0.055);
+  color: #1e4fba;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.hp-workflow-icon {
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  margin: 1.15rem 0 1rem;
+  border: 1px solid rgba(30, 79, 186, 0.10);
+  border-radius: 1rem;
+  background: linear-gradient(145deg, #ffffff, #eef4ff);
+  box-shadow: 0 8px 20px rgba(30, 79, 186, 0.07);
+  font-size: 1.5rem;
+}
+
+.hp-workflow-card h3 {
+  margin: 0 0 0.65rem;
+  color: #0e1b2e;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.hp-workflow-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.75;
+}
+
+.hp-workflow-foot {
+  display: inline-block;
+  margin-top: 1.25rem;
+  color: #1e4fba;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.hp-workflow-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  max-width: 1180px;
+  margin: 1.25rem auto 0;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid rgba(30, 79, 186, 0.12);
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(ellipse at 95% 0%, rgba(102, 217, 208, 0.16), transparent 35%),
+    linear-gradient(115deg, rgba(255,255,255,0.96), rgba(242,247,255,0.92));
+  box-shadow: 0 16px 42px rgba(14, 27, 46, 0.045);
+}
+
+.hp-workflow-bottom-kicker {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #1e4fba;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hp-workflow-bottom h3 {
+  margin: 0 0 0.45rem;
+  color: #0e1b2e;
+  font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+
+.hp-workflow-bottom p {
+  max-width: 640px;
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.hp-workflow-cta {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 3.15rem;
+  padding: 0.9rem 1.25rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, #1e4fba, #315ed5);
+  box-shadow: 0 10px 24px rgba(30, 79, 186, 0.22);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.hp-workflow-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(30, 79, 186, 0.29);
+}
+
+.hp-workflow-cta:focus-visible {
+  outline: 3px solid rgba(30, 79, 186, 0.35);
+  outline-offset: 3px;
+}
+
+@media (max-width: 1000px) {
+  .hp-workflow-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .hp-workflow-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+    margin-top: 1.8rem;
+  }
+
+  .hp-workflow-card {
+    min-height: auto;
+    padding: 1.25rem;
+  }
+
+  .hp-workflow-icon {
+    margin-top: 0.85rem;
+  }
+
+  .hp-workflow-bottom {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 0.9rem;
+    border-radius: 1.2rem;
+  }
+
+  .hp-workflow-cta {
+    width: 100%;
+  }
+
+  /* Calmer lines on phones */
+  .hp-page::before { opacity: 0.75; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Static lines only: no travelling shapes or comets */
+  .hp-page::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 900' preserveAspectRatio='xMidYMid slice'%3E%3Cdefs%3E%3ClinearGradient id='gb' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='1440' y2='0'%3E%3Cstop offset='0' stop-color='%23437bff' stop-opacity='0'/%3E%3Cstop offset='0.2' stop-color='%231e4fba' stop-opacity='0.55'/%3E%3Cstop offset='0.6' stop-color='%232fb8a8' stop-opacity='0.5'/%3E%3Cstop offset='1' stop-color='%232fb8a8' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='gt' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='1440' y2='0'%3E%3Cstop offset='0' stop-color='%232fb8a8' stop-opacity='0'/%3E%3Cstop offset='0.3' stop-color='%23437bff' stop-opacity='0.5'/%3E%3Cstop offset='0.75' stop-color='%231e4fba' stop-opacity='0.45'/%3E%3Cstop offset='1' stop-color='%231e4fba' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='gg' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='1440' y2='0'%3E%3Cstop offset='0' stop-color='%23c9963a' stop-opacity='0'/%3E%3Cstop offset='0.35' stop-color='%23c9963a' stop-opacity='0.55'/%3E%3Cstop offset='0.8' stop-color='%23c9963a' stop-opacity='0.3'/%3E%3Cstop offset='1' stop-color='%23c9963a' stop-opacity='0'/%3E%3C/linearGradient%3E%3CradialGradient id='glow'%3E%3Cstop offset='0' stop-color='%23437bff' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%23437bff' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='glowg'%3E%3Cstop offset='0' stop-color='%23c9963a' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%23c9963a' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M-80 700 C 260 840, 620 500, 960 560 S 1380 300, 1540 170' stroke='url(%23gb)' stroke-width='1.3' fill='none'/%3E%3Cpath d='M-80 150 C 300 40, 560 320, 900 220 S 1300 50, 1540 120' stroke='url(%23gt)' stroke-width='1.1' fill='none'/%3E%3Cpath d='M-80 470 C 200 360, 480 650, 820 710 S 1260 850, 1540 770' stroke='url(%23gg)' stroke-width='1.2' fill='none'/%3E%3Cpath d='M200 -80 C 380 200, 700 110, 980 360 S 1240 640, 1300 980' stroke='url(%23gt)' stroke-width='1' fill='none'/%3E%3Cpath d='M880 -60 C 1000 160, 1180 190, 1540 390' stroke='url(%23gb)' stroke-width='1' fill='none'/%3E%3C/svg%3E");
+  }
+
+  .hp-workflow-card,
+  .hp-workflow-card::before,
+  .hp-workflow-cta {
+    transition: none !important;
+  }
+}
+
+
+
+/* Vanta birds backdrop */
+.hp-birds {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+
+
+

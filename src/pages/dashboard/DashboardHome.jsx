@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubscriptionContext } from "../../context/SubscriptionContext";
 import { BusinessStatsContext } from "../../context/BusinessStatsContext";
@@ -27,60 +27,7 @@ const MODULES = [
     accentBg:    "rgba(30,79,186,0.10)",
     tag:         "Most Popular",
   },
-  {
-    key:         "home-expense",
-    title:       "Home Expenses",
-    value:       "₹45,000",
-    subtitle:    "Total Expenses This Month",
-    icon:        "🏠",
-    route:       "/dashboard/home-expense",
-    actionRoute: "/dashboard/home-expense/add-expense",
-    actionLabel: "Add Expense",
-    color:       "green",
-    desc:        "Add and track your daily household expenses",
-    trend:       "-5%",
-    trendUp:     false,
-    price:       "Coming Soon",
-    accent:      "#15803d",
-    accentBg:    "rgba(21,128,61,0.10)",
-    tag:         "Family Plan",
-  },
-  {
-    key:         "construction",
-    title:       "Construction",
-    value:       "₹8,90,000",
-    subtitle:    "Total Project Cost",
-    icon:        "🏗️",
-    route:       "/dashboard/construction",
-    actionRoute: "/dashboard/construction",
-    actionLabel: "View Projects",
-    color:       "orange",
-    desc:        "Manage construction projects, labour and materials",
-    trend:       "+28%",
-    trendUp:     true,
-    price:       "Coming Soon",
-    accent:      "#c2410c",
-    accentBg:    "rgba(194,65,12,0.10)",
-    tag:         "Pro",
-  },
-  {
-    key:         "custom",
-    title:       "Customized Billing",
-    value:       "Active",
-    subtitle:    "Custom Estimations Enabled",
-    icon:        "⚙️",
-    route:       "/dashboard/custom",
-    actionRoute: "/dashboard/custom/create-estimate",
-    actionLabel: "Create Estimate",
-    color:       "purple",
-    desc:        "Create custom estimates and billing formats",
-    trend:       "Live",
-    trendUp:     true,
-    price:       "Coming Soon",
-    accent:      "#6d28d9",
-    accentBg:    "rgba(109,40,217,0.10)",
-    tag:         "Flexible",
-  },
+
 ];
 
 /* ── Business quick actions ── */
@@ -113,281 +60,174 @@ const getDisplayName = () => {
   }
 };
 
-/* ── Animated counter hook ── */
-const useCounter = (target, duration = 1400, active = false) => {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (!active) return;
-    let start = 0;
-    const step = target / (duration / 16);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) { setCount(target); clearInterval(timer); }
-      else setCount(Math.floor(start));
-    }, 16);
-    return () => clearInterval(timer);
-  }, [target, duration, active]);
-  return count;
-};
-
 /* ═══════════════════════════════════════════
-   PRE-SUBSCRIPTION HERO SECTION
+   PRE-SUBSCRIPTION VIEW
 ═══════════════════════════════════════════ */
+const PRESUB_FEATURES = [
+  { icon: "🧾", title: "GST invoices in 30 sec", text: "Create and send compliant invoices fast" },
+  { icon: "📦", title: "Auto stock deduction",   text: "Stock updates on every sale" },
+  { icon: "💬", title: "WhatsApp sharing",       text: "Send invoices to customers instantly" },
+  { icon: "👤", title: "Customer ledger",        text: "Track dues and payments per customer" },
+  { icon: "📊", title: "GST reports",            text: "Ready-to-use reports for filing" },
+  { icon: "🔒", title: "Private & secure",       text: "Your business data stays protected" },
+];
+
+const PRESUB_COMING_SOON = ["🏠 Home Expenses", "🏗️ Construction", "⚙️ Customized Billing"];
+
 const PreSubscriptionView = ({ greet, displayName, navigate }) => {
-  const [visible, setVisible] = useState(false);
-  const heroRef = useRef(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 80);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const invoicesCount = useCounter(50000, 1600, visible);
-  const revenueCount  = useCounter(2, 1200, visible);
-  const ratingCount   = useCounter(49, 1000, visible);
-
-  const TRUST_STATS = [
-    { value: invoicesCount, suffix: "K+",  label: "Invoices Created", icon: "🧾", color: "#1e4fba" },
-    { value: revenueCount,  suffix: "Cr+", prefix: "₹", label: "Amount Tracked", icon: "💰", color: "#15803d" },
-    { value: ratingCount === 49 ? "4.9" : (ratingCount / 10).toFixed(1), suffix: "★", label: "App Rating", icon: "⭐", color: "#c9963a" },
-  ];
-
-  const BENEFITS = [
-    "GST-compliant invoices in 30 seconds",
-    "Auto stock deduction on every sale",
-    "Family expense tracker built-in",
-    "Construction project cost manager",
-    "WhatsApp invoice sharing",
-    "Store Your Data With Privacy and Security",
-  ];
+  const goPlans = () => navigate("/subscription");
 
   return (
-    <>
-      <style>{`
-        @keyframes presub-fadeup {
-          from { opacity: 0; transform: translateY(20px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes presub-shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes presub-pulse-ring {
-          0%   { transform: scale(1);   opacity: 0.6; }
-          100% { transform: scale(1.6); opacity: 0; }
-        }
-        @keyframes presub-float {
-          0%, 100% { transform: translateY(0px); }
-          50%       { transform: translateY(-6px); }
-        }
-        .presub-hero-wrap      { animation: presub-fadeup 0.55s ease both; }
-        .presub-stat-card      { animation: presub-fadeup 0.55s ease both; }
-        .presub-stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .presub-stat-card:nth-child(2) { animation-delay: 0.2s; }
-        .presub-stat-card:nth-child(3) { animation-delay: 0.3s; }
-        .presub-upgrade-wrap   { animation: presub-fadeup 0.55s ease 0.35s both; }
-        .presub-modules-wrap   { animation: presub-fadeup 0.55s ease 0.45s both; }
-        .presub-module-card    { transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; }
-        .presub-module-card:hover { transform: translateY(-4px); box-shadow: 0 14px 36px rgba(14,27,46,0.14); }
-        .presub-cta-btn        { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .presub-cta-btn:hover  { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(201,150,58,0.42); }
-        .presub-viewplans-btn  { transition: all 0.2s ease; }
-        .presub-viewplans-btn:hover { background: rgba(255,255,255,0.15) !important; }
-        .presub-float-chip     { animation: presub-float 3.2s ease-in-out infinite; }
-        .presub-float-chip:nth-child(2) { animation-delay: 1.1s; }
-        .presub-float-chip:nth-child(3) { animation-delay: 2.0s; }
-      `}</style>
-
-      {/* ── 1. HERO BANNER ── */}
-      <div
-        ref={heroRef}
-        className="presub-hero-wrap"
-        style={{
-          background: "linear-gradient(135deg, #0e1b2e 0%, #1a2d47 55%, #0e1b2e 100%)",
-          borderRadius: "24px",
-          padding: "2.25rem 2rem",
-          position: "relative",
-          overflow: "hidden",
-          boxShadow: "0 20px 60px rgba(14,27,46,0.28)",
-          marginBottom: "1.1rem",
-        }}
-      >
-        <div style={{ position: "absolute", top: "-40px", right: "-30px", width: "220px", height: "220px", borderRadius: "50%", background: "radial-gradient(circle, rgba(201,150,58,0.18) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "-50px", left: "10%", width: "180px", height: "180px", borderRadius: "50%", background: "radial-gradient(circle, rgba(30,79,186,0.14) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg, #c9963a, #e8a020, #f4c542, #e8a020, #c9963a)", borderRadius: "24px 24px 0 0" }} />
-
-        <div style={{ position: "absolute", top: "14px", right: "18px", display: "flex", gap: "8px" }}>
-          {["GST Ready", "Secure Storage", "Offline Works"].map((chip, i) => (
-            <div
-              key={chip}
-              className="presub-float-chip"
-              style={{
-                animationDelay: `${i * 1.1}s`,
-                background: "rgba(255,255,255,0.07)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "rgba(255,255,255,0.6)",
-                fontSize: "0.62rem", fontWeight: 600,
-                padding: "0.22rem 0.7rem", borderRadius: "100px",
-                backdropFilter: "blur(6px)",
-                display: window.innerWidth < 520 ? "none" : "block",
-              }}
-            >
-              ✦ {chip}
-            </div>
-          ))}
-        </div>
-
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "rgba(201,150,58,0.14)", border: "1px solid rgba(201,150,58,0.30)", color: "#e8a020", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "0.22rem 0.8rem", borderRadius: "100px", marginBottom: "1rem" }}>
-            <span style={{ width: 6, height: 6, background: "#c9963a", borderRadius: "50%", animation: "presub-pulse-ring 1.8s ease-out infinite" }} />
-            AP & Telangana's #1 Billing App
-          </div>
-
-          <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "clamp(1.4rem, 3.5vw, 1.85rem)", fontWeight: 800, color: "#fff", lineHeight: 1.2, letterSpacing: "-0.025em", marginBottom: "0.65rem" }}>
+    <div className="ps-wrap">
+      {/* ── HERO ── */}
+      <section className="ps-hero">
+        <div className="ps-hero-glow" />
+        <div className="ps-hero-line" />
+        <div className="ps-hero-body">
+          <span className="ps-badge">
+            <i className="ps-badge-dot" /> Built for AP &amp; Telangana shops
+          </span>
+          <h2 className="ps-hero-title">
             {greet}, {displayName} 👋
             <br />
-            <span style={{ background: "linear-gradient(135deg, #c9963a 0%, #f4c542 50%, #c9963a 100%)", backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", animation: "presub-shimmer 3s linear infinite" }}>
-              Welcome to ManaBills
-            </span>
+            <span className="ps-gold">Welcome to ManaBills</span>
           </h2>
-
-          <p style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.62)", lineHeight: 1.65, maxWidth: "480px", marginBottom: "1.5rem" }}>
-            Manage billing, home expenses and construction projects — all in one place only.
-            Start with a free trial. No credit card needed.
+          <p className="ps-hero-text">
+            Create GST invoices, manage stock and track customer dues — all in one place.
+            Start your free trial. No credit card needed.
           </p>
+          <button className="ps-btn-primary" onClick={goPlans}>
+            🚀 Start Free Trial
+          </button>
+        </div>
+      </section>
 
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <button className="presub-cta-btn" onClick={() => navigate("/subscription")} style={{ background: "linear-gradient(135deg, #c9963a 0%, #e8a020 100%)", color: "#0e1b2e", border: "none", padding: "0.78rem 1.75rem", borderRadius: "12px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.92rem", fontWeight: 800, cursor: "pointer", letterSpacing: "0.01em", boxShadow: "0 6px 22px rgba(201,150,58,0.38)" }}>
-              🚀 Start Free Trial
-            </button>
-            <button className="presub-viewplans-btn" onClick={() => navigate("/subscription")} style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.8)", border: "1.5px solid rgba(255,255,255,0.15)", padding: "0.78rem 1.5rem", borderRadius: "12px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.92rem", fontWeight: 600, cursor: "pointer" }}>
-              View Plans →
-            </button>
+      {/* ── FEATURES + PRICING ── */}
+      <section className="ps-main">
+        <div className="ps-features-card">
+          <span className="ps-status">✦ No active subscription</span>
+          <h3 className="ps-h3">Everything your shop needs</h3>
+          <div className="ps-features-grid">
+            {PRESUB_FEATURES.map((f) => (
+              <div key={f.title} className="ps-feature">
+                <div className="ps-feature-icon">{f.icon}</div>
+                <div>
+                  <div className="ps-feature-title">{f.title}</div>
+                  <div className="ps-feature-text">{f.text}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* ── 2. TRUST STATS ROW ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", marginBottom: "1.1rem" }}>
-        {TRUST_STATS.map((s, i) => (
-          <div key={i} className="presub-stat-card" style={{ background: "#fff", border: "1.5px solid rgba(14,27,46,0.08)", borderRadius: "18px", padding: "1.1rem 1rem", textAlign: "center", boxShadow: "0 4px 16px rgba(14,27,46,0.06)", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: 0, left: "25%", right: "25%", height: "2.5px", background: s.color, borderRadius: "0 0 4px 4px", opacity: 0.7 }} />
-            <div style={{ fontSize: "1.5rem", marginBottom: "0.3rem" }}>{s.icon}</div>
-            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.4rem", fontWeight: 900, color: s.color, lineHeight: 1, letterSpacing: "-0.02em" }}>
-              {s.prefix || ""}{s.value}{s.suffix}
-            </div>
-            <div style={{ fontSize: "0.68rem", fontWeight: 600, color: "#6b7280", marginTop: "0.25rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              {s.label}
-            </div>
+        <aside className="ps-price-card">
+          <span className="ps-price-tag">⭐ Most Popular</span>
+          <div className="ps-price-name">Business Billing</div>
+          <div className="ps-price-row">
+            <span className="ps-price">₹199</span>
+            <span className="ps-price-per">/month</span>
           </div>
-        ))}
-      </div>
+          <div className="ps-trial">⏱ 7 Days Free Trial</div>
+          <button className="ps-btn-primary ps-btn-block" onClick={goPlans}>
+            Choose a Plan →
+          </button>
+          <p className="ps-price-note">Cancel anytime</p>
+        </aside>
+      </section>
 
-      {/* ── 3. PREMIUM UPGRADE CTA CARD ── */}
-      <div className="presub-upgrade-wrap" style={{ background: "#fff", border: "1.5px solid rgba(201,150,58,0.22)", borderRadius: "22px", overflow: "hidden", boxShadow: "0 8px 32px rgba(14,27,46,0.08)", marginBottom: "1.25rem" }}>
-        <div style={{ height: "4px", background: "linear-gradient(90deg, #1e4fba 0%, #c9963a 50%, #15803d 100%)" }} />
-        <div style={{ padding: "1.5rem 1.5rem 1.4rem", display: "flex", gap: "1.5rem", flexWrap: "wrap", alignItems: "flex-start" }}>
-          <div style={{ flex: 1, minWidth: "220px" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "rgba(201,150,58,0.1)", border: "1px solid rgba(201,150,58,0.25)", color: "#c9963a", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "0.2rem 0.7rem", borderRadius: "100px", marginBottom: "0.7rem" }}>
-              ✦ No Active Subscription
-            </div>
-            <h3 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "1.15rem", fontWeight: 800, color: "#0e1b2e", letterSpacing: "-0.02em", marginBottom: "0.45rem" }}>
-              Unlock Your Business Power
-            </h3>
-            <p style={{ fontSize: "0.82rem", color: "#6b7280", lineHeight: 1.65, marginBottom: "1rem", maxWidth: "360px" }}>
-              Starting at just <strong style={{ color: "#c9963a" }}>₹199/month</strong> — choose any module and get full access with a free trial.
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.4rem 1rem" }}>
-              {BENEFITS.map((b, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", color: "#374151", fontWeight: 500 }}>
-                  <span style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(21,128,61,0.12)", color: "#15803d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", fontWeight: 800, flexShrink: 0 }}>✓</span>
-                  {b}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ background: "linear-gradient(145deg, #0e1b2e 0%, #1a2d47 100%)", borderRadius: "16px", padding: "1.25rem 1.4rem", minWidth: "160px", textAlign: "center", boxShadow: "0 8px 24px rgba(14,27,46,0.22)", flexShrink: 0, position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: "-20px", right: "-20px", width: 80, height: 80, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,150,58,0.2) 0%, transparent 70%)" }} />
-            <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.5rem" }}>Plans starting at</div>
-            <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "2rem", fontWeight: 900, color: "#c9963a", lineHeight: 1, letterSpacing: "-0.02em" }}>₹199</div>
-            <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.45)", marginBottom: "1rem" }}>per month only</div>
-            <button onClick={() => navigate("/subscription")} style={{ display: "block", width: "100%", background: "linear-gradient(135deg, #c9963a, #e8a020)", color: "#0e1b2e", border: "none", padding: "0.65rem 1rem", borderRadius: "10px", fontSize: "0.82rem", fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 14px rgba(201,150,58,0.35)", transition: "all 0.2s" }}>
-              Choose a Plan →
-            </button>
-            <p style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.28)", marginTop: "0.5rem" }}>Free trial · Cancel anytime</p>
-          </div>
+      {/* ── COMING SOON ── */}
+      <section className="ps-soon">
+        <span className="ps-soon-label">More modules coming soon</span>
+        <div className="ps-soon-chips">
+          {PRESUB_COMING_SOON.map((c) => (
+            <span key={c} className="ps-chip">🔒 {c}</span>
+          ))}
         </div>
-      </div>
-      {/* ── 4. MODULE PREVIEW CARDS ── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "1px", background: "rgba(14,27,46,0.08)", border: "1.5px solid rgba(14,27,46,0.08)", borderRadius: "20px", overflow: "hidden", boxShadow: "0 4px 16px rgba(14,27,46,0.06)" }}>
-            {MODULES.map((m) => {
-              const isLocked = m.price === "Coming Soon";
-            
-              return (
-                <div
-                  key={m.key}
-                  className="presub-module-card"
-                  onClick={() => !isLocked && navigate("/subscription")}
-                  style={{
-                    display: "flex", alignItems: "center", gap: "1rem",
-                    padding: "1rem 1.25rem", background: "#fff",
-                    cursor: isLocked ? "not-allowed" : "pointer",
-                    position: "relative", overflow: "hidden",
-                    opacity: isLocked ? 0.6 : 1,
-                    pointerEvents: isLocked ? "none" : "auto",   // ← disables click entirely
-                  }}
-                >
-                  {/* Left accent bar */}
-                  <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: "3px", background: m.accent, borderRadius: "0 3px 3px 0", opacity: 0.7 }} />
-                
-                  {/* Icon */}
-                  <div style={{ width: 44, height: 44, borderRadius: "12px", background: m.accentBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.3rem", flexShrink: 0 }}>
-                    {m.icon}
-                  </div>
-                
-                  {/* Text */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.15rem" }}>
-                      <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.9rem", fontWeight: 800, color: "#0e1b2e" }}>{m.title}</span>
-                      <span style={{ fontSize: "0.58rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: m.accentBg, color: m.accent, padding: "0.12rem 0.5rem", borderRadius: "100px", border: `1px solid ${m.accent}30` }}>{m.tag}</span>
-                    </div>
-                    <p style={{ fontSize: "0.77rem", color: "#6b7280", margin: 0, lineHeight: 1.4 }}>{m.desc}</p>
-                  </div>
-                
-                  {/* Right side — lock badge OR price */}
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    {isLocked ? (
-                      /* 🔒 Lock badge */
-                      <div style={{
-                        display: "inline-flex", alignItems: "center", gap: "4px",
-                        background: "rgba(14,27,46,0.06)",
-                        border: "1px solid rgba(14,27,46,0.12)",
-                        borderRadius: "20px", padding: "3px 8px 3px 6px",
-                      }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                          stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="11" width="18" height="11" rx="2"/>
-                          <path d="M7 11V7a5 5 0 0110 0v4"/>
-                        </svg>
-                        <span style={{ fontSize: "9px", fontWeight: 700, color: "#64748b", letterSpacing: "0.06em", textTransform: "uppercase" }}>Soon</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: "0.92rem", fontWeight: 800, color: m.accent }}>{m.price}</div>
-                        <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginTop: "2px" }}>Free trial →</div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      );
-    }; 
+      </section>
 
-      
-  
+      <style>{`
+        .ps-wrap { display: flex; flex-direction: column; gap: 1.1rem; animation: ps-up .5s ease both; }
+        @keyframes ps-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+        @keyframes ps-shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+        @keyframes ps-pulse { 0% { box-shadow: 0 0 0 0 rgba(201,150,58,.6); } 100% { box-shadow: 0 0 0 8px rgba(201,150,58,0); } }
+
+        /* Hero */
+        .ps-hero { position: relative; overflow: hidden; border-radius: 24px; padding: 2.25rem 2rem;
+          background: linear-gradient(135deg,#0e1b2e 0%,#1a2d47 55%,#0e1b2e 100%);
+          box-shadow: 0 20px 60px rgba(14,27,46,.28); }
+        .ps-hero-glow { position: absolute; top: -50px; right: -30px; width: 260px; height: 260px; border-radius: 50%;
+          background: radial-gradient(circle,rgba(201,150,58,.2) 0%,transparent 70%); pointer-events: none; }
+        .ps-hero-line { position: absolute; top: 0; left: 0; right: 0; height: 3px;
+          background: linear-gradient(90deg,#c9963a,#e8a020,#f4c542,#e8a020,#c9963a); }
+        .ps-hero-body { position: relative; z-index: 1; }
+        .ps-badge { display: inline-flex; align-items: center; gap: .45rem; margin-bottom: 1rem; padding: .25rem .85rem;
+          border-radius: 100px; background: rgba(201,150,58,.14); border: 1px solid rgba(201,150,58,.3);
+          color: #e8a020; font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+        .ps-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #c9963a; animation: ps-pulse 1.8s ease-out infinite; }
+        .ps-hero-title { font-family: 'Playfair Display', Georgia, serif; font-size: clamp(1.4rem,3.5vw,1.9rem);
+          font-weight: 800; line-height: 1.2; letter-spacing: -.025em; color: #fff; margin: 0 0 .65rem; }
+        .ps-gold { background: linear-gradient(135deg,#c9963a,#f4c542,#c9963a); background-size: 200% auto;
+          -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+          animation: ps-shimmer 3s linear infinite; }
+        .ps-hero-text { max-width: 480px; margin: 0 0 1.5rem; font-size: .9rem; line-height: 1.65; color: rgba(255,255,255,.62); }
+
+        /* Buttons */
+        .ps-btn-primary { border: none; cursor: pointer; padding: .8rem 1.75rem; border-radius: 12px;
+          font-family: 'Plus Jakarta Sans', sans-serif; font-size: .92rem; font-weight: 800; color: #0e1b2e;
+          background: linear-gradient(135deg,#c9963a,#e8a020); box-shadow: 0 6px 22px rgba(201,150,58,.38);
+          transition: transform .2s ease, box-shadow .2s ease; }
+        .ps-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(201,150,58,.45); }
+        .ps-btn-block { display: block; width: 100%; padding: .75rem 1rem; font-size: .85rem; }
+
+        /* Features + pricing */
+        .ps-main { display: grid; grid-template-columns: 1fr 260px; gap: 1.1rem; align-items: stretch; }
+        .ps-features-card { background: #fff; border: 1.5px solid rgba(14,27,46,.07); border-radius: 22px;
+          padding: 1.5rem; box-shadow: 0 8px 32px rgba(14,27,46,.07); position: relative; overflow: hidden; }
+        .ps-features-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+          background: linear-gradient(90deg,#1e4fba,#c9963a 50%,#15803d); }
+        .ps-status { display: inline-block; margin-bottom: .7rem; padding: .2rem .7rem; border-radius: 100px;
+          background: rgba(201,150,58,.1); border: 1px solid rgba(201,150,58,.25); color: #c9963a;
+          font-size: .65rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+        .ps-h3 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.15rem; font-weight: 800;
+          color: #0e1b2e; letter-spacing: -.02em; margin: 0 0 1rem; }
+        .ps-features-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); gap: .9rem 1.2rem; }
+        .ps-feature { display: flex; gap: .7rem; align-items: flex-start; }
+        .ps-feature-icon { width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+          border-radius: 10px; background: rgba(201,150,58,.12); font-size: 1rem; }
+        .ps-feature-title { font-size: .84rem; font-weight: 700; color: #0e1b2e; }
+        .ps-feature-text { font-size: .74rem; color: #6b7280; line-height: 1.45; margin-top: 1px; }
+
+        .ps-price-card { position: relative; overflow: hidden; border-radius: 22px; padding: 1.5rem 1.4rem; text-align: center;
+          background: linear-gradient(145deg,#0e1b2e,#1a2d47); border: 1.5px solid rgba(201,150,58,.35);
+          box-shadow: 0 8px 28px rgba(14,27,46,.25); display: flex; flex-direction: column; justify-content: center; }
+        .ps-price-tag { align-self: center; margin-bottom: .8rem; padding: .22rem .75rem; border-radius: 100px;
+          background: linear-gradient(135deg,#c9963a,#e8a020); color: #0e1b2e; font-size: .6rem; font-weight: 800;
+          letter-spacing: .08em; text-transform: uppercase; }
+        .ps-price-name { font-size: .95rem; font-weight: 800; color: #fff; margin-bottom: .4rem; }
+        .ps-price-row { display: flex; align-items: flex-end; justify-content: center; gap: .3rem; margin-bottom: .6rem; }
+        .ps-price { font-family: 'Playfair Display', Georgia, serif; font-size: 2.2rem; font-weight: 900; line-height: 1; color: #c9963a; }
+        .ps-price-per { font-size: .78rem; color: rgba(255,255,255,.45); padding-bottom: 4px; }
+        .ps-trial { align-self: center; margin-bottom: 1.1rem; padding: .25rem .75rem; border-radius: 100px;
+          background: rgba(201,150,58,.15); border: 1px solid rgba(201,150,58,.35); color: #c9963a; font-size: .72rem; font-weight: 700; }
+        .ps-price-note { margin: .6rem 0 0; font-size: .66rem; color: rgba(255,255,255,.35); }
+
+        /* Coming soon */
+        .ps-soon { display: flex; align-items: center; gap: .75rem 1rem; flex-wrap: wrap; padding: .9rem 1.2rem;
+          background: rgba(14,27,46,.03); border: 1.5px dashed rgba(14,27,46,.12); border-radius: 16px; }
+        .ps-soon-label { font-size: .72rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; }
+        .ps-soon-chips { display: flex; gap: .5rem; flex-wrap: wrap; }
+        .ps-chip { padding: .28rem .75rem; border-radius: 100px; background: #fff; border: 1px solid rgba(14,27,46,.1);
+          font-size: .74rem; font-weight: 600; color: #6b7280; }
+
+        @media (max-width: 820px) {
+          .ps-main { grid-template-columns: 1fr; }
+          .ps-hero { padding: 1.75rem 1.25rem; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 /* ═══════════════════════════════════════════
    PERIOD TAB SELECTOR COMPONENT
 ═══════════════════════════════════════════ */
