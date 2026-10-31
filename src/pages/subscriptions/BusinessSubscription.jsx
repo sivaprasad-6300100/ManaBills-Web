@@ -15,7 +15,7 @@ const BusinessSubscription = () => {
   const [trialLoading, setTrialLoading] = useState(false);
 
 
-  // ── Free Trial handler — hits backend, gives real 5-day subscription ──
+  // ── Free Trial handler — hits backend, gives real 30-day subscription ──
   const handleFreeTrial = async () => {
     setTrialLoading(true);
     try {
@@ -47,7 +47,7 @@ const BusinessSubscription = () => {
     {
       key:      "free",
       name:     "FREE TRIAL",
-      tag:      "7 Days Free",
+      tag:      "30 Days Free",
       price:    "₹0",
       duration: "No card required",
       highlight: false,

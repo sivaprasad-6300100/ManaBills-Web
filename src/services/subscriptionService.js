@@ -31,7 +31,7 @@ export const checkModuleAccess = async (module) => {
 
 
 
-/* 🎁 Activate 5-day free trial */
+/* 🎁 Activate 30-day free trial */
 export const activateFreeTrial = async (module = "business") => {
   const res = await authAxios.post("subscriptions/free-trial/", { module });
   return res.data;

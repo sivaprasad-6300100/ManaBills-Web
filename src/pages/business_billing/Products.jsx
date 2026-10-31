@@ -1,14 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getProducts, addProduct, updateProduct, deleteProduct,
   getLowStockProducts, getProductStats, getShopProfile, uploadProductImage,
 } from "../../services/businessService";
-import { S } from "../../styles/business/Products";
-
-
-
-
+import "../../styles/business/Products.css";
 
 // ─── CONSTANTS ────────────────────────────────────────────────
 const UNITS_BY_SHOP = {
@@ -273,220 +269,195 @@ const calcGoldGst = (sellingPrice, qty, makingCharges) => {
   };
 };
 
-// ─── HOOKS ────────────────────────────────────────────────────
-const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, []);
-  return isMobile;
-};
+// Medicine expiring within 90 days
+const isExpiringSoon = (item) =>
+  item.medExpiry && new Date(`${item.medExpiry}-01`) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
-// ─── REUSABLE FIELD WRAPPERS ──────────────────────────────────
-const inputStyle  = { padding: "10px 13px", borderRadius: "9px", border: "1.5px solid #e2e8f0", fontSize: "14px", background: "#fff", outline: "none", transition: "border-color 0.15s" };
-const selectStyle = { ...inputStyle, cursor: "pointer" };
-
-// Desktop field wrapper
-const Field = ({ label, children, full }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: "5px", gridColumn: full ? "1 / -1" : undefined }}>
-    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</label>
+// ─── REUSABLE UI PIECES ───────────────────────────────────────
+// Field renders a <label> so the control inside is announced with its label.
+// Use as="div" when the field contains more than one control.
+const Field = ({ label, children, full, as: Tag = "label" }) => (
+  <Tag className={`pr-field${full ? " pr-field--full" : ""}`}>
+    <span className="pr-label">{label}</span>
     {children}
-  </div>
+  </Tag>
 );
 
-// Mobile field wrapper
-const MField = ({ label, children, full }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: "4px", ...(full ? { gridColumn: "1 / -1" } : {}) }}>
-    <span style={S.fieldLabel}>{label}</span>
-    {children}
-  </div>
+const Section = ({ title, children }) => (
+  <section className="pr-section">
+    <h4 className="pr-section-title">{title}</h4>
+    <div className="pr-grid">{children}</div>
+  </section>
 );
 
-// ─── REUSABLE SMALL COMPONENTS ────────────────────────────────
-const GstRateSelect = ({ value, onChange, style }) => (
-  <select name="gstRate" value={value} onChange={onChange} style={style}>
+const GstRateSelect = ({ value, onChange }) => (
+  <select name="gstRate" aria-label="GST rate" value={value} onChange={onChange} className="pr-select">
     {GST_RATES.map((r) => <option key={r} value={r}>{r}% GST</option>)}
   </select>
 );
 
-const SubCategoryField = ({ shopType, category, value, onChange, isMobile, userSubCats = [] }) => {
+// Two ways to add a product photo: open the camera, or pick an existing file.
+// Both hidden inputs feed the same handler, so form.image / form.imagePreview
+// behave exactly as before.
+const ImageField = ({ form, setForm }) => {
+  const cameraRef = useRef(null);
+  const fileRef   = useRef(null);
+
+  const handlePick = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
+    e.target.value = ""; // allows picking the same photo again
+  };
+
+  return (
+    <Field label="Product Image" full as="div">
+      <div className="pr-imgpick">
+        <button type="button" className="pr-btn" onClick={() => cameraRef.current?.click()}>
+          Take photo
+        </button>
+        <button type="button" className="pr-btn" onClick={() => fileRef.current?.click()}>
+          Choose from files
+        </button>
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={handlePick} />
+        <input ref={fileRef}   type="file" accept="image/*" hidden onChange={handlePick} />
+      </div>
+      {form.imagePreview && <img src={form.imagePreview} alt="Selected product preview" className="pr-imgprev" />}
+    </Field>
+  );
+};
+
+const SubCategoryField = ({ shopType, category, value, onChange, userSubCats = [] }) => {
   const options = getSubCategories(shopType, category);
   if (!options.length && !userSubCats.length) return null;
-  const W = isMobile ? MField : Field;
-  const style = isMobile ? S.mSelect : selectStyle;
   return (
-    <W label="Sub Category" full>
-      <select name="subCategory" value={value} onChange={onChange} style={style}>
+    <Field label="Sub Category" full>
+      <select name="subCategory" value={value} onChange={onChange} className="pr-select">
         <option value="">Select…</option>
         {options.map((o) => <option key={o}>{o}</option>)}
         {userSubCats.map((o) => <option key={`custom_${o}`} value={o}>{o} ✓</option>)}
-        <option value="__custom__">✏️ Add Custom…</option>
+        <option value="__custom__">Add custom…</option>
       </select>
-    </W>
+    </Field>
   );
 };
 
-// ─── CUSTOM INPUT BOX (shared for category & sub-category) ────
-const CustomTextInput = ({ label, placeholder, value, onChange, onConfirm, isMobile, color }) => (
-  <div style={{ gridColumn: "1 / -1", background: "#f0f9ff", border: `1.5px solid ${color}55`, borderRadius: "10px", padding: "10px 14px", display: "flex", flexDirection: "column", gap: "6px" }}>
-    <span style={{ fontSize: "0.7rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.04em" }}>✏️ {label}</span>
-    <div style={{ display: "flex", gap: "8px" }}>
+const CustomTextInput = ({ label, placeholder, value, onChange, onConfirm }) => (
+  <div className="pr-custom">
+    <span className="pr-custom-label">{label}</span>
+    <div className="pr-custom-row">
       <input
-        placeholder={placeholder}
-        value={value}
+        className="pr-input" aria-label={label} placeholder={placeholder} value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && value.trim() && onConfirm()}
-        style={{ flex: 1, padding: isMobile ? "9px 12px" : "10px 13px", borderRadius: "8px", border: "1.5px solid #e2e8f0", fontSize: "14px", background: "#fff", outline: "none" }}
       />
-      <button onClick={() => value.trim() && onConfirm()} disabled={!value.trim()}
-        style={{ padding: "9px 16px", borderRadius: "8px", border: "none", background: value.trim() ? color : "#e2e8f0", color: value.trim() ? "#fff" : "#94a3b8", fontWeight: 700, fontSize: "0.82rem", cursor: value.trim() ? "pointer" : "not-allowed", whiteSpace: "nowrap" }}>
-        ✓ Set
+      <button type="button" className="pr-btn pr-btn--primary" onClick={() => value.trim() && onConfirm()} disabled={!value.trim()}>
+        Set
       </button>
     </div>
-    <span style={{ fontSize: "0.68rem", color: "#0369a1" }}>Press Set or Enter to confirm. This name will be saved for future use.</span>
+    <span className="pr-help">Press Set or Enter to confirm. This name will be saved for future use.</span>
   </div>
 );
 
-// ─── SHARED PRICING FIELDS (used in ALL shop types) ───────────
-// This is the key refactor — instead of copy-pasting these fields 5 times,
-// we render them once from this component
-const PricingFields = ({ form, handleChange, setForm, units, autoPurchaseGst, isMobile, gstEnabled }) => {
-  const W = isMobile ? MField : Field;
-  const iStyle = isMobile ? S.mInput : inputStyle;
-  const sStyle = isMobile ? S.mSelect : selectStyle;
-  return (
-    <>
-      <W label="Unit">
-        <select name="unit" value={form.unit} onChange={handleChange} style={sStyle}>
-          {units.map((u) => <option key={u}>{u}</option>)}
-        </select>
-      </W>
-      <W label="Quantity *">
-        <input name="qty" type="number" placeholder="0" value={form.qty} onChange={handleChange} min="0" style={iStyle} />
-      </W>
-      <W label="Purchase ₹">
-        <input name="purchasePrice" type="number" placeholder="Cost price" value={form.purchasePrice} onChange={handleChange} min="0" style={iStyle} />
-      </W>
-      <W label="Selling ₹ *">
-        <input name="sellingPrice" type="number" placeholder="Sale price" value={form.sellingPrice} onChange={handleChange} min="0" style={iStyle} />
-      </W>
-      <W label="Low Stock At">
-        <input name="minQtyAlert" type="number" placeholder="5" value={form.minQtyAlert} onChange={handleChange} min="0" style={iStyle} />
-      </W>
-      {gstEnabled && <>
-        <W label="Purchase GST / ITC ₹">
-          <input name="purchaseGst" type="number" placeholder="ITC amount" value={form.purchaseGst} onChange={handleChange} style={iStyle} />
-          {autoPurchaseGst && !form.purchaseGst && (
-            <span style={{ fontSize: "0.68rem", color: "#16a34a", marginTop: "3px" }}>Auto: ₹{autoPurchaseGst}</span>
-          )}
-        </W>
-        <W label="GST Rate" full>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <GstRateSelect value={form.gstRate} onChange={handleChange} style={{ ...sStyle, flex: 1 }} />
-            <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.75rem", color: "#64748b", whiteSpace: "nowrap" }}>
-              <input type="checkbox" checked={form.gstInclusive} onChange={(e) => setForm((prev) => ({ ...prev, gstInclusive: e.target.checked }))} />
-              Incl. GST
-            </label>
-          </div>
-        </W>
-        <W label="HSN Code" full>
-          <input name="hsnCode" placeholder="e.g. 1006" value={form.hsnCode} onChange={handleChange} style={iStyle} />
-        </W>
-        <W label="Supplier GSTIN (for ITC)" full>
-          <input name="supplierGstin" placeholder="15-digit GSTIN" value={form.supplierGstin} onChange={handleChange} maxLength={15} style={iStyle} />
-        </W>
-        <W label="Invoice No.">
-          <input name="purchaseInvoice" placeholder="Bill / Invoice No." value={form.purchaseInvoice} onChange={handleChange} style={iStyle} />
-        </W>
-        <W label="Purchase Date">
-          <input name="purchaseDate" type="date" value={form.purchaseDate} onChange={handleChange} style={iStyle} />
-        </W>
-      </>}
-    </>
-  );
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ─── CATEGORY SELECT (shared) ──────────────────────────────────
-const CategorySelect = ({ form, handleChange, categories, userCategories, isMobile }) => {
-  const W = isMobile ? MField : Field;
-  const sStyle = isMobile ? S.mSelect : selectStyle;
-  return (
-    <W label="Category *">
-      <select name="category" value={form.category} onChange={handleChange} style={sStyle}>
-        {categories.map((c) => <option key={c}>{c}</option>)}
-        {userCategories.map((c) => <option key={`custom_${c}`} value={c}>{c} ✓</option>)}
-        <option value="__custom__">✏️ Custom…</option>
+// Pricing, stock and GST fields shared by every shop type
+const PricingFields = ({ form, handleChange, setForm, units, autoPurchaseGst, gstEnabled }) => (
+  <>
+    <Field label="Unit">
+      <select name="unit" value={form.unit} onChange={handleChange} className="pr-select">
+        {units.map((u) => <option key={u}>{u}</option>)}
       </select>
-    </W>
-  );
-};
+    </Field>
+    <Field label="Quantity *">
+      <input name="qty" type="number" placeholder="0" value={form.qty} onChange={handleChange} min="0" className="pr-input" />
+    </Field>
+    <Field label="Purchase ₹">
+      <input name="purchasePrice" type="number" placeholder="Cost price" value={form.purchasePrice} onChange={handleChange} min="0" className="pr-input" />
+    </Field>
+    <Field label="Selling ₹ *">
+      <input name="sellingPrice" type="number" placeholder="Sale price" value={form.sellingPrice} onChange={handleChange} min="0" className="pr-input" />
+    </Field>
+    <Field label="Low Stock At">
+      <input name="minQtyAlert" type="number" placeholder="5" value={form.minQtyAlert} onChange={handleChange} min="0" className="pr-input" />
+    </Field>
+    {gstEnabled && <>
+      <Field label="Purchase GST / ITC ₹">
+        <input name="purchaseGst" type="number" placeholder="ITC amount" value={form.purchaseGst} onChange={handleChange} className="pr-input" />
+        {autoPurchaseGst && !form.purchaseGst && <span className="pr-help pr-help--ok">Auto: ₹{autoPurchaseGst}</span>}
+      </Field>
+      <Field label="GST Rate" full as="div">
+        <div className="pr-gstrow">
+          <GstRateSelect value={form.gstRate} onChange={handleChange} />
+          <label className="pr-check">
+            <input type="checkbox" checked={form.gstInclusive} onChange={(e) => setForm((prev) => ({ ...prev, gstInclusive: e.target.checked }))} />
+            Incl. GST
+          </label>
+        </div>
+      </Field>
+      <Field label="HSN Code" full>
+        <input name="hsnCode" placeholder="e.g. 1006" value={form.hsnCode} onChange={handleChange} className="pr-input" />
+      </Field>
+      <Field label="Supplier GSTIN (for ITC)" full>
+        <input name="supplierGstin" placeholder="15-digit GSTIN" value={form.supplierGstin} onChange={handleChange} maxLength={15} className="pr-input" />
+      </Field>
+      <Field label="Invoice No.">
+        <input name="purchaseInvoice" placeholder="Bill / Invoice No." value={form.purchaseInvoice} onChange={handleChange} className="pr-input" />
+      </Field>
+      <Field label="Purchase Date">
+        <input name="purchaseDate" type="date" value={form.purchaseDate} onChange={handleChange} className="pr-input" />
+      </Field>
+    </>}
+  </>
+);
 
-// ─── GST PREVIEW (shared) ─────────────────────────────────────
-const GstPreview = ({ gstCalc, form, setForm, isMobile }) => {
+const CategorySelect = ({ form, handleChange, categories, userCategories }) => (
+  <Field label="Category *">
+    <select name="category" value={form.category} onChange={handleChange} className="pr-select">
+      {categories.map((c) => <option key={c}>{c}</option>)}
+      {userCategories.map((c) => <option key={`custom_${c}`} value={c}>{c} ✓</option>)}
+      <option value="__custom__">Custom…</option>
+    </select>
+  </Field>
+);
+
+const GstPreview = ({ gstCalc, form, setForm }) => {
   if (!gstCalc) return null;
   return (
-    <div style={isMobile ? S.gstPreview : { background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "12px", padding: "14px 18px", marginTop: "12px", display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}>
-      <div style={{ width: "100%", display: "flex", gap: "8px", marginBottom: "4px" }}>
+    <div className="pr-preview pr-preview--gst">
+      <div className="pr-seg" role="group" aria-label="Sale type">
         {["intra", "inter"].map((type) => (
-          <button key={type} onClick={() => setForm((prev) => ({ ...prev, saleType: type }))}
-            style={{ padding: "4px 12px", borderRadius: "100px", border: "none", fontSize: "0.7rem", fontWeight: 700, cursor: "pointer", background: form.saleType === type ? "#15803d" : "#e2e8f0", color: form.saleType === type ? "#fff" : "#64748b" }}>
+          <button key={type} type="button" aria-pressed={form.saleType === type}
+            onClick={() => setForm((prev) => ({ ...prev, saleType: type }))}>
             {type === "intra" ? "Intra-state" : "Inter-state"}
           </button>
         ))}
       </div>
-      <span style={{ fontWeight: 800, width: "100%", fontSize: "0.75rem", color: "#15803d" }}>
-        🧾 GST Preview — {form.gstRate}% ({form.gstInclusive ? "inclusive" : "exclusive"})
+      <span className="pr-preview-title">
+        GST preview — {form.gstRate}% ({form.gstInclusive ? "inclusive" : "exclusive"})
       </span>
-      <span style={isMobile ? S.gstPreviewLabel : { fontSize: "0.85rem", color: "#15803d" }}>
-        Taxable: <strong>₹{Number(gstCalc.taxableValue).toLocaleString("en-IN")}</strong>
-      </span>
+      <span>Taxable: <strong>₹{Number(gstCalc.taxableValue).toLocaleString("en-IN")}</strong></span>
       {form.saleType === "intra" ? (
         <>
-          <span style={isMobile ? S.gstPreviewLabel : { fontSize: "0.85rem", color: "#15803d" }}>CGST ({form.gstRate / 2}%): <strong>₹{(Number(gstCalc.gstAmount) / 2).toFixed(2)}</strong></span>
-          <span style={isMobile ? S.gstPreviewLabel : { fontSize: "0.85rem", color: "#15803d" }}>SGST ({form.gstRate / 2}%): <strong>₹{(Number(gstCalc.gstAmount) / 2).toFixed(2)}</strong></span>
+          <span>CGST ({form.gstRate / 2}%): <strong>₹{(Number(gstCalc.gstAmount) / 2).toFixed(2)}</strong></span>
+          <span>SGST ({form.gstRate / 2}%): <strong>₹{(Number(gstCalc.gstAmount) / 2).toFixed(2)}</strong></span>
         </>
       ) : (
-        <span style={isMobile ? S.gstPreviewLabel : { fontSize: "0.85rem", color: "#15803d" }}>IGST ({form.gstRate}%): <strong>₹{Number(gstCalc.gstAmount).toLocaleString("en-IN")}</strong></span>
+        <span>IGST ({form.gstRate}%): <strong>₹{Number(gstCalc.gstAmount).toLocaleString("en-IN")}</strong></span>
       )}
-      <span style={isMobile ? S.gstPreviewLabel : { fontSize: "0.85rem", color: "#15803d" }}>
-        Total: <strong style={{ color: "#16a34a" }}>₹{Number(gstCalc.totalWithGst).toLocaleString("en-IN")}</strong>
-      </span>
+      <span>Total: <strong>₹{Number(gstCalc.totalWithGst).toLocaleString("en-IN")}</strong></span>
     </div>
   );
 };
 
-// ─── MARGIN PREVIEW (shared) ──────────────────────────────────
-const MarginPreview = ({ form, t, isMobile }) => {
+const MarginPreview = ({ form }) => {
   const margin = form.purchasePrice && form.sellingPrice
     ? (Number(form.sellingPrice) - Number(form.purchasePrice)).toFixed(2) : null;
   if (!margin) return null;
-  if (isMobile) return (
-    <div style={S.marginPreview}>
-      <span style={S.marginLabel}>Margin: <strong style={{ color: Number(margin) >= 0 ? "#16a34a" : "#dc2626" }}>₹{margin}</strong></span>
-      {form.purchasePrice > 0 && <span style={S.marginLabel}>%: <strong style={{ color: "#16a34a" }}>{(((Number(form.sellingPrice) - Number(form.purchasePrice)) / Number(form.purchasePrice)) * 100).toFixed(1)}%</strong></span>}
-      {form.qty && <span style={S.marginLabel}>Batch: <strong style={{ color: t.color }}>₹{(Number(form.qty) * Number(form.sellingPrice)).toLocaleString("en-IN")}</strong></span>}
-    </div>
-  );
   return (
-    <div style={{ background: "#fff", borderRadius: "12px", padding: "14px 18px", marginTop: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", display: "flex", gap: "24px", flexWrap: "wrap" }}>
-      <span style={{ fontSize: "0.85rem", color: "#64748b" }}>Margin per {form.unit}: <strong style={{ color: Number(margin) >= 0 ? "#16a34a" : "#dc2626" }}>₹{margin}</strong></span>
-      {form.purchasePrice > 0 && <span style={{ fontSize: "0.85rem", color: "#64748b" }}>Margin %: <strong style={{ color: "#16a34a" }}>{(((Number(form.sellingPrice) - Number(form.purchasePrice)) / Number(form.purchasePrice)) * 100).toFixed(1)}%</strong></span>}
-      {form.qty && <span style={{ fontSize: "0.85rem", color: "#64748b" }}>Batch value: <strong style={{ color: t.color }}>₹{(Number(form.qty) * Number(form.sellingPrice)).toLocaleString("en-IN")}</strong></span>}
+    <div className="pr-preview">
+      <span>Margin per {form.unit}: <strong className={Number(margin) >= 0 ? "pr-pos" : "pr-neg"}>₹{margin}</strong></span>
+      {form.purchasePrice > 0 && (
+        <span>Margin %: <strong className="pr-pos">{(((Number(form.sellingPrice) - Number(form.purchasePrice)) / Number(form.purchasePrice)) * 100).toFixed(1)}%</strong></span>
+      )}
+      {form.qty && <span>Batch value: <strong>₹{(Number(form.qty) * Number(form.sellingPrice)).toLocaleString("en-IN")}</strong></span>}
     </div>
   );
 };
@@ -513,7 +484,6 @@ const Products = () => {
   const [userCategories,    setUserCategories]    = useState([]);
   const [userSubCategories, setUserSubCategories] = useState([]);
 
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
 
   const shopType = shopProfile?.shop_type || "default";
@@ -679,310 +649,239 @@ const Products = () => {
 
   // ─── TABS ─────────────────────────────────────────────────
   const TAB_LIST = [
-    { key: "list", label: "📋 Stock List" },
-    { key: "add",  label: editingId ? "✏️ Edit Stock" : "➕ Add Stock" },
-    { key: "job-services", label: "🛠️ Job Services" },
+    { key: "list", label: "Stock List" },
+    { key: "add",  label: editingId ? "Edit Stock" : "Add Stock" },
+    { key: "job-services", label: "Job Services" },
   ];
   const handleTabClick = (key) => {
     if (key === "job-services") { navigate("/dashboard/business/job-services"); return; }
     setTab(key); if (key === "list" && editingId) handleCancelEdit();
   };
 
-  // ─── SHARED PROPS FOR PricingFields ───────────────────────
+  // ─── SHARED PROPS ─────────────────────────────────────────
   const pricingProps = { form, handleChange, setForm, units, autoPurchaseGst, gstEnabled: shopProfile?.gst_enabled || false };
-
-  // ─── SHARED CATEGORY PROPS ────────────────────────────────
   const catProps = { form, handleChange, categories, userCategories };
 
-  // ─── DETERMINE WHICH FORM TO SHOW ─────────────────────────
   // Basic form: Kirana, Aluminium, Restaurant, General, Default, and all custom shop types
   // Own block:  Clothing, HardWare, Medical, Gold and Silver
   const SPECIAL_SHOPS = ["Clothing", "HardWare", "Medical", "Gold and Silver"];
   const isBasicForm   = !SPECIAL_SHOPS.includes(shopType);
 
-  // ─── SECTION HEADER (desktop only) ────────────────────────
-  const SectionHeader = ({ label }) => (
-    <div style={{ gridColumn: "1 / -1" }}>
-      <div style={{ fontSize: "0.72rem", fontWeight: 700, color: t.color, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" }}>{label}</div>
-      <div style={{ height: "2px", background: t.color + "22", borderRadius: "2px" }} />
-    </div>
+  const customCategoryInput = form.category === "__custom__" && (
+    <CustomTextInput label="Custom category name" placeholder="Type your category name…" value={customCategory} onChange={setCustomCategory} onConfirm={confirmCustomCategory} />
   );
 
   // ═══════════════════════════════════════════════════════════
-  //   FORM FIELDS RENDERER (works for BOTH mobile & desktop)
+  //   FORM FIELDS (one responsive layout for all breakpoints)
   // ═══════════════════════════════════════════════════════════
   const renderFormFields = () => {
-    const W      = isMobile ? MField : Field;
-    const iStyle = isMobile ? S.mInput : inputStyle;
-    const sStyle = isMobile ? S.mSelect : selectStyle;
-    const gridStyle = isMobile
-      ? S.fieldGrid
-      : { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "14px" };
-
-    // ── BASIC FORM (Kirana / Aluminium / General / Custom) ──
+    // ── BASIC FORM ──
     if (isBasicForm) return (
       <>
-        {isMobile && <div style={S.sectionDivider(t.color)}>{t.icon} Item Details</div>}
-        {!isMobile && <SectionHeader label={`${t.icon} ${t.label} — Item Details`} />}
-        <div style={gridStyle}>
-          <W label="Item Name *" full>
-            <input name="name" placeholder="e.g. Basmati Rice…" value={form.name} onChange={handleChange} style={iStyle} />
-          </W>
-          <W label="Product Image" full>
-            <input type="file" accept="image/*" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
-            }} style={iStyle} />
-            {form.imagePreview && <img src={form.imagePreview} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginTop: 6 }} />}
-          </W>
-          <CategorySelect {...catProps} isMobile={isMobile} />
-          {form.category === "__custom__" && (
-            <CustomTextInput label="Custom Category Name" placeholder="Type your category name…" value={customCategory} onChange={setCustomCategory} onConfirm={confirmCustomCategory} isMobile={isMobile} color={t.color} />
-          )}
-          <PricingFields {...pricingProps} isMobile={isMobile} />
-        </div>
+        <Section title={`${t.label} — item details`}>
+          <Field label="Item Name *" full>
+            <input name="name" placeholder="e.g. Basmati Rice…" value={form.name} onChange={handleChange} className="pr-input" />
+          </Field>
+          <ImageField form={form} setForm={setForm} />
+          <CategorySelect {...catProps} />
+          {customCategoryInput}
+        </Section>
+        <Section title="Stock & pricing">
+          <PricingFields {...pricingProps} />
+        </Section>
       </>
     );
 
     // ── CLOTHING ──
-    if (shopType === "Clothing") return (
-      <>
-        {isMobile && <div style={S.sectionDivider(t.color)}>👗 Clothing Details</div>}
-        {!isMobile && <SectionHeader label="👗 Clothing Details" />}
-        <div style={gridStyle}>
-          {["clothingGender","clothingType","clothingColor","clothingSize"].map((field) => {
-            const opts = { clothingGender: ["Men","Women","Boy","Girl","Unisex"], clothingType: CLOTHING_TYPES, clothingColor: CLOTHING_COLORS, clothingSize: CLOTHING_SIZES };
-            const labels = { clothingGender: "Gender *", clothingType: "Type *", clothingColor: "Color", clothingSize: "Size" };
-            return (
-              <W key={field} label={labels[field]}>
-                <select name={field} value={form[field]} onChange={handleChange} style={sStyle}>
+    if (shopType === "Clothing") {
+      const opts = { clothingGender: ["Men","Women","Boy","Girl","Unisex"], clothingType: CLOTHING_TYPES, clothingColor: CLOTHING_COLORS, clothingSize: CLOTHING_SIZES };
+      const labels = { clothingGender: "Gender *", clothingType: "Type *", clothingColor: "Color", clothingSize: "Size" };
+      return (
+        <>
+          <Section title="Clothing details">
+            {["clothingGender","clothingType","clothingColor","clothingSize"].map((field) => (
+              <Field key={field} label={labels[field]}>
+                <select name={field} value={form[field]} onChange={handleChange} className="pr-select">
                   <option value="">Select…</option>
                   {opts[field].map((o) => <option key={o}>{o}</option>)}
                 </select>
-              </W>
-            );
-          })}
-          <W label="Custom Name" full>
-            <input name="name" placeholder="Auto-built or type custom name" value={form.name} onChange={handleChange} style={iStyle} />
-            {(form.clothingGender || form.clothingType) && !form.name && (
-              <span style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "3px" }}>Will save as: <strong>{buildClothingName()}</strong></span>
-            )}
-          </W>
-          <W label="Product Image" full>
-            <input type="file" accept="image/*" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
-            }} style={iStyle} />
-            {form.imagePreview && <img src={form.imagePreview} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginTop: 6 }} />}
-          </W>
-        </div>
-        {isMobile && <div style={{ ...S.sectionDivider(t.color), marginTop: "14px" }}>💰 Pricing & Stock</div>}
-        {!isMobile && <SectionHeader label="💰 Pricing & Stock" />}
-        <div style={gridStyle}>
-          <PricingFields {...pricingProps} isMobile={isMobile} />
-        </div>
-      </>
-    );
+              </Field>
+            ))}
+            <Field label="Custom Name" full>
+              <input name="name" placeholder="Auto-built or type custom name" value={form.name} onChange={handleChange} className="pr-input" />
+              {(form.clothingGender || form.clothingType) && !form.name && (
+                <span className="pr-help">Will save as: <strong>{buildClothingName()}</strong></span>
+              )}
+            </Field>
+            <ImageField form={form} setForm={setForm} />
+          </Section>
+          <Section title="Pricing & stock">
+            <PricingFields {...pricingProps} />
+          </Section>
+        </>
+      );
+    }
 
     // ── HARDWARE ──
     if (shopType === "HardWare") return (
       <>
-        {isMobile && <div style={S.sectionDivider(t.color)}>🔧 Hardware Details</div>}
-        {!isMobile && <SectionHeader label="🔧 Hardware Item Details" />}
-        <div style={gridStyle}>
-          <W label="Item Name *" full>
-            <input name="name" placeholder="e.g. 1/2 inch PVC Pipe…" value={form.name} onChange={handleChange} style={iStyle} />
-          </W>
-          <W label="Product Image" full>
-            <input type="file" accept="image/*" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
-            }} style={iStyle} />
-            {form.imagePreview && <img src={form.imagePreview} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginTop: 6 }} />}
-          </W>
-          <CategorySelect {...catProps} isMobile={isMobile} />
-          {form.category === "__custom__" && (
-            <CustomTextInput label="Custom Category Name" placeholder="Type your category name…" value={customCategory} onChange={setCustomCategory} onConfirm={confirmCustomCategory} isMobile={isMobile} color={t.color} />
-          )}
-          <SubCategoryField shopType={shopType} category={form.category} value={form.subCategory} onChange={handleChange} isMobile={isMobile} userSubCats={userSubCategories} />
+        <Section title="Hardware item details">
+          <Field label="Item Name *" full>
+            <input name="name" placeholder="e.g. 1/2 inch PVC Pipe…" value={form.name} onChange={handleChange} className="pr-input" />
+          </Field>
+          <ImageField form={form} setForm={setForm} />
+          <CategorySelect {...catProps} />
+          {customCategoryInput}
+          <SubCategoryField shopType={shopType} category={form.category} value={form.subCategory} onChange={handleChange} userSubCats={userSubCategories} />
           {form.subCategory === "__custom__" && (
-            <CustomTextInput label="Custom Sub-Category Name" placeholder="Type your sub-category name…" value={customSubCategory} onChange={setCustomSubCategory} onConfirm={confirmCustomSubCategory} isMobile={isMobile} color={t.color} />
+            <CustomTextInput label="Custom sub-category name" placeholder="Type your sub-category name…" value={customSubCategory} onChange={setCustomSubCategory} onConfirm={confirmCustomSubCategory} />
           )}
-          <W label="Brand">
-            <select name="hwBrand" value={form.hwBrand} onChange={handleChange} style={sStyle}>
+          <Field label="Brand">
+            <select name="hwBrand" value={form.hwBrand} onChange={handleChange} className="pr-select">
               <option value="">Select…</option>
               {HW_BRANDS.map((b) => <option key={b}>{b}</option>)}
             </select>
-          </W>
-          <W label="Material">
-            <select name="hwMaterial" value={form.hwMaterial} onChange={handleChange} style={sStyle}>
+          </Field>
+          <Field label="Material">
+            <select name="hwMaterial" value={form.hwMaterial} onChange={handleChange} className="pr-select">
               <option value="">Select…</option>
               {HW_MATERIALS.map((m) => <option key={m}>{m}</option>)}
             </select>
-          </W>
-          <W label="Model / Spec" full>
-            <input name="hwModel" placeholder="e.g. 1/2 inch, 4mm, 100W" value={form.hwModel} onChange={handleChange} style={iStyle} />
-          </W>
-        </div>
-        {isMobile && <div style={{ ...S.sectionDivider(t.color), marginTop: "14px" }}>📦 Stock & Pricing</div>}
-        {!isMobile && <SectionHeader label="📦 Stock & Pricing" />}
-        <div style={gridStyle}>
-          <PricingFields {...pricingProps} isMobile={isMobile} />
-        </div>
+          </Field>
+          <Field label="Model / Spec" full>
+            <input name="hwModel" placeholder="e.g. 1/2 inch, 4mm, 100W" value={form.hwModel} onChange={handleChange} className="pr-input" />
+          </Field>
+        </Section>
+        <Section title="Stock & pricing">
+          <PricingFields {...pricingProps} />
+        </Section>
       </>
     );
 
     // ── MEDICAL ──
     if (shopType === "Medical") return (
       <>
-        {isMobile && <div style={S.sectionDivider(t.color)}>💊 Medicine Details</div>}
-        {!isMobile && <SectionHeader label="💊 Medicine / Product Details" />}
-        <div style={gridStyle}>
-          <W label="Medicine Name *" full>
-            <input name="name" placeholder="e.g. Dolo 650mg…" value={form.name} onChange={handleChange} style={iStyle} />
-          </W>
-          <W label="Product Image" full>
-            <input type="file" accept="image/*" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
-            }} style={iStyle} />
-            {form.imagePreview && <img src={form.imagePreview} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginTop: 6 }} />}
-          </W>
-          <CategorySelect {...catProps} isMobile={isMobile} />
-          {form.category === "__custom__" && (
-            <CustomTextInput label="Custom Category Name" placeholder="Type your category name…" value={customCategory} onChange={setCustomCategory} onConfirm={confirmCustomCategory} isMobile={isMobile} color={t.color} />
-          )}
-          <W label="Company">
-            <select name="medCompany" value={form.medCompany} onChange={handleChange} style={sStyle}>
+        <Section title="Medicine / product details">
+          <Field label="Medicine Name *" full>
+            <input name="name" placeholder="e.g. Dolo 650mg…" value={form.name} onChange={handleChange} className="pr-input" />
+          </Field>
+          <ImageField form={form} setForm={setForm} />
+          <CategorySelect {...catProps} />
+          {customCategoryInput}
+          <Field label="Company">
+            <select name="medCompany" value={form.medCompany} onChange={handleChange} className="pr-select">
               <option value="">Select…</option>
               {MED_COMPANIES.map((c) => <option key={c}>{c}</option>)}
             </select>
-          </W>
-          <W label="Schedule">
-            <select name="medSchedule" value={form.medSchedule} onChange={handleChange} style={sStyle}>
+          </Field>
+          <Field label="Schedule">
+            <select name="medSchedule" value={form.medSchedule} onChange={handleChange} className="pr-select">
               {MED_SCHEDULES.map((s) => <option key={s}>{s}</option>)}
             </select>
-          </W>
-          <W label="Batch No.">
-            <input name="medBatch" placeholder="Batch No." value={form.medBatch} onChange={handleChange} style={iStyle} />
-          </W>
-          <W label="Expiry Date *">
+          </Field>
+          <Field label="Batch No.">
+            <input name="medBatch" placeholder="Batch No." value={form.medBatch} onChange={handleChange} className="pr-input" />
+          </Field>
+          <Field label="Expiry Date *">
             <input name="medExpiry" type="month" value={form.medExpiry} onChange={handleChange}
-              style={{ ...iStyle, borderColor: !form.medExpiry ? "#fca5a5" : "#e2e8f0" }} />
-          </W>
-        </div>
-        {form.medExpiry && new Date(`${form.medExpiry}-01`) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) && (
-          <div style={isMobile ? { ...S.expiryWarning, marginTop: "10px" } : { gridColumn: "1 / -1", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: "10px", padding: "10px 14px", fontSize: "0.8rem", color: "#92400e" }}>
-            ⚠️ <strong>Expiry soon!</strong> Within 90 days. Monitor carefully.
-          </div>
+              className={`pr-input${!form.medExpiry ? " pr-input--invalid" : ""}`} />
+          </Field>
+        </Section>
+        {form.medExpiry && isExpiringSoon(form) && (
+          <div className="pr-note" role="alert"><strong>Expiry soon.</strong> This batch expires within 90 days. Monitor it carefully.</div>
         )}
-        {isMobile && <div style={{ ...S.sectionDivider(t.color), marginTop: "14px" }}>📦 Stock & Pricing</div>}
-        {!isMobile && <SectionHeader label="📦 Stock & Pricing" />}
-        <div style={gridStyle}>
-          <PricingFields {...pricingProps} isMobile={isMobile} />
-        </div>
+        <Section title="Stock & pricing">
+          <PricingFields {...pricingProps} />
+        </Section>
       </>
     );
 
     // ── GOLD & SILVER ──
     if (shopType === "Gold and Silver") return (
       <>
-        {isMobile && <div style={S.sectionDivider(t.color)}>💍 Jewellery Details</div>}
-        {!isMobile && <SectionHeader label="💍 Jewellery / Metal Details" />}
-        <div style={gridStyle}>
-          <W label="Metal Type *">
-            <select name="metalType" value={form.metalType} onChange={handleChange} style={sStyle}>
+        <Section title="Jewellery / metal details">
+          <Field label="Metal Type *">
+            <select name="metalType" value={form.metalType} onChange={handleChange} className="pr-select">
               {METAL_TYPES.map((m) => <option key={m}>{m}</option>)}
             </select>
-          </W>
-          <W label="Purity / Karat">
-            <select name="goldPurity" value={form.goldPurity} onChange={handleChange} style={sStyle}>
+          </Field>
+          <Field label="Purity / Karat">
+            <select name="goldPurity" value={form.goldPurity} onChange={handleChange} className="pr-select">
               <option value="">Select…</option>
               {GOLD_PURITY.map((p) => <option key={p}>{p}</option>)}
             </select>
-          </W>
-          <W label="Item Name *" full>
-            <input name="name" placeholder="e.g. Necklace, Ring, Coin…" value={form.name} onChange={handleChange} style={iStyle} />
-          </W>
-          <W label="Product Image" full>
-            <input type="file" accept="image/*" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setForm((prev) => ({ ...prev, image: file, imagePreview: URL.createObjectURL(file) }));
-            }} style={iStyle} />
-            {form.imagePreview && <img src={form.imagePreview} alt="preview" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginTop: 6 }} />}
-          </W>
-          <CategorySelect {...catProps} isMobile={isMobile} />
-          {form.category === "__custom__" && (
-            <CustomTextInput label="Custom Category Name" placeholder="Type your category name…" value={customCategory} onChange={setCustomCategory} onConfirm={confirmCustomCategory} isMobile={isMobile} color={t.color} />
-          )}
-          <W label="Weight (grams) *">
-            <input name="goldWeight" type="number" placeholder="0.00" value={form.goldWeight} onChange={handleChange} min="0" step="0.01" style={iStyle} />
-          </W>
-        </div>
-        {isMobile && <div style={{ ...S.sectionDivider(t.color), marginTop: "14px" }}>💰 Pricing</div>}
-        {!isMobile && <SectionHeader label="💰 Pricing" />}
-        <div style={gridStyle}>
-          <W label="Unit">
-            <select name="unit" value={form.unit} onChange={handleChange} style={sStyle}>
+          </Field>
+          <Field label="Item Name *" full>
+            <input name="name" placeholder="e.g. Necklace, Ring, Coin…" value={form.name} onChange={handleChange} className="pr-input" />
+          </Field>
+          <ImageField form={form} setForm={setForm} />
+          <CategorySelect {...catProps} />
+          {customCategoryInput}
+          <Field label="Weight (grams) *">
+            <input name="goldWeight" type="number" placeholder="0.00" value={form.goldWeight} onChange={handleChange} min="0" step="0.01" className="pr-input" />
+          </Field>
+        </Section>
+        <Section title="Pricing">
+          <Field label="Unit">
+            <select name="unit" value={form.unit} onChange={handleChange} className="pr-select">
               {units.map((u) => <option key={u}>{u}</option>)}
             </select>
-          </W>
-          <W label="Quantity *">
-            <input name="qty" type="number" placeholder="0" value={form.qty} onChange={handleChange} min="0" style={iStyle} />
-          </W>
-          <W label="Rate/gram ₹ *">
-            <input name="sellingPrice" type="number" placeholder="Rate" value={form.sellingPrice} onChange={handleChange} min="0" style={iStyle} />
-          </W>
-          <W label="Purchase ₹">
-            <input name="purchasePrice" type="number" placeholder="Cost rate" value={form.purchasePrice} onChange={handleChange} min="0" style={iStyle} />
-          </W>
-          <W label="Purchase GST / ITC ₹">
-            <input name="purchaseGst" type="number" placeholder="ITC amount" value={form.purchaseGst} onChange={handleChange} style={iStyle} />
-            {autoPurchaseGst && !form.purchaseGst && <span style={{ fontSize: "0.68rem", color: "#16a34a", marginTop: "3px" }}>Auto: ₹{autoPurchaseGst}</span>}
-          </W>
-          <W label="Making Charges ₹">
-            <input name="makingCharges" type="number" placeholder="Making" value={form.makingCharges} onChange={handleChange} min="0" style={iStyle} />
-          </W>
-          <W label="Low Stock At">
-            <input name="minQtyAlert" type="number" placeholder="1" value={form.minQtyAlert} onChange={handleChange} min="0" style={iStyle} />
-          </W>
-          <W label="HSN Code" full>
-            <input name="hsnCode" placeholder="e.g. 7113" value={form.hsnCode} onChange={handleChange} style={iStyle} />
-          </W>
-          <W label="Supplier GSTIN (for ITC)" full>
-            <input name="supplierGstin" placeholder="15-digit GSTIN" value={form.supplierGstin} onChange={handleChange} maxLength={15} style={iStyle} />
-          </W>
-          <W label="Invoice No.">
-            <input name="purchaseInvoice" placeholder="Bill / Invoice No." value={form.purchaseInvoice} onChange={handleChange} style={iStyle} />
-          </W>
-          <W label="Purchase Date">
-            <input name="purchaseDate" type="date" value={form.purchaseDate} onChange={handleChange} style={iStyle} />
-          </W>
-        </div>
+          </Field>
+          <Field label="Quantity *">
+            <input name="qty" type="number" placeholder="0" value={form.qty} onChange={handleChange} min="0" className="pr-input" />
+          </Field>
+          <Field label="Rate/gram ₹ *">
+            <input name="sellingPrice" type="number" placeholder="Rate" value={form.sellingPrice} onChange={handleChange} min="0" className="pr-input" />
+          </Field>
+          <Field label="Purchase ₹">
+            <input name="purchasePrice" type="number" placeholder="Cost rate" value={form.purchasePrice} onChange={handleChange} min="0" className="pr-input" />
+          </Field>
+          <Field label="Purchase GST / ITC ₹">
+            <input name="purchaseGst" type="number" placeholder="ITC amount" value={form.purchaseGst} onChange={handleChange} className="pr-input" />
+            {autoPurchaseGst && !form.purchaseGst && <span className="pr-help pr-help--ok">Auto: ₹{autoPurchaseGst}</span>}
+          </Field>
+          <Field label="Making Charges ₹">
+            <input name="makingCharges" type="number" placeholder="Making" value={form.makingCharges} onChange={handleChange} min="0" className="pr-input" />
+          </Field>
+          <Field label="Low Stock At">
+            <input name="minQtyAlert" type="number" placeholder="1" value={form.minQtyAlert} onChange={handleChange} min="0" className="pr-input" />
+          </Field>
+          <Field label="HSN Code" full>
+            <input name="hsnCode" placeholder="e.g. 7113" value={form.hsnCode} onChange={handleChange} className="pr-input" />
+          </Field>
+          <Field label="Supplier GSTIN (for ITC)" full>
+            <input name="supplierGstin" placeholder="15-digit GSTIN" value={form.supplierGstin} onChange={handleChange} maxLength={15} className="pr-input" />
+          </Field>
+          <Field label="Invoice No.">
+            <input name="purchaseInvoice" placeholder="Bill / Invoice No." value={form.purchaseInvoice} onChange={handleChange} className="pr-input" />
+          </Field>
+          <Field label="Purchase Date">
+            <input name="purchaseDate" type="date" value={form.purchaseDate} onChange={handleChange} className="pr-input" />
+          </Field>
+        </Section>
 
-        {/* Gold totals */}
         {goldTotalValue && (
-          <div style={isMobile ? S.goldTotal : { background: "#fef9c3", border: "1px solid #fde68a", borderRadius: "10px", padding: "12px 16px", display: "flex", gap: "24px", flexWrap: "wrap", fontSize: "0.83rem", color: "#78350f", marginTop: "12px" }}>
-            <span>💍 Value: <strong>₹{(Number(form.sellingPrice) * Number(form.qty || 1)).toLocaleString("en-IN")}</strong></span>
-            <span>🔨 Making: <strong>₹{Number(form.makingCharges || 0).toLocaleString("en-IN")}</strong></span>
-            <span>✅ Total: <strong>₹{goldTotalValue.toLocaleString("en-IN")}</strong></span>
+          <div className="pr-preview pr-preview--gold">
+            <span>Value: <strong>₹{(Number(form.sellingPrice) * Number(form.qty || 1)).toLocaleString("en-IN")}</strong></span>
+            <span>Making: <strong>₹{Number(form.makingCharges || 0).toLocaleString("en-IN")}</strong></span>
+            <span>Total: <strong>₹{goldTotalValue.toLocaleString("en-IN")}</strong></span>
           </div>
         )}
         {goldGstCalc && (
-          <div style={isMobile ? S.goldGstPreview : { background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", padding: "12px 16px", display: "flex", gap: "20px", flexWrap: "wrap", fontSize: "0.83rem", color: "#78350f", marginTop: "8px" }}>
-            <span style={{ fontWeight: 800, width: "100%", fontSize: "0.76rem" }}>🧾 GST Breakdown — Metal {GOLD_METAL_GST}% + Making {GOLD_MAKING_GST}% (Indian GST rules)</span>
+          <div className="pr-preview pr-preview--gold" style={{ marginTop: 12 }}>
+            <span className="pr-preview-title">GST breakdown — Metal {GOLD_METAL_GST}% + Making {GOLD_MAKING_GST}% (Indian GST rules)</span>
             <span>Metal Value: <strong>₹{Number(goldGstCalc.metalValue).toLocaleString("en-IN")}</strong></span>
             <span>Metal GST ({GOLD_METAL_GST}%): <strong>₹{Number(goldGstCalc.metalGstAmt).toLocaleString("en-IN")}</strong></span>
             <span>Making GST ({GOLD_MAKING_GST}%): <strong>₹{Number(goldGstCalc.makingGstAmt).toLocaleString("en-IN")}</strong></span>
             <span>Total GST: <strong>₹{Number(goldGstCalc.totalGst).toLocaleString("en-IN")}</strong></span>
-            <span>Grand Total: <strong style={{ color: "#d97706" }}>₹{Number(goldGstCalc.grandTotal).toLocaleString("en-IN")}</strong></span>
+            <span>Grand Total: <strong>₹{Number(goldGstCalc.grandTotal).toLocaleString("en-IN")}</strong></span>
           </div>
         )}
       </>
     );
   };
 
-  // ─── STATS CARDS (shared) ──────────────────────────────────
+  // ─── STATS CARDS ───────────────────────────────────────────
   const statsData = [
     { label: "Total Products",   value: stats.total_items  || 0,      color: t.color },
     { label: "Stock Value",      value: `₹${(stats.total_value || 0).toLocaleString("en-IN")}`, color: "#16a34a" },
@@ -990,13 +889,13 @@ const Products = () => {
     { label: "Total Units",      value: stats.total_qty    || 0,      color: "#7c3aed" },
   ];
 
-  // ─── STOCK LIST ITEM (shared) ──────────────────────────────
+  // ─── STOCK LIST ITEM CHIPS ─────────────────────────────────
   const renderStockItem = (s) => {
     const chips = [
-      { show: true,                   label: "Qty",    val: `${s.qty} ${s.unit}`,   color: s.isLowStock ? "#dc2626" : "#16a34a" },
-      { show: true,                   label: "Price",  val: `₹${s.sellingPrice}`,   color: t.color },
-      { show: true,                   label: "Value",  val: `₹${(Number(s.qty) * Number(s.sellingPrice)).toLocaleString("en-IN")}`, color: "#0f172a" },
-      { show: s.gstRate != null && shopProfile?.gst_enabled,      label: "GST",    val: `${s.gstRate}%`,         color: "#15803d" },
+      { show: true,                   label: "Qty",    val: `${s.qty} ${s.unit}`,   tone: s.isLowStock ? "bad" : "ok" },
+      { show: true,                   label: "Price",  val: `₹${s.sellingPrice}`,   tone: "accent" },
+      { show: true,                   label: "Value",  val: `₹${(Number(s.qty) * Number(s.sellingPrice)).toLocaleString("en-IN")}`, tone: "strong" },
+      { show: s.gstRate != null && shopProfile?.gst_enabled,      label: "GST",    val: `${s.gstRate}%`,         tone: "ok" },
       { show: !!s.clothingSize,       label: "Size",   val: s.clothingSize },
       { show: !!s.clothingColor,      label: "Color",  val: s.clothingColor },
       { show: !!s.hwBrand,            label: "Brand",  val: s.hwBrand },
@@ -1009,204 +908,134 @@ const Products = () => {
       { show: !!s.goldWeight,         label: "Wt",     val: `${s.goldWeight}g` },
       { show: s.makingCharges > 0,    label: "Making", val: `₹${s.makingCharges}` },
       { show: !!s.hsnCode && shopProfile?.gst_enabled,            label: "HSN",    val: s.hsnCode },
-      { show: true,                   label: "",       val: s.category,              color: "#7c3aed" },
+      { show: true,                   label: "",       val: s.category,              tone: "cat" },
     ].filter((c) => c.show);
 
-    const isExpiringSoon = s.medExpiry && new Date(`${s.medExpiry}-01`) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
-
     return chips.map((c, i) => (
-      <span key={i} style={isMobile ? { ...S.metaChip, ...(c.color ? { color: c.color } : {}) } : { fontSize: "0.78rem", color: "#64748b" }}>
-        {c.label ? `${c.label}: ` : ""}<strong style={{ color: c.color }}>{c.val}</strong>
+      <span key={i} className={`pr-chip${c.tone ? ` pr-chip--${c.tone}` : ""}`}>
+        {c.label ? `${c.label}: ` : ""}<strong>{c.val}</strong>
       </span>
     ));
   };
 
   // ═══════════════════════════════════════════════════════════
-  //   MOBILE RENDER
-  // ═══════════════════════════════════════════════════════════
-  if (isMobile) return (
-    <div style={S.page}>
-      {toast && <div style={S.toast(toast.type)}>{toast.msg}</div>}
-      <div style={S.headerBar}>
-        <div style={S.headerLeft}>
-          <h2 style={S.headerTitle}>📦 Stock Entry</h2>
-          {t.hint && <span style={S.headerHint}>{t.hint}</span>}
-        </div>
-        {shopProfile && <span style={S.shopBadge(t.color)}>{t.icon} {t.label}</span>}
-      </div>
-      <div style={S.tabBar}>
-        {TAB_LIST.map((tb) => <button key={tb.key} style={S.tabBtn(tab === tb.key)} onClick={() => handleTabClick(tb.key)}>{tb.label}</button>)}
-      </div>
-      <div style={S.body}>
-        {!shopProfile && !loading && <div style={S.warnBanner}>⚠️ <strong>Shop Profile not set.</strong> Go to <strong>Shop Profile</strong> to select your business type.</div>}
-        <div style={S.statsRow}>
-          {statsData.map((s) => (
-            <div key={s.label} style={S.statCard(s.color)}>
-              <div style={S.statLabel}>{s.label}</div>
-              <div style={S.statValue}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-        {lowStock.length > 0 && (
-          <div style={S.lowStockBanner}>
-            <div style={S.lowStockTitle}>⚠️ Low Stock — {lowStock.length} item{lowStock.length > 1 ? "s" : ""} need restocking</div>
-            <div style={S.lowStockChips}>{lowStock.map((s) => <span key={s.id} style={S.lowStockChip}>{s.name} — {s.qty} {s.unit}</span>)}</div>
-          </div>
-        )}
-
-        {tab === "add" && (
-          <div style={S.formCard}>
-            {renderFormFields()}
-            {shopType !== "Gold and Silver" && <MarginPreview form={form} t={t} isMobile={true} />}
-            {shopType !== "Gold and Silver" && shopProfile?.gst_enabled && <GstPreview gstCalc={gstCalc} form={form} setForm={setForm} isMobile={true} />}
-            <div style={S.actionRow}>
-              <button onClick={handleAddStock} disabled={saving} style={S.saveBtn(t.color)}>
-                {saving ? "Saving…" : editingId ? "✅ Update Stock" : "✅ Add Stock"}
-              </button>
-              {editingId && <button onClick={handleCancelEdit} style={S.cancelBtn}>✕ Cancel</button>}
-            </div>
-          </div>
-        )}
-
-        {tab === "list" && (
-          <>
-            <div style={S.searchWrap}>
-              <input placeholder="🔍 Search items…" value={search} onChange={(e) => setSearch(e.target.value)} style={S.searchInput} />
-              <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} style={S.filterSelect}>
-                {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            {loading ? <div style={S.emptyBox}>Loading stock…</div> : (
-              <>
-                <div style={S.listCount}>{filtered.length} item{filtered.length !== 1 ? "s" : ""} in stock</div>
-                {filtered.length === 0
-                  ? <div style={S.emptyBox}>{stock.length === 0 ? "No stock added yet. Go to '➕ Add Stock' tab to begin." : "No items match your search or filter."}</div>
-                  : filtered.map((s) => (
-                    <div key={s.id} style={S.stockCard}>
-                      {s.imageUrl && (
-                        <img src={s.imageUrl} alt={s.name} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8, marginBottom: 8 }} />
-                      )}
-                      <div style={S.stockCardTop}>
-                        <div>
-                          <div style={S.stockName}>{s.name}</div>
-                          <div style={S.badgeRow}>
-                            {s.isLowStock && <span style={S.lowBadge}>Low Stock</span>}
-                            {s.medExpiry && new Date(`${s.medExpiry}-01`) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) && <span style={S.expiryBadge}>⏰ Exp: {s.medExpiry}</span>}
-                          </div>
-                        </div>
-                      </div>
-                      <div style={S.stockMeta}>{renderStockItem(s)}</div>
-                      <div style={S.stockActions}>
-                        <button onClick={() => handleEdit(s)} style={S.editBtn(t.color)}>Edit</button>
-                        {confirmDel === s.id
-                          ? <div style={S.confirmRow}><button onClick={() => handleDelete(s.id)} style={S.confirmYes}>Yes, Remove</button><button onClick={() => setConfirmDel(null)} style={S.confirmNo}>Cancel</button></div>
-                          : <button onClick={() => setConfirmDel(s.id)} style={S.removeBtn}>Remove</button>}
-                      </div>
-                    </div>
-                  ))}
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-
-  // ═══════════════════════════════════════════════════════════
-  //   DESKTOP RENDER
+  //   RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <div className="stock-page">
+    <div className="pr-page" style={{ "--accent": t.color }}>
       {toast && (
-        <div style={{ position: "fixed", top: "72px", left: "50%", transform: "translateX(-50%)", zIndex: 9999, padding: "10px 24px", borderRadius: "100px", fontWeight: 600, fontSize: "0.85rem", whiteSpace: "nowrap", background: toast.type === "success" ? "#0e1b2e" : "#dc2626", color: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,0.18)" }}>
+        <div className={`pr-toast${toast.type === "success" ? "" : " pr-toast--error"}`}
+          role={toast.type === "success" ? "status" : "alert"}>
           {toast.msg}
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }}>
-        <h2 style={{ margin: 0 }}>Stock Entry</h2>
-        {shopProfile && <span style={{ background: t.color + "18", color: t.color, border: `1.5px solid ${t.color}44`, padding: "4px 12px", borderRadius: "100px", fontSize: "0.76rem", fontWeight: 700 }}>{t.icon} {t.label}</span>}
-      </div>
-      {t.hint && <p style={{ margin: "0 0 20px", fontSize: "0.82rem", color: "#64748b" }}>{t.hint}</p>}
-      {!shopProfile && !loading && (
-        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "12px", padding: "12px 18px", marginBottom: "18px", fontSize: "0.83rem", color: "#92400e" }}>
-          ⚠️ <strong>Shop Profile not set.</strong> Go to <strong>Shop Profile</strong> to select your business type.
+
+      <header className="pr-header">
+        <div>
+          <h2 className="pr-title">Stock Entry</h2>
+          {t.hint && <p className="pr-sub">{t.hint}</p>}
         </div>
+        {shopProfile && <span className="pr-badge"><span aria-hidden="true">{t.icon}</span> {t.label}</span>}
+      </header>
+
+      {!shopProfile && !loading && (
+        <div className="pr-alert"><strong>Shop Profile not set.</strong> Go to <strong>Shop Profile</strong> to select your business type.</div>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "14px", marginBottom: "22px" }}>
+
+      <div className="pr-stats">
         {statsData.map((s) => (
-          <div key={s.label} style={{ background: "#fff", borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", borderLeft: `4px solid ${s.color}` }}>
-            <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 600, marginBottom: "6px" }}>{s.label}</div>
-            <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#0f172a" }}>{s.value}</div>
+          <div key={s.label} className="pr-stat" style={{ "--dot": s.color }}>
+            <div className="pr-stat-label">{s.label}</div>
+            <div className="pr-stat-value">{s.value}</div>
           </div>
         ))}
       </div>
+
       {lowStock.length > 0 && (
-        <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
-          <strong style={{ color: "#c2410c", fontSize: "0.88rem" }}>⚠️ Low Stock — {lowStock.length} item{lowStock.length > 1 ? "s" : ""} need restocking</strong>
-          <div style={{ marginTop: "8px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
-            {lowStock.map((s) => <span key={s.id} style={{ background: "#fee2e2", color: "#991b1b", padding: "3px 10px", borderRadius: "100px", fontSize: "0.73rem", fontWeight: 600 }}>{s.name} — {s.qty} {s.unit} left</span>)}
+        <div className="pr-low">
+          <div className="pr-low-title">Low stock — {lowStock.length} item{lowStock.length > 1 ? "s" : ""} need restocking</div>
+          <div className="pr-low-list">
+            {lowStock.map((s) => <span key={s.id} className="pr-low-chip">{s.name} — {s.qty} {s.unit} left</span>)}
           </div>
         </div>
       )}
-      <div className="sub-nav">
-        {TAB_LIST.map((tb) => <button key={tb.key} className={`sub-link${tab === tb.key ? " active" : ""}`} onClick={() => handleTabClick(tb.key)} style={{ background: "none", border: "none", cursor: "pointer" }}>{tb.label}</button>)}
-      </div>
+
+      <nav className="pr-tabs" aria-label="Stock sections">
+        {TAB_LIST.map((tb) => (
+          <button key={tb.key} type="button" className="pr-tab"
+            aria-current={tab === tb.key ? "page" : undefined}
+            onClick={() => handleTabClick(tb.key)}>
+            {tb.label}
+          </button>
+        ))}
+      </nav>
 
       {tab === "add" && (
-        <div style={{ marginTop: "20px" }}>
-          <h3 style={{ margin: "0 0 4px" }}>{editingId ? "Edit Stock Item" : `Add Stock — ${t.icon} ${t.label}`}</h3>
-          <p style={{ fontSize: "0.83rem", color: "#64748b", marginBottom: "20px" }}>{editingId ? "Update the details below and click Update Stock." : "Same item name will auto-merge quantity."}</p>
-          {renderFormFields()}
-          {shopType !== "Gold and Silver" && <MarginPreview form={form} t={t} isMobile={false} />}
-          {shopType !== "Gold and Silver" && shopProfile?.gst_enabled && <GstPreview gstCalc={gstCalc} form={form} setForm={setForm} isMobile={false} />}
-          <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
-            <button onClick={handleAddStock} disabled={saving} style={{ padding: "12px 28px", borderRadius: "10px", border: "none", background: t.color, color: "#fff", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer", opacity: saving ? 0.7 : 1 }}>
-              {saving ? "Saving…" : editingId ? "✅ Update Stock" : "✅ Add Stock"}
+        <div className="pr-form">
+          <div className="pr-form-head">
+            <h3 className="pr-form-title">{editingId ? "Edit stock item" : `Add stock — ${t.label}`}</h3>
+            <p className="pr-form-sub">{editingId ? "Update the details below and click Update Stock." : "Same item name will auto-merge quantity."}</p>
+          </div>
+          <div className="pr-form-body">
+            {renderFormFields()}
+            {shopType !== "Gold and Silver" && <MarginPreview form={form} />}
+            {shopType !== "Gold and Silver" && shopProfile?.gst_enabled && <GstPreview gstCalc={gstCalc} form={form} setForm={setForm} />}
+          </div>
+          <div className="pr-formbar">
+            {editingId && <button type="button" onClick={handleCancelEdit} className="pr-btn pr-btn--lg">Cancel</button>}
+            <button type="button" onClick={handleAddStock} disabled={saving} className="pr-btn pr-btn--primary pr-btn--lg">
+              {saving ? "Saving…" : editingId ? "Update Stock" : "Add Stock"}
             </button>
-            {editingId && <button onClick={handleCancelEdit} style={{ padding: "12px 20px", borderRadius: "10px", border: "1.5px solid #cbd5e1", background: "#fff", color: "#64748b", fontWeight: 600, fontSize: "0.9rem", cursor: "pointer" }}>✕ Cancel Edit</button>}
           </div>
         </div>
       )}
 
       {tab === "list" && (
         <>
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", margin: "20px 0 16px" }}>
-            <input placeholder="🔍 Search items…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: "180px", ...inputStyle }} />
-            <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} style={{ ...selectStyle, minWidth: "160px" }}>
+          <div className="pr-toolbar">
+            <input className="pr-input pr-search" aria-label="Search items" placeholder="Search items…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <select className="pr-select" aria-label="Filter by category" value={filterCat} onChange={(e) => setFilterCat(e.target.value)}>
               {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          {loading ? <div className="empty-box">Loading stock…</div> : (
+
+          {loading ? <div className="pr-empty pr-empty--loading">Loading stock…</div> : (
             <>
-              <h3 style={{ margin: "0 0 14px" }}>{filtered.length} item{filtered.length !== 1 ? "s" : ""} in stock</h3>
+              <h3 className="pr-count">{filtered.length} item{filtered.length !== 1 ? "s" : ""} in stock</h3>
               {filtered.length === 0
-                ? <div className="empty-box">{stock.length === 0 ? "No stock added yet. Go to '➕ Add Stock' tab to begin." : "No items match your search or filter."}</div>
-                : <ul style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", padding: 0, listStyle: "none", margin: 0 }}>
-                  {filtered.map((s) => (
-                    <li key={s.id}>
-                      {s.imageUrl && (
-                        <img src={s.imageUrl} alt={s.name} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
-                      )}
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "5px", flexWrap: "wrap" }}>
-                          <strong style={{ fontSize: "0.95rem", color: "#0f172a" }}>{s.name}</strong>
-                          {s.isLowStock && <span style={{ background: "#fee2e2", color: "#991b1b", fontSize: "0.62rem", fontWeight: 700, padding: "2px 8px", borderRadius: "100px", textTransform: "uppercase" }}>Low Stock</span>}
-                          {s.medExpiry && new Date(`${s.medExpiry}-01`) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) && <span style={{ background: "#fef3c7", color: "#92400e", fontSize: "0.62rem", fontWeight: 700, padding: "2px 8px", borderRadius: "100px" }}>⏰ Exp: {s.medExpiry}</span>}
+                ? <div className="pr-empty">{stock.length === 0 ? "No stock added yet. Open the “Add Stock” tab to add your first item." : "No items match your search or filter."}</div>
+                : (
+                  <ul className="pr-list">
+                    {filtered.map((s) => (
+                      <li key={s.id} className="pr-card">
+                        <div className="pr-card-head">
+                          {s.imageUrl && <img src={s.imageUrl} alt={s.name} className="pr-card-img" />}
+                          <div className="pr-card-main">
+                            <h4 className="pr-card-name">{s.name}</h4>
+                            {(s.isLowStock || isExpiringSoon(s)) && (
+                              <div className="pr-tags">
+                                {s.isLowStock && <span className="pr-tag pr-tag--low">Low stock</span>}
+                                {isExpiringSoon(s) && <span className="pr-tag pr-tag--exp">Exp: {s.medExpiry}</span>}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>{renderStockItem(s)}</div>
-                      </div>
-                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                        <button onClick={() => handleEdit(s)} style={{ padding: "6px 12px", borderRadius: "6px", background: t.color, color: "#fff", border: "none", fontSize: "12px", cursor: "pointer" }}>Edit</button>
-                        {confirmDel === s.id
-                          ? <div style={{ display: "flex", gap: "6px" }}>
-                              <button onClick={() => handleDelete(s.id)} style={{ padding: "6px 10px", borderRadius: "6px", background: "#dc2626", color: "#fff", border: "none", fontSize: "12px", cursor: "pointer" }}>Yes, Remove</button>
-                              <button onClick={() => setConfirmDel(null)} style={{ padding: "6px 10px", borderRadius: "6px", background: "#f1f5f9", color: "#64748b", border: "none", fontSize: "12px", cursor: "pointer" }}>Cancel</button>
-                            </div>
-                          : <button onClick={() => setConfirmDel(s.id)}>Remove</button>}
-                      </div>
-                    </li>
-                  ))}
-                </ul>}
+                        <div className="pr-meta">{renderStockItem(s)}</div>
+                        <div className="pr-card-actions">
+                          <button type="button" onClick={() => handleEdit(s)} className="pr-btn pr-btn--sm">Edit</button>
+                          {confirmDel === s.id ? (
+                            <>
+                              <button type="button" onClick={() => handleDelete(s.id)} className="pr-btn pr-btn--danger pr-btn--sm">Yes, Remove</button>
+                              <button type="button" onClick={() => setConfirmDel(null)} className="pr-btn pr-btn--sm">Cancel</button>
+                            </>
+                          ) : (
+                            <button type="button" onClick={() => setConfirmDel(s.id)} className="pr-btn pr-btn--danger-ghost pr-btn--sm">Remove</button>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
             </>
           )}
         </>

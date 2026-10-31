@@ -127,7 +127,7 @@ const PreSubscriptionView = ({ greet, displayName, navigate }) => {
             <span className="ps-price">₹199</span>
             <span className="ps-price-per">/month</span>
           </div>
-          <div className="ps-trial">⏱ 7 Days Free Trial</div>
+          <div className="ps-trial">⏱ 30 Days Free Trial</div>
           <button className="ps-btn-primary ps-btn-block" onClick={goPlans}>
             Choose a Plan →
           </button>

@@ -6,7 +6,7 @@ const m = {
   title: "Business Billing",
   description: "Invoices, GST, stock & customer management for your shop",
   price: "₹199",
-  trial: "7 Days Free Trial",
+  trial: "30 Days Free Trial",
   tag: "⭐ Most Popular",
   features: [
     "GST-compliant invoices in 30 sec",
